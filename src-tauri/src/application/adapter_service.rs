@@ -1,5 +1,7 @@
 use crate::{
-    application::mcp_listing_service::McpListingService,
+    application::{
+        mcp_listing_service::McpListingService, skill_listing_service::SkillListingService,
+    },
     contracts::{
         command::CommandError,
         common::ResourceKind,
@@ -65,12 +67,10 @@ impl<'a> AdapterService<'a> {
                 client.as_str()
             )));
         };
+        let _adapter_probe = adapter.list_resources(request.resource_kind);
 
-        let mut result = adapter.list_resources(request.resource_kind);
-
-        if let Some(enabled_filter) = request.enabled {
-            result.items.retain(|item| item.enabled == enabled_filter);
-        }
+        let skill_listing_service = SkillListingService::new();
+        let result = skill_listing_service.list(client, request.enabled);
 
         Ok(ListResourcesResponse {
             client: Some(client),
@@ -159,16 +159,10 @@ mod tests {
                 resource_kind: ResourceKind::Skill,
                 enabled: None,
             })
-            .expect("list should return placeholder response");
+            .expect("skill list should resolve through skill listing service");
 
         assert_eq!(response.client, Some(ClientKind::Cursor));
-        assert!(response.items.is_empty());
-        assert!(
-            response
-                .warning
-                .as_deref()
-                .is_some_and(|warning| warning.contains("cursor"))
-        );
+        assert!(matches!(response.resource_kind, ResourceKind::Skill));
     }
 
     #[test]

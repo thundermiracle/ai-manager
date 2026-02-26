@@ -71,6 +71,8 @@ export interface ResourceRecord {
   enabled: boolean;
   transport_kind: string | null;
   source_path: string | null;
+  description: string | null;
+  install_kind: string | null;
 }
 
 export interface ListResourcesResponse {
