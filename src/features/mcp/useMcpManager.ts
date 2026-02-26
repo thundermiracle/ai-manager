@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { listResources, mutateResource } from "../../backend/client";
 import type { ClientKind, CommandEnvelope, ResourceRecord } from "../../backend/contracts";
+import { redactNullableSensitiveText, redactSensitiveText } from "../../security/redaction";
 import {
-  redactNullableSensitiveText,
-  redactSensitiveText,
-  toRedactedRuntimeErrorMessage,
-} from "../../security/redaction";
+  commandErrorToDiagnostic,
+  type ErrorDiagnostic,
+  runtimeErrorToDiagnostic,
+} from "../common/errorDiagnostics";
 
 export type McpTransportInput =
   | {
@@ -28,6 +29,7 @@ export interface AddMcpInput {
 interface MutationFeedback {
   kind: "success" | "error";
   message: string;
+  diagnostic?: ErrorDiagnostic;
 }
 
 type LoadPhase = "idle" | "loading" | "ready" | "error";
@@ -36,7 +38,7 @@ interface UseMcpManagerResult {
   phase: LoadPhase;
   resources: ResourceRecord[];
   warning: string | null;
-  operationError: string | null;
+  operationError: ErrorDiagnostic | null;
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
   sourcePathHint: string | null;
@@ -46,11 +48,14 @@ interface UseMcpManagerResult {
   clearFeedback: () => void;
 }
 
-function envelopeErrorMessage(envelope: CommandEnvelope<unknown>): string {
-  if (envelope.error?.message) {
-    return redactSensitiveText(envelope.error.message);
+function envelopeErrorDiagnostic(
+  envelope: CommandEnvelope<unknown>,
+  fallbackMessage: string,
+): ErrorDiagnostic {
+  if (envelope.error) {
+    return commandErrorToDiagnostic(envelope.error);
   }
-  return redactSensitiveText("Command failed without an explicit error payload.");
+  return runtimeErrorToDiagnostic(fallbackMessage);
 }
 
 function sortResources(resources: ResourceRecord[]): ResourceRecord[] {
@@ -66,7 +71,7 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
   const [phase, setPhase] = useState<LoadPhase>("idle");
   const [resources, setResources] = useState<ResourceRecord[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
-  const [operationError, setOperationError] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<ErrorDiagnostic | null>(null);
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
 
@@ -90,16 +95,23 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
 
       if (!envelope.ok || envelope.data === null) {
         setPhase("error");
-        setOperationError(envelopeErrorMessage(envelope));
+        setOperationError(
+          envelopeErrorDiagnostic(
+            envelope,
+            "List command failed without an explicit error payload.",
+          ),
+        );
         return;
       }
 
       setResources(sortResources(envelope.data.items));
       setWarning(redactNullableSensitiveText(envelope.data.warning));
+      setOperationError(null);
       setPhase("ready");
     } catch (error) {
       setPhase("error");
-      setOperationError(toRedactedRuntimeErrorMessage(error, "Unknown list runtime error."));
+      const message = error instanceof Error ? error.message : "Unknown list runtime error.";
+      setOperationError(runtimeErrorToDiagnostic(message));
     }
   }, [client]);
 
@@ -110,9 +122,11 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
   const addMcp = useCallback(
     async (input: AddMcpInput) => {
       if (client === null) {
+        const diagnostic = runtimeErrorToDiagnostic("Select a client before adding an MCP entry.");
         setFeedback({
           kind: "error",
-          message: redactSensitiveText("Select a client before adding an MCP entry."),
+          message: diagnostic.message,
+          diagnostic,
         });
         return false;
       }
@@ -141,7 +155,11 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         });
 
         if (!envelope.ok || envelope.data === null) {
-          setFeedback({ kind: "error", message: envelopeErrorMessage(envelope) });
+          const diagnostic = envelopeErrorDiagnostic(
+            envelope,
+            "Mutation command failed without an explicit error payload.",
+          );
+          setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
           return false;
         }
 
@@ -149,9 +167,12 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         await refresh();
         return true;
       } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown add runtime error.";
+        const diagnostic = runtimeErrorToDiagnostic(message);
         setFeedback({
           kind: "error",
-          message: toRedactedRuntimeErrorMessage(error, "Unknown add runtime error."),
+          message: diagnostic.message,
+          diagnostic,
         });
         return false;
       }
@@ -162,9 +183,13 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
   const removeMcp = useCallback(
     async (targetId: string, sourcePath: string | null) => {
       if (client === null) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Select a client before removing an MCP entry.",
+        );
         setFeedback({
           kind: "error",
-          message: redactSensitiveText("Select a client before removing an MCP entry."),
+          message: diagnostic.message,
+          diagnostic,
         });
         return false;
       }
@@ -180,7 +205,11 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         });
 
         if (!envelope.ok || envelope.data === null) {
-          setFeedback({ kind: "error", message: envelopeErrorMessage(envelope) });
+          const diagnostic = envelopeErrorDiagnostic(
+            envelope,
+            "Mutation command failed without an explicit error payload.",
+          );
+          setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
           return false;
         }
 
@@ -188,9 +217,12 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         await refresh();
         return true;
       } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown remove runtime error.";
+        const diagnostic = runtimeErrorToDiagnostic(message);
         setFeedback({
           kind: "error",
-          message: toRedactedRuntimeErrorMessage(error, "Unknown remove runtime error."),
+          message: diagnostic.message,
+          diagnostic,
         });
         return false;
       } finally {

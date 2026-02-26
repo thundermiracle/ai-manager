@@ -1,5 +1,6 @@
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
 import { formatClientLabel } from "../clients/client-labels";
+import { ErrorRecoveryCallout } from "../common/ErrorRecoveryCallout";
 import { ViewStatePanel } from "../common/ViewStatePanel";
 import { SkillAddForm } from "./components/SkillAddForm";
 import { SkillResourceTable } from "./components/SkillResourceTable";
@@ -67,17 +68,24 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
       </header>
 
       {warning ? <p className="mcp-feedback mcp-feedback-warning">{warning}</p> : null}
-      {operationError ? <p className="mcp-feedback mcp-feedback-error">{operationError}</p> : null}
-      {feedback ? (
-        <p
-          className={
-            feedback.kind === "success"
-              ? "mcp-feedback mcp-feedback-success"
-              : "mcp-feedback mcp-feedback-error"
-          }
-        >
-          {feedback.message}
-        </p>
+      {operationError ? (
+        <ErrorRecoveryCallout
+          title="Skills list operation failed"
+          diagnostic={operationError}
+          retryLabel="Retry List"
+          onRetry={() => {
+            void refresh();
+          }}
+        />
+      ) : null}
+      {feedback?.kind === "success" ? (
+        <p className="mcp-feedback mcp-feedback-success">{feedback.message}</p>
+      ) : null}
+      {feedback?.kind === "error" && feedback.diagnostic ? (
+        <ErrorRecoveryCallout title="Skill mutation failed" diagnostic={feedback.diagnostic} />
+      ) : null}
+      {feedback?.kind === "error" && !feedback.diagnostic ? (
+        <p className="mcp-feedback mcp-feedback-error">{feedback.message}</p>
       ) : null}
 
       <div className="mcp-layout">
