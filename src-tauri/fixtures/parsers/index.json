@@ -1,0 +1,74 @@
+[
+  {
+    "name": "claude_code_valid_json",
+    "client": "claude_code",
+    "fixture": "claude_code.valid.json",
+    "expected": "success",
+    "min_servers": 2,
+    "warning_codes": [],
+    "error_codes": []
+  },
+  {
+    "name": "cursor_valid_json_with_warning",
+    "client": "cursor",
+    "fixture": "cursor.valid.json",
+    "expected": "success",
+    "min_servers": 1,
+    "warning_codes": ["PARSER_SERVER_ENTRY_INVALID"],
+    "error_codes": []
+  },
+  {
+    "name": "codex_app_valid_json",
+    "client": "codex_app",
+    "fixture": "codex_app.valid.json",
+    "expected": "success",
+    "min_servers": 1,
+    "warning_codes": [],
+    "error_codes": []
+  },
+  {
+    "name": "codex_cli_valid_toml",
+    "client": "codex_cli",
+    "fixture": "codex_cli.valid.toml",
+    "expected": "success",
+    "min_servers": 2,
+    "warning_codes": [],
+    "error_codes": []
+  },
+  {
+    "name": "json_missing_section",
+    "client": "claude_code",
+    "fixture": "missing_section.json",
+    "expected": "success",
+    "min_servers": 0,
+    "warning_codes": ["PARSER_MCP_SECTION_MISSING"],
+    "error_codes": []
+  },
+  {
+    "name": "toml_missing_section",
+    "client": "codex_cli",
+    "fixture": "missing_section.toml",
+    "expected": "success",
+    "min_servers": 0,
+    "warning_codes": ["PARSER_MCP_SECTION_MISSING"],
+    "error_codes": []
+  },
+  {
+    "name": "malformed_json",
+    "client": "cursor",
+    "fixture": "malformed.json",
+    "expected": "failure",
+    "min_servers": 0,
+    "warning_codes": [],
+    "error_codes": ["PARSER_JSON_SYNTAX"]
+  },
+  {
+    "name": "malformed_toml",
+    "client": "codex_cli",
+    "fixture": "malformed.toml",
+    "expected": "failure",
+    "min_servers": 0,
+    "warning_codes": [],
+    "error_codes": ["PARSER_TOML_SYNTAX"]
+  }
+]

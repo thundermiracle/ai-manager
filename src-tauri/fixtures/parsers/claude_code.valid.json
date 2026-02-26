@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "enabled": true
+    },
+    "github": {
+      "url": "https://mcp.example.com/sse",
+      "enabled": false
+    }
+  }
+}
