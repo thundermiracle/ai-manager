@@ -34,5 +34,5 @@ test("cli detector reason codes distinguish missing binary vs missing config", (
   assert.match(pathBasedDetector, /\[config_missing\]/);
   assert.match(pathBasedDetector, /\[binary_missing\]/);
   assert.match(pathBasedDetector, /\[binary_and_config_missing\]/);
-  assert.match(pathBasedDetector, /\[config_override_invalid\]/);
+  assert.match(pathBasedDetector, /\[config_override_missing\]/);
 });
