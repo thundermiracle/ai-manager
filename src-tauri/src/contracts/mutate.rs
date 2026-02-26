@@ -35,4 +35,5 @@ pub struct MutateResourceResponse {
     pub action: MutationAction,
     pub target_id: String,
     pub message: String,
+    pub source_path: Option<String>,
 }
