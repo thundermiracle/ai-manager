@@ -23,7 +23,7 @@ pub fn mutate_resource(
         return CommandEnvelope::failure(CommandError::shutting_down(), meta);
     }
 
-    let service = AdapterService::new(state.adapter_registry());
+    let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
 
     match service.mutate_resource(&request) {
         Ok(response) if response.accepted => CommandEnvelope::success(response, meta),

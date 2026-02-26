@@ -14,6 +14,18 @@ const adapterService = readFileSync(
   new URL("../src-tauri/src/application/adapter_service.rs", import.meta.url),
   "utf8",
 );
+const detectorInterface = readFileSync(
+  new URL("../src-tauri/src/detection/client_detector.rs", import.meta.url),
+  "utf8",
+);
+const detectorRegistry = readFileSync(
+  new URL("../src-tauri/src/detection/detector_registry.rs", import.meta.url),
+  "utf8",
+);
+const detectContract = readFileSync(
+  new URL("../src-tauri/src/contracts/detect.rs", import.meta.url),
+  "utf8",
+);
 const detectCommand = readFileSync(
   new URL("../src-tauri/src/commands/detect.rs", import.meta.url),
   "utf8",
@@ -25,10 +37,13 @@ const architectureDoc = readFileSync(
 
 test("domain exposes adapter interface independent from concrete clients", () => {
   assert.match(domainAdapterPort, /pub trait ClientAdapter: Send \+ Sync/);
-  assert.match(domainAdapterPort, /fn detect\(&self, include_versions: bool\) -> ClientDetection/);
   assert.match(
     domainAdapterPort,
     /fn list_resources\(&self, resource_kind: ResourceKind\) -> AdapterListResult/,
+  );
+  assert.match(
+    domainAdapterPort,
+    /fn mutate_resource\(&self, action: MutationAction, target_id: &str\) -> AdapterMutationResult/,
   );
 });
 
@@ -42,7 +57,21 @@ test("infra registry wires exactly the four current client adapters", () => {
 test("application service is the orchestration boundary consumed by commands", () => {
   assert.match(adapterService, /pub struct AdapterService<'a>/);
   assert.match(adapterService, /pub fn detect_clients\(&self, request: DetectClientsRequest\)/);
-  assert.match(detectCommand, /let service = AdapterService::new\(state.adapter_registry\(\)\);/);
+  assert.match(
+    detectCommand,
+    /let service = AdapterService::new\(state.adapter_registry\(\), state.detector_registry\(\)\);/,
+  );
+});
+
+test("detector framework shares one interface and output schema", () => {
+  assert.match(detectorInterface, /pub trait ClientDetector: Send \+ Sync/);
+  assert.match(detectorRegistry, /Box::new\(ClaudeCodeDetector::new\(\)\)/);
+  assert.match(detectorRegistry, /Box::new\(CodexCliDetector::new\(\)\)/);
+  assert.match(detectorRegistry, /Box::new\(CursorDetector::new\(\)\)/);
+  assert.match(detectorRegistry, /Box::new\(CodexAppDetector::new\(\)\)/);
+  assert.match(detectContract, /pub status: DetectionStatus/);
+  assert.match(detectContract, /pub confidence: u8/);
+  assert.match(detectContract, /pub evidence: DetectionEvidence/);
 });
 
 test("architecture doc explains the layer split and extension rule", () => {

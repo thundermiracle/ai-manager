@@ -20,6 +20,7 @@ impl AdapterRegistry {
         }
     }
 
+    #[cfg(test)]
     pub fn all(&self) -> impl Iterator<Item = &dyn ClientAdapter> {
         self.adapters.iter().map(std::boxed::Box::as_ref)
     }

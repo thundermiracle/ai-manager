@@ -4,6 +4,7 @@ use std::sync::{
 };
 
 use crate::contracts::common::{LifecyclePhase, LifecycleSnapshot};
+use crate::detection::DetectorRegistry;
 use crate::infra::AdapterRegistry;
 
 use super::clock::now_epoch_ms;
@@ -12,6 +13,7 @@ pub struct AppState {
     lifecycle: RwLock<LifecycleSnapshot>,
     operation_counter: AtomicU64,
     adapter_registry: AdapterRegistry,
+    detector_registry: DetectorRegistry,
 }
 
 impl AppState {
@@ -24,6 +26,7 @@ impl AppState {
             }),
             operation_counter: AtomicU64::new(0),
             adapter_registry: AdapterRegistry::with_default_adapters(),
+            detector_registry: DetectorRegistry::with_default_detectors(),
         }
     }
 
@@ -54,6 +57,10 @@ impl AppState {
         &self.adapter_registry
     }
 
+    pub fn detector_registry(&self) -> &DetectorRegistry {
+        &self.detector_registry
+    }
+
     fn with_lifecycle_read<T>(&self, accessor: impl FnOnce(&LifecycleSnapshot) -> T) -> T {
         match self.lifecycle.read() {
             Ok(guard) => accessor(&guard),
@@ -81,7 +88,7 @@ impl Default for AppState {
 #[cfg(test)]
 mod tests {
     use super::AppState;
-    use crate::contracts::common::{ClientKind, LifecyclePhase};
+    use crate::contracts::common::ClientKind;
 
     #[test]
     fn operation_id_counter_increments_per_command_prefix() {
@@ -102,7 +109,10 @@ mod tests {
         state.mark_shutdown_requested();
         let second = state.lifecycle_snapshot();
 
-        assert!(matches!(first.phase, LifecyclePhase::ShuttingDown));
+        assert!(matches!(
+            first.phase,
+            crate::contracts::common::LifecyclePhase::ShuttingDown
+        ));
         assert_eq!(
             first.shutdown_requested_at_epoch_ms,
             second.shutdown_requested_at_epoch_ms
@@ -122,6 +132,33 @@ mod tests {
 
         assert_eq!(
             adapters,
+            vec![
+                ClientKind::ClaudeCode,
+                ClientKind::CodexCli,
+                ClientKind::Cursor,
+                ClientKind::CodexApp,
+            ]
+        );
+    }
+
+    #[test]
+    fn app_state_exposes_default_detector_registry() {
+        let state = AppState::new();
+
+        let detectors: Vec<ClientKind> = state
+            .detector_registry()
+            .all()
+            .map(|detector| {
+                detector
+                    .detect(&crate::contracts::detect::DetectClientsRequest {
+                        include_versions: false,
+                    })
+                    .client
+            })
+            .collect();
+
+        assert_eq!(
+            detectors,
             vec![
                 ClientKind::ClaudeCode,
                 ClientKind::CodexCli,

@@ -49,6 +49,7 @@ export interface DetectionEvidence {
 export interface ClientDetection {
   client: ClientKind;
   status: DetectionStatus;
+  confidence: number;
   evidence: DetectionEvidence;
   note: string;
 }

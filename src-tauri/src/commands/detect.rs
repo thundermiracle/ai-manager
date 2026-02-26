@@ -23,7 +23,7 @@ pub fn detect_clients(
         return CommandEnvelope::failure(CommandError::shutting_down(), meta);
     }
 
-    let service = AdapterService::new(state.adapter_registry());
+    let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
 
     CommandEnvelope::success(service.detect_clients(request), meta)
 }

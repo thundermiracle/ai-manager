@@ -20,7 +20,7 @@ pub fn list_resources(
         return CommandEnvelope::failure(CommandError::shutting_down(), meta);
     }
 
-    let service = AdapterService::new(state.adapter_registry());
+    let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
 
     match service.list_resources(request) {
         Ok(response) => CommandEnvelope::success(response, meta),
