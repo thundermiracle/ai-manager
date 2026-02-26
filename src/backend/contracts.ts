@@ -59,19 +59,22 @@ export interface DetectClientsResponse {
 }
 
 export interface ListResourcesRequest {
-  client: ClientKind;
+  client?: ClientKind | null;
   resource_kind: ResourceKind;
+  enabled?: boolean | null;
 }
 
 export interface ResourceRecord {
   id: string;
+  client: ClientKind;
   display_name: string;
   enabled: boolean;
+  transport_kind: string | null;
   source_path: string | null;
 }
 
 export interface ListResourcesResponse {
-  client: ClientKind;
+  client: ClientKind | null;
   resource_kind: ResourceKind;
   items: ResourceRecord[];
   warning: string | null;
