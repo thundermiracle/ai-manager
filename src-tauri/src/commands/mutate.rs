@@ -26,7 +26,9 @@ pub fn mutate_resource(
     let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
 
     match service.mutate_resource(&request) {
-        Ok(response) if response.accepted => CommandEnvelope::success(response, meta),
+        Ok(response) if response.accepted => {
+            CommandEnvelope::success(response.redact_sensitive(), meta)
+        }
         Ok(response) => {
             CommandEnvelope::failure(CommandError::not_implemented(response.message), meta)
         }

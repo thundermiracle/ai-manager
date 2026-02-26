@@ -25,5 +25,5 @@ pub fn detect_clients(
 
     let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
 
-    CommandEnvelope::success(service.detect_clients(request), meta)
+    CommandEnvelope::success(service.detect_clients(request).redact_sensitive(), meta)
 }

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::common::LifecycleSnapshot;
+use crate::security::redaction::redact_sensitive_text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -20,17 +21,19 @@ pub struct CommandError {
 
 impl CommandError {
     pub fn validation(message: impl Into<String>) -> Self {
+        let message = message.into();
         Self {
             code: CommandErrorCode::ValidationError,
-            message: message.into(),
+            message: redact_sensitive_text(&message),
             recoverable: true,
         }
     }
 
     pub fn not_implemented(message: impl Into<String>) -> Self {
+        let message = message.into();
         Self {
             code: CommandErrorCode::NotImplemented,
-            message: message.into(),
+            message: redact_sensitive_text(&message),
             recoverable: true,
         }
     }
@@ -44,9 +47,10 @@ impl CommandError {
     }
 
     pub fn internal(message: impl Into<String>) -> Self {
+        let message = message.into();
         Self {
             code: CommandErrorCode::InternalError,
-            message: message.into(),
+            message: redact_sensitive_text(&message),
             recoverable: false,
         }
     }
@@ -144,5 +148,11 @@ mod tests {
         assert_eq!(error.code, CommandErrorCode::InternalError);
         assert_eq!(error.message, "registry misconfigured");
         assert!(!error.recoverable);
+    }
+
+    #[test]
+    fn command_error_masks_sensitive_values() {
+        let error = CommandError::validation("token=abc123");
+        assert_eq!(error.message, "token=[REDACTED]");
     }
 }

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::common::ClientKind;
+use crate::security::redaction::redact_sensitive_text;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DetectClientsRequest {
@@ -36,4 +37,40 @@ pub struct ClientDetection {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DetectClientsResponse {
     pub clients: Vec<ClientDetection>,
+}
+
+impl DetectClientsResponse {
+    pub fn redact_sensitive(mut self) -> Self {
+        for client in &mut self.clients {
+            client.note = redact_sensitive_text(&client.note);
+        }
+
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ClientDetection, DetectClientsResponse, DetectionEvidence, DetectionStatus};
+    use crate::contracts::common::ClientKind;
+
+    #[test]
+    fn detect_response_redacts_notes() {
+        let response = DetectClientsResponse {
+            clients: vec![ClientDetection {
+                client: ClientKind::Cursor,
+                status: DetectionStatus::Detected,
+                confidence: 100,
+                evidence: DetectionEvidence {
+                    binary_path: None,
+                    config_path: None,
+                    version: None,
+                },
+                note: "authorization=Bearer topsecret".to_string(),
+            }],
+        }
+        .redact_sensitive();
+
+        assert_eq!(response.clients[0].note, "authorization=Bearer [REDACTED]");
+    }
 }
