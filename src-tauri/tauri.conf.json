@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AI Manager",
+  "version": "0.1.0",
+  "identifier": "com.thundermiracle.ai-manager",
+  "build": {
+    "beforeDevCommand": "pnpm run pretauri:dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm run pretauri:build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "AI Manager",
+        "width": 1200,
+        "height": 820
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

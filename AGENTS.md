@@ -20,7 +20,8 @@
 
 ## Toolchain Policy
 
-- Use latest stable libraries unless constrained.
+- Always select the latest stable library versions when adding or updating dependencies.
+- Before creating a PR, verify there are no stale dependencies with `pnpm outdated`.
 - Target Node.js `v24` and Rust `2024 edition`.
 - Always use `pnpm` commands instead of `npm` (for example: `pnpm install`, `pnpm test`).
 - Use `pnpm` as the package manager.
