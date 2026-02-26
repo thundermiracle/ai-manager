@@ -1,4 +1,6 @@
 mod adapter_service;
+#[cfg(test)]
+mod critical_paths_suite;
 mod mcp_config_path_resolver;
 mod mcp_listing_service;
 mod mcp_mutation_payload;
