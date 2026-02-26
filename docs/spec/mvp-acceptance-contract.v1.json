@@ -1,0 +1,193 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-02-26",
+  "flows": [
+    "detection",
+    "list",
+    "add",
+    "remove"
+  ],
+  "releaseDecisionPolicy": {
+    "rule": "all_blocking_items_pass",
+    "blockingDefinition": "Any checklist item marked as blocking must pass with required evidence.",
+    "goState": "go",
+    "noGoState": "no_go",
+    "requiredEvidence": [
+      "automated_test",
+      "manual_qa",
+      "spec_review"
+    ]
+  },
+  "mustHaveChecklist": [
+    {
+      "id": "CHK_DETECTION_001",
+      "flow": "detection",
+      "title": "Detect all four target clients with deterministic status",
+      "description": "Detection returns deterministic detected/partial/absent/error status for Claude Code, Codex CLI, Cursor, and Codex App.",
+      "verification": "automated_test",
+      "evidence": "Fixture-based detector tests with stable expected outputs.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_DETECTION_002",
+      "flow": "detection",
+      "title": "Detection evidence is traceable",
+      "description": "Detection result includes concrete evidence such as binary path or config path without ambiguous generic output.",
+      "verification": "manual_qa",
+      "evidence": "Manual run screenshots or logs showing evidence fields for each client.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_LIST_001",
+      "flow": "list",
+      "title": "Unified MCP and Skill listing works across detected clients",
+      "description": "Read pipeline returns normalized MCP and Skill entities without UI-level client branching.",
+      "verification": "automated_test",
+      "evidence": "Integration tests across fixtures for all supported clients.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_LIST_002",
+      "flow": "list",
+      "title": "Parse failures remain actionable",
+      "description": "Malformed entries do not crash full listing and produce categorized actionable errors.",
+      "verification": "automated_test",
+      "evidence": "Negative fixtures proving partial success plus categorized error output.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_ADD_001",
+      "flow": "add",
+      "title": "Add operation is safe and reversible",
+      "description": "Adding MCP/Skill creates backup and applies atomic write semantics.",
+      "verification": "automated_test",
+      "evidence": "Mutation tests demonstrating backup creation and rollback on failure.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_ADD_002",
+      "flow": "add",
+      "title": "Validation blocks invalid additions",
+      "description": "Duplicate names, malformed transport, and invalid metadata are rejected before write.",
+      "verification": "automated_test",
+      "evidence": "Validation unit tests with explicit categorized errors.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_REMOVE_001",
+      "flow": "remove",
+      "title": "Remove operation updates target config only",
+      "description": "Removal mutates only intended entries and preserves unrelated configuration blocks.",
+      "verification": "automated_test",
+      "evidence": "Before/after fixture comparison tests for remove operations.",
+      "blocking": true
+    },
+    {
+      "id": "CHK_REMOVE_002",
+      "flow": "remove",
+      "title": "Remove operation exposes explicit user feedback",
+      "description": "UI and command boundary return clear success/error states with suggested recovery actions.",
+      "verification": "manual_qa",
+      "evidence": "Manual QA checklist signed for remove happy-path and failure-path scenarios.",
+      "blocking": true
+    }
+  ],
+  "doneDefinitions": [
+    {
+      "flow": "detection",
+      "requiredChecklistItemIds": [
+        "CHK_DETECTION_001",
+        "CHK_DETECTION_002"
+      ],
+      "doneWhen": [
+        "All target clients return deterministic status and evidence.",
+        "No detection output uses ambiguous generic error text."
+      ],
+      "notDoneWhen": [
+        "Any target client lacks reproducible detection evidence."
+      ]
+    },
+    {
+      "flow": "list",
+      "requiredChecklistItemIds": [
+        "CHK_LIST_001",
+        "CHK_LIST_002"
+      ],
+      "doneWhen": [
+        "Unified normalized list contract is stable across client fixtures.",
+        "Malformed inputs degrade gracefully with actionable categorized errors."
+      ],
+      "notDoneWhen": [
+        "One malformed file can crash whole-list retrieval."
+      ]
+    },
+    {
+      "flow": "add",
+      "requiredChecklistItemIds": [
+        "CHK_ADD_001",
+        "CHK_ADD_002"
+      ],
+      "doneWhen": [
+        "Every add path creates backup and applies atomic write semantics.",
+        "Invalid inputs are rejected before persistence."
+      ],
+      "notDoneWhen": [
+        "Add can overwrite existing configuration without conflict checks."
+      ]
+    },
+    {
+      "flow": "remove",
+      "requiredChecklistItemIds": [
+        "CHK_REMOVE_001",
+        "CHK_REMOVE_002"
+      ],
+      "doneWhen": [
+        "Remove mutates only targeted entries and leaves unrelated content untouched.",
+        "Remove flow returns clear outcome and recovery guidance."
+      ],
+      "notDoneWhen": [
+        "Successful remove cannot be verified by deterministic before/after evidence."
+      ]
+    }
+  ],
+  "nonGoals": [
+    {
+      "id": "NG_001",
+      "title": "Advanced parser extensibility and fixture DSL",
+      "description": "Extensible parser plugin mechanisms and advanced fixture DSL are deferred to parser hardening phase.",
+      "deferredToIssues": [
+        21,
+        31
+      ]
+    },
+    {
+      "id": "NG_002",
+      "title": "Full secret redaction policy across every diagnostic surface",
+      "description": "Comprehensive secret masking in all logs/UI contexts is deferred to security hardening milestones.",
+      "deferredToIssues": [
+        30,
+        32
+      ]
+    },
+    {
+      "id": "NG_003",
+      "title": "Polished multi-tab GUI and advanced interaction patterns",
+      "description": "Full dashboard polish and detailed tab UX are deferred to dedicated GUI milestones.",
+      "deferredToIssues": [
+        27,
+        28,
+        29
+      ]
+    },
+    {
+      "id": "NG_004",
+      "title": "Distribution packaging and release automation",
+      "description": "DMG packaging, release policy, and operator docs are deferred to release phase.",
+      "deferredToIssues": [
+        33,
+        34,
+        35
+      ]
+    }
+  ]
+}
