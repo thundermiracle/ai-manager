@@ -5,6 +5,7 @@ import { formatClientLabel } from "../clients/client-labels";
 import { ClientStatusCard } from "../clients/components/ClientStatusCard";
 import { useClientDetections } from "../clients/useClientDetections";
 import { ViewStatePanel } from "../common/ViewStatePanel";
+import { McpManagerPanel } from "../mcp/McpManagerPanel";
 import { type AppRoute, NAVIGATION_ITEMS } from "./navigation";
 
 function findSelectedDetection(
@@ -23,6 +24,10 @@ function renderRouteContent(route: AppRoute, selectedDetection: ClientDetection 
     return null;
   }
 
+  if (route === "mcp") {
+    return <McpManagerPanel client={selectedDetection?.client ?? null} />;
+  }
+
   if (selectedDetection === null) {
     return (
       <ViewStatePanel
@@ -32,17 +37,13 @@ function renderRouteContent(route: AppRoute, selectedDetection: ClientDetection 
     );
   }
 
-  const featureName = route === "mcp" ? "MCP Manager" : "Skills Manager";
   return (
     <section className="feature-placeholder">
-      <h2>{featureName}</h2>
+      <h2>Skills Manager</h2>
       <p>
         Selected client: <strong>{formatClientLabel(selectedDetection.client)}</strong>
       </p>
-      <p>
-        This route scaffold is ready. Interactive add/remove flows are tracked in issue{" "}
-        {route === "mcp" ? "#28" : "#29"}.
-      </p>
+      <p>This route scaffold is ready. Interactive add/remove flows are tracked in issue #29.</p>
     </section>
   );
 }
