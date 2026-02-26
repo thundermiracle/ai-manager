@@ -26,7 +26,12 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - `src/`: React frontend application.
 - `src/backend/`: Typed frontend contracts and Tauri invoke client.
 - `src-tauri/`: Rust backend and Tauri application shell.
+- `src-tauri/src/domain/`: Domain layer (adapter interfaces, client profiles, capabilities).
+- `src-tauri/src/adapters/`: Client-specific adapter implementations.
+- `src-tauri/src/infra/`: Infrastructure composition (adapter registry).
+- `src-tauri/src/application/`: Use-case service layer consumed by commands.
 - `docs/spec/`: MVP requirements and contracts.
+- `docs/architecture/`: Module boundary and design documentation.
 - `schemas/`: JSON schema contracts for specs.
 - `tests/`: Node.js unit tests for spec and project contracts.
 
@@ -34,5 +39,6 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 
 - The frontend command runner calls typed placeholder backend commands: `detect_clients`, `list_resources`, and `mutate_resource`.
 - Command responses use a shared envelope (`ok`, `data`, `error`, `meta`) with lifecycle and operation metadata.
+- Backend commands are thin boundaries and delegate to `AdapterService` through `AdapterRegistry`.
 - `src-tauri/tauri.conf.json` is configured to use `pnpm` for both dev and build hooks.
 - `scripts/ensure-tauri-icon.mjs` generates the required Tauri icon in clean environments.
