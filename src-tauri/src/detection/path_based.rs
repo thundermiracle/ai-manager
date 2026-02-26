@@ -29,9 +29,13 @@ pub fn evaluate_path_based_detector(
     let config_probe =
         probe_config_path(config.config_override_env_var, config.config_fallback_paths);
 
-    let (config_path, override_invalid_path) = match config_probe {
+    let (config_path, probe_issue) = match config_probe {
         ConfigProbe::Resolved(path) => (Some(path), None),
-        ConfigProbe::OverrideInvalid(path) => (None, Some(path)),
+        ConfigProbe::OverrideMissing(path) => (None, Some(ProbeIssue::OverrideMissing(path))),
+        ConfigProbe::OverridePermissionDenied(path) => {
+            (None, Some(ProbeIssue::OverridePermissionDenied(path)))
+        }
+        ConfigProbe::PermissionDenied(path) => (None, Some(ProbeIssue::PermissionDenied(path))),
         ConfigProbe::Missing => (None, None),
     };
 
@@ -39,7 +43,7 @@ pub fn evaluate_path_based_detector(
         config,
         binary_path.is_some(),
         config_path.is_some(),
-        override_invalid_path.as_deref(),
+        probe_issue.as_ref(),
     );
 
     let evidence = DetectionEvidence {
@@ -61,21 +65,46 @@ pub fn evaluate_path_based_detector(
     }
 }
 
+#[derive(Debug, Clone)]
+enum ProbeIssue {
+    OverrideMissing(String),
+    OverridePermissionDenied(String),
+    PermissionDenied(String),
+}
+
 fn resolve_status_and_note(
     config: &PathBasedDetectorConfig,
     binary_found: bool,
     config_found: bool,
-    override_invalid_path: Option<&str>,
+    probe_issue: Option<&ProbeIssue>,
 ) -> (DetectionStatus, u8, String) {
-    if let Some(invalid_path) = override_invalid_path {
-        return (
-            DetectionStatus::Partial,
-            20,
-            format!(
-                "[config_override_invalid] {} override '{}' is set but unreadable: {}",
-                config.display_name, config.config_override_env_var, invalid_path
+    if let Some(issue) = probe_issue {
+        return match issue {
+            ProbeIssue::OverrideMissing(path) => (
+                DetectionStatus::Partial,
+                20,
+                format!(
+                    "[config_override_missing] {} override '{}' points to missing config: {}",
+                    config.display_name, config.config_override_env_var, path
+                ),
             ),
-        );
+            ProbeIssue::OverridePermissionDenied(path) => (
+                DetectionStatus::Error,
+                0,
+                format!(
+                    "[config_permission_denied] {} override '{}' is not readable: {}",
+                    config.display_name, config.config_override_env_var, path
+                ),
+            ),
+            ProbeIssue::PermissionDenied(path) => (
+                DetectionStatus::Error,
+                0,
+                format!(
+                    "[config_permission_denied] {} fallback config is not readable: {}",
+                    config.display_name, path
+                ),
+            ),
+        };
     }
 
     match config.kind {
@@ -150,10 +179,10 @@ fn resolve_status_and_note(
 mod tests {
     use crate::contracts::{common::ClientKind, detect::DetectionStatus};
 
-    use super::{DetectorKind, PathBasedDetectorConfig, resolve_status_and_note};
+    use super::{DetectorKind, PathBasedDetectorConfig, ProbeIssue, resolve_status_and_note};
 
     #[test]
-    fn invalid_override_resolves_to_partial_state() {
+    fn missing_override_resolves_to_partial_state() {
         let config = PathBasedDetectorConfig {
             client: ClientKind::CodexCli,
             display_name: "Test CLI",
@@ -163,13 +192,19 @@ mod tests {
             config_fallback_paths: &[],
         };
 
-        let (status, confidence, note) =
-            resolve_status_and_note(&config, false, false, Some("/definitely/not/a/file.json"));
+        let (status, confidence, note) = resolve_status_and_note(
+            &config,
+            false,
+            false,
+            Some(&ProbeIssue::OverrideMissing(
+                "/definitely/not/a/file.json".to_string(),
+            )),
+        );
 
         assert!(matches!(status, DetectionStatus::Partial));
         assert_eq!(confidence, 20);
         assert!(note.contains("AI_MANAGER_TEST_INVALID_OVERRIDE"));
-        assert!(note.contains("[config_override_invalid]"));
+        assert!(note.contains("[config_override_missing]"));
     }
 
     #[test]
@@ -201,5 +236,30 @@ mod tests {
             assert_eq!(status, expected_status);
             assert!(note.contains(reason_code));
         }
+    }
+
+    #[test]
+    fn desktop_detector_surfaces_permission_failures_as_error() {
+        let config = PathBasedDetectorConfig {
+            client: ClientKind::Cursor,
+            display_name: "Cursor",
+            kind: DetectorKind::Desktop,
+            binary_candidates: &[],
+            config_override_env_var: "AI_MANAGER_CURSOR_MCP_CONFIG",
+            config_fallback_paths: &[],
+        };
+
+        let (status, confidence, note) = resolve_status_and_note(
+            &config,
+            false,
+            false,
+            Some(&ProbeIssue::PermissionDenied(
+                "/tmp/unreadable/mcp.json".to_string(),
+            )),
+        );
+
+        assert!(matches!(status, DetectionStatus::Error));
+        assert_eq!(confidence, 0);
+        assert!(note.contains("[config_permission_denied]"));
     }
 }
