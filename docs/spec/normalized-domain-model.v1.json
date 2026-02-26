@@ -1,0 +1,127 @@
+{
+  "$schema": "../../schemas/normalized-domain-model.schema.json",
+  "version": "1.0.0",
+  "updatedAt": "2026-02-26",
+  "entities": {
+    "clients": [
+      {
+        "id": "client:claude_code:default",
+        "clientType": "claude_code",
+        "displayName": "Claude Code",
+        "status": "detected",
+        "capabilities": {
+          "supportsMcp": true,
+          "supportsSkills": true,
+          "supportsEnableDisable": true
+        },
+        "source": {
+          "origin": "detector",
+          "path": "~/.claude/claude_code_config.json",
+          "warnings": []
+        },
+        "raw": {
+          "detectorVersion": "v1"
+        },
+        "extensions": {
+          "futureClientMetadata": {}
+        }
+      },
+      {
+        "id": "client:cursor:default",
+        "clientType": "cursor",
+        "displayName": "Cursor",
+        "status": "partial",
+        "capabilities": {
+          "supportsMcp": true,
+          "supportsSkills": true,
+          "supportsEnableDisable": false
+        },
+        "source": {
+          "origin": "detector",
+          "path": "~/.cursor/mcp.json",
+          "warnings": [
+            "binary_unresolved"
+          ]
+        },
+        "raw": {
+          "appDataRoot": "~/.cursor"
+        },
+        "extensions": {
+          "futureClientMetadata": {}
+        }
+      }
+    ],
+    "mcps": [
+      {
+        "id": "mcp:claude_code:filesystem",
+        "clientId": "client:claude_code:default",
+        "name": "filesystem",
+        "enabled": true,
+        "transport": {
+          "kind": "stdio",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "/Users/fengliu/Code"
+          ]
+        },
+        "env": [
+          {
+            "key": "API_KEY",
+            "valueRef": "${OPENAI_API_KEY}",
+            "isSecret": true
+          }
+        ],
+        "source": {
+          "origin": "mcp_config",
+          "path": "~/.claude/claude_code_config.json",
+          "line": 18,
+          "column": 9,
+          "warnings": []
+        },
+        "raw": {
+          "providerSpecific": {
+            "timeoutMs": 12000
+          }
+        },
+        "extensions": {
+          "futureTransportMetadata": {}
+        }
+      }
+    ],
+    "skills": [
+      {
+        "id": "skill:cursor:python-refactor",
+        "clientId": "client:cursor:default",
+        "name": "python-refactor",
+        "enabled": true,
+        "install": {
+          "kind": "file",
+          "path": "~/.cursor/skills/python-refactor/SKILL.md"
+        },
+        "metadata": {
+          "description": "Refactor Python code with safety checks",
+          "version": "1.2.0",
+          "tags": [
+            "python",
+            "refactor"
+          ]
+        },
+        "source": {
+          "origin": "skills_dir",
+          "path": "~/.cursor/skills/python-refactor/SKILL.md",
+          "warnings": []
+        },
+        "raw": {
+          "manifest": {
+            "author": "internal"
+          }
+        },
+        "extensions": {
+          "futureSkillMetadata": {}
+        }
+      }
+    ]
+  }
+}
