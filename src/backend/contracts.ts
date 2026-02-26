@@ -97,4 +97,5 @@ export interface MutateResourceResponse {
   action: MutationAction;
   target_id: string;
   message: string;
+  source_path: string | null;
 }
