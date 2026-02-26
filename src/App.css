@@ -179,6 +179,130 @@ select {
   line-height: 1.4;
 }
 
+.mcp-panel {
+  border-radius: 1rem;
+  border: 1px solid rgba(29, 61, 91, 0.2);
+  background: #f7fbff;
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.mcp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 0.6rem;
+}
+
+.mcp-header p {
+  color: #3d5470;
+  margin-top: 0.25rem;
+}
+
+.mcp-feedback {
+  margin: 0;
+  border-radius: 0.8rem;
+  padding: 0.58rem 0.72rem;
+  font-size: 0.9rem;
+}
+
+.mcp-feedback-warning {
+  background: #fff4d4;
+  color: #805f09;
+}
+
+.mcp-feedback-error {
+  background: #ffe7e7;
+  color: #8f2727;
+}
+
+.mcp-feedback-success {
+  background: #ddf8e8;
+  color: #135e37;
+}
+
+.mcp-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18.5rem) 1fr;
+  gap: 0.75rem;
+}
+
+.mcp-form {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(31, 64, 95, 0.2);
+  background: #ffffff;
+  padding: 0.85rem;
+}
+
+.mcp-form h3 {
+  margin-bottom: 0.2rem;
+}
+
+.mcp-form label {
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  color: #445972;
+}
+
+.mcp-form input,
+.mcp-form select {
+  border-radius: 0.62rem;
+  border: 1px solid #bbcadc;
+  padding: 0.52rem 0.62rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-row input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mcp-table-wrapper {
+  overflow: auto;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(32, 63, 90, 0.18);
+  background: #ffffff;
+}
+
+.mcp-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 35rem;
+}
+
+.mcp-table th,
+.mcp-table td {
+  text-align: left;
+  padding: 0.66rem;
+  border-bottom: 1px solid rgba(40, 71, 102, 0.12);
+  font-size: 0.88rem;
+}
+
+.mcp-table thead th {
+  font-size: 0.77rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #526a86;
+}
+
+.mcp-table-action-cell {
+  width: 6.2rem;
+}
+
+.mcp-empty {
+  margin: 0;
+  color: #485f7a;
+}
+
 .client-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16.3rem, 1fr));
@@ -339,5 +463,13 @@ select {
 
   .nav-list {
     grid-template-columns: 1fr;
+  }
+
+  .mcp-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mcp-table {
+    min-width: 0;
   }
 }
