@@ -19,6 +19,8 @@ pub struct ResourceRecord {
     pub enabled: bool,
     pub transport_kind: Option<String>,
     pub source_path: Option<String>,
+    pub description: Option<String>,
+    pub install_kind: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

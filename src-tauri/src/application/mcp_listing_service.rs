@@ -110,6 +110,8 @@ where
                         enabled: server.enabled,
                         transport_kind: Some(server.transport_kind),
                         source_path: Some(config_path.to_string()),
+                        description: None,
+                        install_kind: None,
                     });
                 }
             }
