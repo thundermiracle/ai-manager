@@ -32,6 +32,7 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - `src/backend/`: Typed frontend contracts and Tauri invoke client.
 - `src-tauri/`: Rust backend and Tauri application shell.
 - `src-tauri/src/domain/`: Domain layer (adapter interfaces, client profiles, capabilities).
+- `src-tauri/src/detection/`: Shared detector framework and per-client detectors.
 - `src-tauri/src/adapters/`: Client-specific adapter implementations.
 - `src-tauri/src/infra/`: Infrastructure composition (adapter registry).
 - `src-tauri/src/application/`: Use-case service layer consumed by commands.

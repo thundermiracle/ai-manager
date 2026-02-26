@@ -46,6 +46,7 @@ test("frontend typed client maps one-to-one to backend commands", () => {
 test("frontend contracts include shared wrapper and command-specific requests", () => {
   assert.match(tsContracts, /export interface CommandEnvelope<T>/);
   assert.match(tsContracts, /export interface DetectClientsRequest/);
+  assert.match(tsContracts, /confidence: number/);
   assert.match(tsContracts, /export interface ListResourcesRequest/);
   assert.match(tsContracts, /export interface MutateResourceRequest/);
 });
