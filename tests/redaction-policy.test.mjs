@@ -22,14 +22,16 @@ test("ui hooks route messages through redaction helpers", async () => {
   const mcp = await readWorkspaceFile("./src/features/mcp/useMcpManager.ts");
   const skills = await readWorkspaceFile("./src/features/skills/useSkillManager.ts");
 
-  assert.match(detections, /redactSensitiveText/);
-  assert.match(detections, /toRedactedRuntimeErrorMessage/);
+  assert.match(detections, /commandErrorToDiagnostic/);
+  assert.match(detections, /runtimeErrorToDiagnostic/);
 
   assert.match(mcp, /redactSensitiveText/);
   assert.match(mcp, /redactNullableSensitiveText/);
-  assert.match(mcp, /toRedactedRuntimeErrorMessage/);
+  assert.match(mcp, /runtimeErrorToDiagnostic/);
+  assert.match(mcp, /commandErrorToDiagnostic/);
 
   assert.match(skills, /redactSensitiveText/);
   assert.match(skills, /redactNullableSensitiveText/);
-  assert.match(skills, /toRedactedRuntimeErrorMessage/);
+  assert.match(skills, /runtimeErrorToDiagnostic/);
+  assert.match(skills, /commandErrorToDiagnostic/);
 });

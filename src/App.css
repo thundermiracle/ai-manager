@@ -222,6 +222,75 @@ select {
   color: #135e37;
 }
 
+.recovery-callout {
+  margin: 0;
+  border-radius: 0.85rem;
+  border: 1px solid #d58f8f;
+  background: #fff1f1;
+  color: #6f1a1a;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.recovery-callout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recovery-callout-header h3 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.recovery-callout-badge {
+  border-radius: 999px;
+  padding: 0.12rem 0.56rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.recovery-callout-badge-recoverable {
+  background: #ffe3a8;
+  color: #6d4a00;
+}
+
+.recovery-callout-badge-nonrecoverable {
+  background: #f7b3b3;
+  color: #651313;
+}
+
+.recovery-callout-code {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7a2727;
+}
+
+.recovery-callout-message {
+  line-height: 1.4;
+}
+
+.recovery-callout-backup {
+  font-size: 0.86rem;
+}
+
+.recovery-callout-backup code {
+  background: rgba(114, 20, 20, 0.08);
+  border-radius: 0.35rem;
+  padding: 0.08rem 0.3rem;
+}
+
+.recovery-callout-guidance {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.86rem;
+}
+
 .mcp-layout {
   display: grid;
   grid-template-columns: minmax(14rem, 18.5rem) 1fr;

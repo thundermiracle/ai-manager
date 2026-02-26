@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { detectClients } from "../../backend/client";
 import type { ClientDetection, ClientKind, CommandEnvelope } from "../../backend/contracts";
-import { redactSensitiveText, toRedactedRuntimeErrorMessage } from "../../security/redaction";
+import {
+  commandErrorToDiagnostic,
+  type ErrorDiagnostic,
+  runtimeErrorToDiagnostic,
+} from "../common/errorDiagnostics";
 
 const CLIENT_ORDER: ClientKind[] = ["claude_code", "codex_cli", "cursor", "codex_app"];
 
@@ -13,16 +17,17 @@ interface UseClientDetectionsResult {
   detections: ClientDetection[];
   selectedClient: ClientKind | null;
   errorMessage: string | null;
+  errorDiagnostic: ErrorDiagnostic | null;
   lastOperationId: string | null;
   refresh: () => Promise<void>;
   setSelectedClient: (client: ClientKind) => void;
 }
 
-function toErrorMessage(envelope: CommandEnvelope<unknown>): string {
-  if (envelope.error?.message) {
-    return redactSensitiveText(envelope.error.message);
+function toErrorDiagnostic(envelope: CommandEnvelope<unknown>): ErrorDiagnostic {
+  if (envelope.error) {
+    return commandErrorToDiagnostic(envelope.error);
   }
-  return redactSensitiveText("Detection command failed without an explicit error message.");
+  return runtimeErrorToDiagnostic("Detection command failed without an explicit error message.");
 }
 
 function sortDetections(entries: ClientDetection[]): ClientDetection[] {
@@ -42,11 +47,13 @@ export function useClientDetections(): UseClientDetectionsResult {
   const [detections, setDetections] = useState<ClientDetection[]>([]);
   const [selectedClient, setSelectedClientState] = useState<ClientKind | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorDiagnostic, setErrorDiagnostic] = useState<ErrorDiagnostic | null>(null);
   const [lastOperationId, setLastOperationId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setPhase("loading");
     setErrorMessage(null);
+    setErrorDiagnostic(null);
 
     try {
       const envelope = await detectClients({ include_versions: true });
@@ -54,7 +61,9 @@ export function useClientDetections(): UseClientDetectionsResult {
 
       if (!envelope.ok || envelope.data === null) {
         setPhase("error");
-        setErrorMessage(toErrorMessage(envelope));
+        const diagnostic = toErrorDiagnostic(envelope);
+        setErrorMessage(diagnostic.message);
+        setErrorDiagnostic(diagnostic);
         return;
       }
 
@@ -69,9 +78,11 @@ export function useClientDetections(): UseClientDetectionsResult {
       setPhase("ready");
     } catch (error) {
       setPhase("error");
-      setErrorMessage(
-        toRedactedRuntimeErrorMessage(error, "Unknown runtime error while detecting clients."),
-      );
+      const message =
+        error instanceof Error ? error.message : "Unknown runtime error while detecting clients.";
+      const diagnostic = runtimeErrorToDiagnostic(message);
+      setErrorMessage(diagnostic.message);
+      setErrorDiagnostic(diagnostic);
     }
   }, []);
 
@@ -85,10 +96,11 @@ export function useClientDetections(): UseClientDetectionsResult {
       detections,
       selectedClient,
       errorMessage,
+      errorDiagnostic,
       lastOperationId,
       refresh,
       setSelectedClient: setSelectedClientState,
     }),
-    [phase, detections, selectedClient, errorMessage, lastOperationId, refresh],
+    [phase, detections, selectedClient, errorMessage, errorDiagnostic, lastOperationId, refresh],
   );
 }

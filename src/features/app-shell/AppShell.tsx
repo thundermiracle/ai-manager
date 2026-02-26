@@ -4,6 +4,7 @@ import type { ClientDetection } from "../../backend/contracts";
 import { formatClientLabel } from "../clients/client-labels";
 import { ClientStatusCard } from "../clients/components/ClientStatusCard";
 import { useClientDetections } from "../clients/useClientDetections";
+import { ErrorRecoveryCallout } from "../common/ErrorRecoveryCallout";
 import { ViewStatePanel } from "../common/ViewStatePanel";
 import { McpManagerPanel } from "../mcp/McpManagerPanel";
 import { SkillsManagerPanel } from "../skills/SkillsManagerPanel";
@@ -39,6 +40,7 @@ export function AppShell() {
     detections,
     selectedClient,
     errorMessage,
+    errorDiagnostic,
     lastOperationId,
     refresh,
     setSelectedClient,
@@ -111,14 +113,25 @@ export function AppShell() {
         ) : null}
 
         {phase === "error" ? (
-          <ViewStatePanel
-            title="Detection Failed"
-            message={errorMessage ?? "Unknown detection error."}
-            actionLabel="Retry Detection"
-            onAction={() => {
-              void refresh();
-            }}
-          />
+          errorDiagnostic ? (
+            <ErrorRecoveryCallout
+              title="Detection failed"
+              diagnostic={errorDiagnostic}
+              retryLabel="Retry Detection"
+              onRetry={() => {
+                void refresh();
+              }}
+            />
+          ) : (
+            <ViewStatePanel
+              title="Detection Failed"
+              message={errorMessage ?? "Unknown detection error."}
+              actionLabel="Retry Detection"
+              onAction={() => {
+                void refresh();
+              }}
+            />
+          )
         ) : null}
 
         {phase === "ready" && detections.length === 0 ? (
