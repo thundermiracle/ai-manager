@@ -1,0 +1,7 @@
+[mcp_servers.filesystem]
+command = "npx"
+enabled = true
+
+[mcp_servers.github]
+url = "https://mcp.example.com/sse"
+enabled = false

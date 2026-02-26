@@ -5,6 +5,7 @@ mod contracts;
 mod detection;
 mod domain;
 mod infra;
+pub mod parsers;
 mod state;
 
 use commands::{detect_clients, list_resources, mutate_resource};
