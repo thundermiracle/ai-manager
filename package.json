@@ -8,6 +8,33 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "ensure:tauri-icon": "node ./scripts/ensure-tauri-icon.mjs",
+    "pretauri:dev": "pnpm run ensure:tauri-icon && pnpm dev",
+    "pretauri:build": "pnpm run ensure:tauri-icon && pnpm build",
+    "lint:ts": "tsc --noEmit",
+    "lint:rust": "pnpm run ensure:tauri-icon && cargo clippy --workspace --all-targets --manifest-path src-tauri/Cargo.toml -- -D warnings",
+    "lint": "pnpm run lint:ts && pnpm run lint:rust",
+    "check": "pnpm run lint && pnpm test",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
     "test": "node --test"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-opener": "^2.5.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
   }
 }
