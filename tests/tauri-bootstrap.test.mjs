@@ -29,6 +29,7 @@ test("package scripts expose desktop and frontend bootstrap commands", () => {
   assert.equal(typeof packageJson.scripts["lint:rust"], "string");
   assert.equal(typeof packageJson.scripts.lint, "string");
   assert.equal(typeof packageJson.scripts.check, "string");
+  assert.ok(packageJson.scripts["lint:rust"].includes("ensure:tauri-icon"));
 });
 
 test("tauri config uses pnpm lifecycle commands and project identity", () => {
