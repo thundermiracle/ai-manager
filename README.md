@@ -15,6 +15,8 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - Desktop dev mode: `pnpm tauri:dev`
 - Frontend production build: `pnpm build`
 - Desktop production build: `pnpm tauri:build`
+- Lint checks (TypeScript + Rust): `pnpm lint`
+- Pre-commit verification (lint + unit tests): `pnpm check`
 - Unit tests: `pnpm test`
 
 ## Project Structure

@@ -12,6 +12,8 @@
 - Create pull requests per issue.
 - Include unit tests for each implementation issue.
 - Add or update CI test coverage when applicable.
+- Before every commit, run lint and unit tests (`pnpm run lint` and `pnpm test`) and commit only after both pass.
+- Keep Rust and TypeScript changes in separate commits when both are touched in the same issue.
 
 ## Phase Gate
 
