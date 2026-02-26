@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { detectClients } from "../../backend/client";
 import type { ClientDetection, ClientKind, CommandEnvelope } from "../../backend/contracts";
+import { redactSensitiveText, toRedactedRuntimeErrorMessage } from "../../security/redaction";
 
 const CLIENT_ORDER: ClientKind[] = ["claude_code", "codex_cli", "cursor", "codex_app"];
 
@@ -19,9 +20,9 @@ interface UseClientDetectionsResult {
 
 function toErrorMessage(envelope: CommandEnvelope<unknown>): string {
   if (envelope.error?.message) {
-    return envelope.error.message;
+    return redactSensitiveText(envelope.error.message);
   }
-  return "Detection command failed without an explicit error message.";
+  return redactSensitiveText("Detection command failed without an explicit error message.");
 }
 
 function sortDetections(entries: ClientDetection[]): ClientDetection[] {
@@ -69,7 +70,7 @@ export function useClientDetections(): UseClientDetectionsResult {
     } catch (error) {
       setPhase("error");
       setErrorMessage(
-        error instanceof Error ? error.message : "Unknown runtime error while detecting clients.",
+        toRedactedRuntimeErrorMessage(error, "Unknown runtime error while detecting clients."),
       );
     }
   }, []);
