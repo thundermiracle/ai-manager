@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFileSync } from "node:fs";
+import test from "node:test";
 
 const modelPath = new URL("../docs/spec/normalized-domain-model.v1.json", import.meta.url);
 const model = JSON.parse(readFileSync(modelPath, "utf8"));
@@ -19,7 +19,10 @@ test("domain model envelope version and entity groups are present", () => {
 
 test("client entities expose capability flags and extension points", () => {
   for (const client of model.entities.clients) {
-    assert.ok(clientTypeSet.has(client.clientType), `unsupported client type: ${client.clientType}`);
+    assert.ok(
+      clientTypeSet.has(client.clientType),
+      `unsupported client type: ${client.clientType}`,
+    );
     assert.equal(typeof client.capabilities.supportsMcp, "boolean");
     assert.equal(typeof client.capabilities.supportsSkills, "boolean");
     assert.equal(typeof client.capabilities.supportsEnableDisable, "boolean");
@@ -30,7 +33,10 @@ test("client entities expose capability flags and extension points", () => {
 
 test("mcp entities include transport model, source metadata and raw payload", () => {
   for (const mcp of model.entities.mcps) {
-    assert.ok(transportKindSet.has(mcp.transport.kind), `unsupported transport: ${mcp.transport.kind}`);
+    assert.ok(
+      transportKindSet.has(mcp.transport.kind),
+      `unsupported transport: ${mcp.transport.kind}`,
+    );
     assert.equal(typeof mcp.source.origin, "string");
     assert.equal(typeof mcp.source.path, "string");
     assert.equal(typeof mcp.extensions, "object");

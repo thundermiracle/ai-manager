@@ -15,20 +15,24 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - Desktop dev mode: `pnpm tauri:dev`
 - Frontend production build: `pnpm build`
 - Desktop production build: `pnpm tauri:build`
-- Lint checks (TypeScript + Rust): `pnpm lint`
+- TypeScript lint + typecheck: `pnpm run lint:ts`
+- Rust lint: `pnpm run lint:rust`
+- Full lint checks: `pnpm run lint`
 - Pre-commit verification (lint + unit tests): `pnpm check`
 - Unit tests: `pnpm test`
 
 ## Project Structure
 
 - `src/`: React frontend application.
+- `src/backend/`: Typed frontend contracts and Tauri invoke client.
 - `src-tauri/`: Rust backend and Tauri application shell.
 - `docs/spec/`: MVP requirements and contracts.
 - `schemas/`: JSON schema contracts for specs.
-- `tests/`: Node.js unit tests for spec and bootstrap contracts.
+- `tests/`: Node.js unit tests for spec and project contracts.
 
 ## Notes
 
-- The frontend calls a Rust command (`greet`) to validate frontend-backend wiring.
+- The frontend command runner calls typed placeholder backend commands: `detect_clients`, `list_resources`, and `mutate_resource`.
+- Command responses use a shared envelope (`ok`, `data`, `error`, `meta`) with lifecycle and operation metadata.
 - `src-tauri/tauri.conf.json` is configured to use `pnpm` for both dev and build hooks.
 - `scripts/ensure-tauri-icon.mjs` generates the required Tauri icon in clean environments.

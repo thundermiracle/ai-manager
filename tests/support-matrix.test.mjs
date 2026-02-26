@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFileSync } from "node:fs";
+import test from "node:test";
 
 const matrixPath = new URL("../docs/spec/support-matrix.v1.json", import.meta.url);
 const matrix = JSON.parse(readFileSync(matrixPath, "utf8"));
@@ -20,10 +20,7 @@ function assertContiguousPriorities(candidates, fieldName) {
 test("matrix includes exactly four target clients", () => {
   assert.equal(matrix.version, "1.0.0");
   assert.equal(matrix.clients.length, expectedClientIds.length);
-  assert.deepEqual(
-    matrix.clients.map((client) => client.id).sort(),
-    [...expectedClientIds].sort(),
-  );
+  assert.deepEqual(matrix.clients.map((client) => client.id).sort(), [...expectedClientIds].sort());
 });
 
 test("each client has deterministic candidate priority order per kind", () => {

@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFileSync } from "node:fs";
+import test from "node:test";
 
-const packageJson = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-);
+const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const tauriConfig = JSON.parse(
   readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"),
 );
@@ -25,10 +23,12 @@ test("package scripts expose desktop and frontend bootstrap commands", () => {
   assert.equal(typeof packageJson.scripts["ensure:tauri-icon"], "string");
   assert.equal(typeof packageJson.scripts["pretauri:dev"], "string");
   assert.equal(typeof packageJson.scripts["pretauri:build"], "string");
+  assert.equal(typeof packageJson.scripts.typecheck, "string");
   assert.equal(typeof packageJson.scripts["lint:ts"], "string");
   assert.equal(typeof packageJson.scripts["lint:rust"], "string");
   assert.equal(typeof packageJson.scripts.lint, "string");
   assert.equal(typeof packageJson.scripts.check, "string");
+  assert.ok(packageJson.scripts["lint:ts"].includes("biome check ."));
   assert.ok(packageJson.scripts["lint:rust"].includes("ensure:tauri-icon"));
 });
 

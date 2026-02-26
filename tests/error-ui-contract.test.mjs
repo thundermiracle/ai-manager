@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFileSync } from "node:fs";
+import test from "node:test";
 
 const contractPath = new URL("../docs/spec/error-ui-contract.v1.json", import.meta.url);
 const contract = JSON.parse(readFileSync(contractPath, "utf8"));
@@ -95,7 +95,10 @@ test("outcome mappings and error mappings are complete for each flow", () => {
     assert.deepEqual(Object.keys(flow.errorCategoryToState), expectedCategoryOrder);
 
     for (const [category, state] of Object.entries(flow.errorCategoryToState)) {
-      assert.ok(expectedCategoryOrder.includes(category), `${flow.flow} unknown category: ${category}`);
+      assert.ok(
+        expectedCategoryOrder.includes(category),
+        `${flow.flow} unknown category: ${category}`,
+      );
       assert.equal(state, "error", `${flow.flow}/${category} must map to error state`);
     }
   }

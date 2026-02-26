@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFileSync } from "node:fs";
+import test from "node:test";
 
 const contractPath = new URL("../docs/spec/mvp-acceptance-contract.v1.json", import.meta.url);
 const contract = JSON.parse(readFileSync(contractPath, "utf8"));
