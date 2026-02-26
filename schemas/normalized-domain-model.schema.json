@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thundermiracle.github.io/ai-manager/schemas/normalized-domain-model.schema.json",
+  "title": "AI Manager Normalized Domain Model",
+  "type": "object",
+  "required": [
+    "version",
+    "updatedAt",
+    "entities"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "updatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "entities": {
+      "type": "object",
+      "required": [
+        "clients",
+        "mcps",
+        "skills"
+      ],
+      "properties": {
+        "clients": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/client"
+          }
+        },
+        "mcps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mcp"
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/skill"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sourceMetadata": {
+      "type": "object",
+      "required": [
+        "origin",
+        "path"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string",
+          "enum": [
+            "detector",
+            "mcp_config",
+            "skills_dir"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "client": {
+      "type": "object",
+      "required": [
+        "id",
+        "clientType",
+        "displayName",
+        "status",
+        "capabilities",
+        "source",
+        "extensions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "clientType": {
+          "type": "string",
+          "enum": [
+            "claude_code",
+            "codex_cli",
+            "cursor",
+            "codex_app"
+          ]
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "detected",
+            "partial",
+            "absent",
+            "error"
+          ]
+        },
+        "capabilities": {
+          "type": "object",
+          "required": [
+            "supportsMcp",
+            "supportsSkills",
+            "supportsEnableDisable"
+          ],
+          "properties": {
+            "supportsMcp": {
+              "type": "boolean"
+            },
+            "supportsSkills": {
+              "type": "boolean"
+            },
+            "supportsEnableDisable": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "source": {
+          "$ref": "#/$defs/sourceMetadata"
+        },
+        "raw": {
+          "type": "object"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mcpTransport": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "http",
+            "sse",
+            "streamable_http"
+          ]
+        },
+        "command": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "url": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "mcpEnvVar": {
+      "type": "object",
+      "required": [
+        "key",
+        "isSecret"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "valueRef": {
+          "type": "string"
+        },
+        "isSecret": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mcp": {
+      "type": "object",
+      "required": [
+        "id",
+        "clientId",
+        "name",
+        "enabled",
+        "transport",
+        "env",
+        "source",
+        "extensions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "transport": {
+          "$ref": "#/$defs/mcpTransport"
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mcpEnvVar"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/sourceMetadata"
+        },
+        "raw": {
+          "type": "object"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "skillInstall": {
+      "type": "object",
+      "required": [
+        "kind",
+        "path"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "file",
+            "directory",
+            "reference"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "skill": {
+      "type": "object",
+      "required": [
+        "id",
+        "clientId",
+        "name",
+        "enabled",
+        "install",
+        "metadata",
+        "source",
+        "extensions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "install": {
+          "$ref": "#/$defs/skillInstall"
+        },
+        "metadata": {
+          "type": "object",
+          "required": [
+            "tags"
+          ],
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "source": {
+          "$ref": "#/$defs/sourceMetadata"
+        },
+        "raw": {
+          "type": "object"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
