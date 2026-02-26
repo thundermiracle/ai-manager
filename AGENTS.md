@@ -22,4 +22,5 @@
 
 - Use latest stable libraries unless constrained.
 - Target Node.js `v24` and Rust `2024 edition`.
+- Always use `pnpm` commands instead of `npm` (for example: `pnpm install`, `pnpm test`).
 - Use `pnpm` as the package manager.
