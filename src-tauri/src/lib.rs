@@ -2,6 +2,7 @@ mod adapters;
 mod application;
 mod commands;
 mod contracts;
+mod detection;
 mod domain;
 mod infra;
 mod state;

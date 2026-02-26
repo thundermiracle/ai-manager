@@ -28,6 +28,7 @@ pub struct DetectionEvidence {
 pub struct ClientDetection {
     pub client: ClientKind,
     pub status: DetectionStatus,
+    pub confidence: u8,
     pub evidence: DetectionEvidence,
     pub note: String,
 }

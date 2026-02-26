@@ -1,11 +1,11 @@
 use crate::{
-    contracts::{common::ResourceKind, detect::ClientDetection, mutate::MutationAction},
+    contracts::{common::ResourceKind, mutate::MutationAction},
     domain::{
         AdapterListResult, AdapterMutationResult, CURSOR_PROFILE, ClientAdapter, ClientProfile,
     },
 };
 
-use super::placeholder::{detect_placeholder, list_placeholder, mutate_placeholder};
+use super::placeholder::{list_placeholder, mutate_placeholder};
 
 pub struct CursorAdapter;
 
@@ -18,10 +18,6 @@ impl CursorAdapter {
 impl ClientAdapter for CursorAdapter {
     fn profile(&self) -> &'static ClientProfile {
         &CURSOR_PROFILE
-    }
-
-    fn detect(&self, include_versions: bool) -> ClientDetection {
-        detect_placeholder(self.profile(), include_versions)
     }
 
     fn list_resources(&self, resource_kind: ResourceKind) -> AdapterListResult {

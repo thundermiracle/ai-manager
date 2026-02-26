@@ -1,30 +1,7 @@
 use crate::{
-    contracts::{
-        common::ResourceKind,
-        detect::{ClientDetection, DetectionEvidence, DetectionStatus},
-        mutate::MutationAction,
-    },
+    contracts::{common::ResourceKind, mutate::MutationAction},
     domain::{AdapterListResult, AdapterMutationResult, ClientProfile},
 };
-
-pub fn detect_placeholder(
-    profile: &'static ClientProfile,
-    include_versions: bool,
-) -> ClientDetection {
-    ClientDetection {
-        client: profile.kind,
-        status: DetectionStatus::Absent,
-        evidence: DetectionEvidence {
-            binary_path: None,
-            config_path: None,
-            version: include_versions.then_some("not_collected".to_string()),
-        },
-        note: format!(
-            "{} adapter scaffold is ready. Detection implementation will be added in issue #19/#20.",
-            profile.display_name
-        ),
-    }
-}
 
 pub fn list_placeholder(
     profile: &'static ClientProfile,

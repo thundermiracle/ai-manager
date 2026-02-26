@@ -5,23 +5,31 @@ use crate::{
         list::{ListResourcesRequest, ListResourcesResponse},
         mutate::{MutateResourceRequest, MutateResourceResponse},
     },
+    detection::DetectorRegistry,
     infra::AdapterRegistry,
 };
 
 pub struct AdapterService<'a> {
-    registry: &'a AdapterRegistry,
+    adapter_registry: &'a AdapterRegistry,
+    detector_registry: &'a DetectorRegistry,
 }
 
 impl<'a> AdapterService<'a> {
-    pub fn new(registry: &'a AdapterRegistry) -> Self {
-        Self { registry }
+    pub fn new(
+        adapter_registry: &'a AdapterRegistry,
+        detector_registry: &'a DetectorRegistry,
+    ) -> Self {
+        Self {
+            adapter_registry,
+            detector_registry,
+        }
     }
 
     pub fn detect_clients(&self, request: DetectClientsRequest) -> DetectClientsResponse {
         let clients = self
-            .registry
+            .detector_registry
             .all()
-            .map(|adapter| adapter.detect(request.include_versions))
+            .map(|detector| detector.detect(&request))
             .collect();
 
         DetectClientsResponse { clients }
@@ -31,7 +39,7 @@ impl<'a> AdapterService<'a> {
         &self,
         request: ListResourcesRequest,
     ) -> Result<ListResourcesResponse, CommandError> {
-        let Some(adapter) = self.registry.find(request.client) else {
+        let Some(adapter) = self.adapter_registry.find(request.client) else {
             return Err(CommandError::internal(format!(
                 "No adapter registered for '{}'.",
                 request.client.as_str()
@@ -60,7 +68,7 @@ impl<'a> AdapterService<'a> {
             ));
         }
 
-        let Some(adapter) = self.registry.find(request.client) else {
+        let Some(adapter) = self.adapter_registry.find(request.client) else {
             return Err(CommandError::internal(format!(
                 "No adapter registered for '{}'.",
                 request.client.as_str()
@@ -84,35 +92,42 @@ mod tests {
     use crate::{
         contracts::{
             common::{ClientKind, ResourceKind},
-            detect::DetectClientsRequest,
+            detect::{DetectClientsRequest, DetectionStatus},
             list::ListResourcesRequest,
             mutate::{MutateResourceRequest, MutationAction},
         },
+        detection::DetectorRegistry,
         infra::AdapterRegistry,
     };
 
     #[test]
-    fn detect_clients_uses_every_registered_adapter() {
-        let registry = AdapterRegistry::with_default_adapters();
-        let service = AdapterService::new(&registry);
+    fn detect_clients_uses_every_registered_detector() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
 
         let response = service.detect_clients(DetectClientsRequest {
             include_versions: true,
         });
 
         assert_eq!(response.clients.len(), 4);
-        assert!(
-            response
-                .clients
-                .iter()
-                .all(|entry| entry.evidence.version.is_some())
-        );
+        assert!(response.clients.iter().all(|entry| entry.confidence <= 100));
+        assert!(response.clients.iter().all(|entry| {
+            matches!(
+                entry.status,
+                DetectionStatus::Detected
+                    | DetectionStatus::Partial
+                    | DetectionStatus::Absent
+                    | DetectionStatus::Error
+            )
+        }));
     }
 
     #[test]
     fn list_resources_routes_by_requested_client() {
-        let registry = AdapterRegistry::with_default_adapters();
-        let service = AdapterService::new(&registry);
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
 
         let response = service
             .list_resources(ListResourcesRequest {
@@ -133,8 +148,9 @@ mod tests {
 
     #[test]
     fn mutate_resource_validates_target_id_before_adapter_call() {
-        let registry = AdapterRegistry::with_default_adapters();
-        let service = AdapterService::new(&registry);
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
 
         let error = service
             .mutate_resource(&MutateResourceRequest {
