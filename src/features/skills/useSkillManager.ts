@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 
 import { listResources, mutateResource } from "../../backend/client";
 import type { ClientKind, CommandEnvelope, ResourceRecord } from "../../backend/contracts";
+import {
+  redactNullableSensitiveText,
+  redactSensitiveText,
+  toRedactedRuntimeErrorMessage,
+} from "../../security/redaction";
 
 export type SkillInstallInputKind = "directory" | "file";
 
@@ -33,9 +38,9 @@ interface UseSkillManagerResult {
 
 function envelopeErrorMessage(envelope: CommandEnvelope<unknown>): string {
   if (envelope.error?.message) {
-    return envelope.error.message;
+    return redactSensitiveText(envelope.error.message);
   }
-  return "Command failed without an explicit error payload.";
+  return redactSensitiveText("Command failed without an explicit error payload.");
 }
 
 function sortResources(resources: ResourceRecord[]): ResourceRecord[] {
@@ -80,11 +85,11 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
       }
 
       setResources(sortResources(envelope.data.items));
-      setWarning(envelope.data.warning);
+      setWarning(redactNullableSensitiveText(envelope.data.warning));
       setPhase("ready");
     } catch (error) {
       setPhase("error");
-      setOperationError(error instanceof Error ? error.message : "Unknown list runtime error.");
+      setOperationError(toRedactedRuntimeErrorMessage(error, "Unknown list runtime error."));
     }
   }, [client]);
 
@@ -97,7 +102,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
       if (client === null) {
         setFeedback({
           kind: "error",
-          message: "Select a client before adding a skill entry.",
+          message: redactSensitiveText("Select a client before adding a skill entry."),
         });
         return false;
       }
@@ -119,13 +124,13 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
           return false;
         }
 
-        setFeedback({ kind: "success", message: envelope.data.message });
+        setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
         await refresh();
         return true;
       } catch (error) {
         setFeedback({
           kind: "error",
-          message: error instanceof Error ? error.message : "Unknown add runtime error.",
+          message: toRedactedRuntimeErrorMessage(error, "Unknown add runtime error."),
         });
         return false;
       }
@@ -138,7 +143,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
       if (client === null) {
         setFeedback({
           kind: "error",
-          message: "Select a client before removing a skill entry.",
+          message: redactSensitiveText("Select a client before removing a skill entry."),
         });
         return false;
       }
@@ -158,13 +163,13 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
           return false;
         }
 
-        setFeedback({ kind: "success", message: envelope.data.message });
+        setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
         await refresh();
         return true;
       } catch (error) {
         setFeedback({
           kind: "error",
-          message: error instanceof Error ? error.message : "Unknown remove runtime error.",
+          message: toRedactedRuntimeErrorMessage(error, "Unknown remove runtime error."),
         });
         return false;
       } finally {

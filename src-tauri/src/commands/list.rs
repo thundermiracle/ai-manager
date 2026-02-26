@@ -23,7 +23,7 @@ pub fn list_resources(
     let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
 
     match service.list_resources(request) {
-        Ok(response) => CommandEnvelope::success(response, meta),
+        Ok(response) => CommandEnvelope::success(response.redact_sensitive(), meta),
         Err(error) => CommandEnvelope::failure(error, meta),
     }
 }
