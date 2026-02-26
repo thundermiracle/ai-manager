@@ -18,6 +18,20 @@ pub fn resolve_skill_dir(client: ClientKind) -> SkillDirResolution {
     resolve_skill_dir_with_override(client, override_value.as_deref())
 }
 
+pub fn preferred_skill_dir(client: ClientKind) -> PathBuf {
+    let profile = profile_for_client(client);
+
+    if let Some(override_value) = read_env_value(profile.override_env_var) {
+        return expand_user_path(&override_value);
+    }
+
+    profile
+        .fallback_paths
+        .first()
+        .map(|path| expand_user_path(path))
+        .unwrap_or_default()
+}
+
 pub fn resolve_skill_dir_with_override(
     client: ClientKind,
     override_value: Option<&str>,
