@@ -39,6 +39,7 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - `docs/spec/`: MVP requirements and contracts.
 - `docs/architecture/`: Module boundary and design documentation.
 - `docs/release/`: Packaging, release checklist, and versioning policy.
+- `docs/operations/`: Config path, backup, and troubleshooting playbooks.
 - `schemas/`: JSON schema contracts for specs.
 - `tests/`: Node.js unit tests for spec and project contracts.
 
