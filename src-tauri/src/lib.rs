@@ -4,7 +4,10 @@ fn greet(name: &str) -> String {
     format!("AI Manager backend is reachable, {}.", name)
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[cfg_attr(
+    any(target_os = "android", target_os = "ios"),
+    tauri::mobile_entry_point
+)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
