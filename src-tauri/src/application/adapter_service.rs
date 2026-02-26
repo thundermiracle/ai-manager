@@ -1,6 +1,8 @@
 use crate::{
+    application::mcp_listing_service::McpListingService,
     contracts::{
         command::CommandError,
+        common::ResourceKind,
         detect::{DetectClientsRequest, DetectClientsResponse},
         list::{ListResourcesRequest, ListResourcesResponse},
         mutate::{MutateResourceRequest, MutateResourceResponse},
@@ -39,17 +41,39 @@ impl<'a> AdapterService<'a> {
         &self,
         request: ListResourcesRequest,
     ) -> Result<ListResourcesResponse, CommandError> {
-        let Some(adapter) = self.adapter_registry.find(request.client) else {
+        if matches!(request.resource_kind, ResourceKind::Mcp) {
+            let mcp_listing_service = McpListingService::new(self.detector_registry);
+            let result = mcp_listing_service.list(&request);
+
+            return Ok(ListResourcesResponse {
+                client: request.client,
+                resource_kind: request.resource_kind,
+                items: result.items,
+                warning: result.warning,
+            });
+        }
+
+        let Some(client) = request.client else {
+            return Err(CommandError::validation(
+                "client is required when listing non-MCP resources.",
+            ));
+        };
+
+        let Some(adapter) = self.adapter_registry.find(client) else {
             return Err(CommandError::internal(format!(
                 "No adapter registered for '{}'.",
-                request.client.as_str()
+                client.as_str()
             )));
         };
 
-        let result = adapter.list_resources(request.resource_kind);
+        let mut result = adapter.list_resources(request.resource_kind);
+
+        if let Some(enabled_filter) = request.enabled {
+            result.items.retain(|item| item.enabled == enabled_filter);
+        }
 
         Ok(ListResourcesResponse {
-            client: request.client,
+            client: Some(client),
             resource_kind: request.resource_kind,
             items: result.items,
             warning: result.warning,
@@ -131,12 +155,13 @@ mod tests {
 
         let response = service
             .list_resources(ListResourcesRequest {
-                client: ClientKind::Cursor,
+                client: Some(ClientKind::Cursor),
                 resource_kind: ResourceKind::Skill,
+                enabled: None,
             })
             .expect("list should return placeholder response");
 
-        assert_eq!(response.client, ClientKind::Cursor);
+        assert_eq!(response.client, Some(ClientKind::Cursor));
         assert!(response.items.is_empty());
         assert!(
             response
@@ -144,6 +169,23 @@ mod tests {
                 .as_deref()
                 .is_some_and(|warning| warning.contains("cursor"))
         );
+    }
+
+    #[test]
+    fn list_resources_for_skill_requires_client_filter() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+
+        let error = service
+            .list_resources(ListResourcesRequest {
+                client: None,
+                resource_kind: ResourceKind::Skill,
+                enabled: None,
+            })
+            .expect_err("skill listing should require a client");
+
+        assert!(error.message.contains("client is required"));
     }
 
     #[test]
