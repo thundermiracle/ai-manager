@@ -1,0 +1,390 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-02-26",
+  "errorCategories": [
+    {
+      "category": "parse",
+      "canonicalCode": "AM_PARSE_001",
+      "severity": "error",
+      "retryable": true,
+      "nonActionable": false,
+      "messagePattern": "Could not parse {resource} from {source}.",
+      "suggestedActions": [
+        "inspect_source_payload",
+        "fix_syntax_and_retry"
+      ]
+    },
+    {
+      "category": "permission",
+      "canonicalCode": "AM_PERMISSION_001",
+      "severity": "error",
+      "retryable": false,
+      "nonActionable": false,
+      "messagePattern": "Permission denied for {resource} at {path}.",
+      "suggestedActions": [
+        "check_file_permissions",
+        "reconnect_with_required_scope"
+      ]
+    },
+    {
+      "category": "validation",
+      "canonicalCode": "AM_VALIDATION_001",
+      "severity": "error",
+      "retryable": true,
+      "nonActionable": false,
+      "messagePattern": "Invalid {resource}: {reason}.",
+      "suggestedActions": [
+        "review_validation_errors",
+        "correct_input_and_retry"
+      ]
+    },
+    {
+      "category": "conflict",
+      "canonicalCode": "AM_CONFLICT_001",
+      "severity": "error",
+      "retryable": true,
+      "nonActionable": false,
+      "messagePattern": "Conflict detected for {resource}: {reason}.",
+      "suggestedActions": [
+        "refresh_and_merge",
+        "confirm_overwrite"
+      ]
+    },
+    {
+      "category": "io",
+      "canonicalCode": "AM_IO_001",
+      "severity": "error",
+      "retryable": true,
+      "nonActionable": false,
+      "messagePattern": "I/O failure while accessing {resource} at {path}.",
+      "suggestedActions": [
+        "verify_path_exists",
+        "retry_after_io_recovery"
+      ]
+    },
+    {
+      "category": "unknown",
+      "canonicalCode": "AM_UNKNOWN_001",
+      "severity": "error",
+      "retryable": true,
+      "nonActionable": false,
+      "messagePattern": "Unhandled failure while processing {resource}.",
+      "suggestedActions": [
+        "retry",
+        "open_diagnostic_logs"
+      ]
+    }
+  ],
+  "actionCatalog": {
+    "inspect_source_payload": {
+      "label": "Inspect source payload",
+      "description": "Open the original config payload and inspect malformed fields."
+    },
+    "fix_syntax_and_retry": {
+      "label": "Fix syntax and retry",
+      "description": "Correct JSON/TOML syntax and retry the same operation."
+    },
+    "check_file_permissions": {
+      "label": "Check file permissions",
+      "description": "Verify read/write permissions for the path used by the operation."
+    },
+    "reconnect_with_required_scope": {
+      "label": "Reconnect with required scope",
+      "description": "Reauthenticate the AI client with required file or token scope."
+    },
+    "review_validation_errors": {
+      "label": "Review validation errors",
+      "description": "Inspect field-level validation errors before submitting again."
+    },
+    "correct_input_and_retry": {
+      "label": "Correct input and retry",
+      "description": "Fix invalid field values then rerun the same request."
+    },
+    "refresh_and_merge": {
+      "label": "Refresh and merge",
+      "description": "Reload the latest config state and merge conflicting changes."
+    },
+    "confirm_overwrite": {
+      "label": "Confirm overwrite",
+      "description": "Allow controlled overwrite only after explicit user confirmation."
+    },
+    "verify_path_exists": {
+      "label": "Verify path exists",
+      "description": "Check that target files or directories exist and are reachable."
+    },
+    "retry_after_io_recovery": {
+      "label": "Retry after I/O recovery",
+      "description": "Retry after disk, network share, or process lock is recovered."
+    },
+    "retry": {
+      "label": "Retry",
+      "description": "Retry once and collect diagnostics if the failure repeats."
+    },
+    "open_diagnostic_logs": {
+      "label": "Open diagnostic logs",
+      "description": "Open logs to provide actionable details for triage."
+    }
+  },
+  "genericErrorPolicy": {
+    "disallowedMessagePhrases": [
+      "something went wrong",
+      "unknown error"
+    ],
+    "fallbackCategory": "unknown",
+    "fallbackCode": "AM_UNKNOWN_999",
+    "fallbackMessagePattern": "Unable to complete {operation} for {resource}. See diagnostics.",
+    "fallbackSuggestedActions": [
+      "retry",
+      "open_diagnostic_logs"
+    ]
+  },
+  "uiStates": {
+    "idle": {
+      "label": "Idle",
+      "terminal": false,
+      "showSpinner": false,
+      "showData": false,
+      "showEmptyHint": false,
+      "showWarningBanner": false,
+      "showErrorBanner": false,
+      "allowRetry": false
+    },
+    "loading": {
+      "label": "Loading",
+      "terminal": false,
+      "showSpinner": true,
+      "showData": false,
+      "showEmptyHint": false,
+      "showWarningBanner": false,
+      "showErrorBanner": false,
+      "allowRetry": false
+    },
+    "success_full": {
+      "label": "Success (full)",
+      "terminal": true,
+      "showSpinner": false,
+      "showData": true,
+      "showEmptyHint": false,
+      "showWarningBanner": false,
+      "showErrorBanner": false,
+      "allowRetry": false
+    },
+    "success_empty": {
+      "label": "Success (empty)",
+      "terminal": true,
+      "showSpinner": false,
+      "showData": false,
+      "showEmptyHint": true,
+      "showWarningBanner": false,
+      "showErrorBanner": false,
+      "allowRetry": false
+    },
+    "success_partial": {
+      "label": "Success (partial)",
+      "terminal": true,
+      "showSpinner": false,
+      "showData": true,
+      "showEmptyHint": false,
+      "showWarningBanner": true,
+      "showErrorBanner": false,
+      "allowRetry": true
+    },
+    "error": {
+      "label": "Error",
+      "terminal": true,
+      "showSpinner": false,
+      "showData": false,
+      "showEmptyHint": false,
+      "showWarningBanner": false,
+      "showErrorBanner": true,
+      "allowRetry": true
+    }
+  },
+  "flowContracts": [
+    {
+      "flow": "detection",
+      "initialState": "idle",
+      "terminalStates": [
+        "success_full",
+        "success_empty",
+        "success_partial",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "idle",
+          "event": "run",
+          "to": "loading"
+        },
+        {
+          "from": "loading",
+          "event": "resolved_full",
+          "to": "success_full"
+        },
+        {
+          "from": "loading",
+          "event": "resolved_empty",
+          "to": "success_empty"
+        },
+        {
+          "from": "loading",
+          "event": "resolved_partial",
+          "to": "success_partial"
+        },
+        {
+          "from": "loading",
+          "event": "failed",
+          "to": "error"
+        },
+        {
+          "from": "error",
+          "event": "retry",
+          "to": "loading"
+        }
+      ],
+      "outcomeToState": {
+        "loading": "loading",
+        "empty": "success_empty",
+        "partial": "success_partial",
+        "full": "success_full",
+        "error": "error"
+      },
+      "errorCategoryToState": {
+        "parse": "error",
+        "permission": "error",
+        "validation": "error",
+        "conflict": "error",
+        "io": "error",
+        "unknown": "error"
+      }
+    },
+    {
+      "flow": "read",
+      "initialState": "idle",
+      "terminalStates": [
+        "success_full",
+        "success_empty",
+        "success_partial",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "idle",
+          "event": "run",
+          "to": "loading"
+        },
+        {
+          "from": "loading",
+          "event": "resolved_full",
+          "to": "success_full"
+        },
+        {
+          "from": "loading",
+          "event": "resolved_empty",
+          "to": "success_empty"
+        },
+        {
+          "from": "loading",
+          "event": "resolved_partial",
+          "to": "success_partial"
+        },
+        {
+          "from": "loading",
+          "event": "failed",
+          "to": "error"
+        },
+        {
+          "from": "error",
+          "event": "retry",
+          "to": "loading"
+        }
+      ],
+      "outcomeToState": {
+        "loading": "loading",
+        "empty": "success_empty",
+        "partial": "success_partial",
+        "full": "success_full",
+        "error": "error"
+      },
+      "errorCategoryToState": {
+        "parse": "error",
+        "permission": "error",
+        "validation": "error",
+        "conflict": "error",
+        "io": "error",
+        "unknown": "error"
+      }
+    },
+    {
+      "flow": "write",
+      "initialState": "idle",
+      "terminalStates": [
+        "success_full",
+        "success_partial",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "idle",
+          "event": "submit",
+          "to": "loading"
+        },
+        {
+          "from": "loading",
+          "event": "committed",
+          "to": "success_full"
+        },
+        {
+          "from": "loading",
+          "event": "committed_partial",
+          "to": "success_partial"
+        },
+        {
+          "from": "loading",
+          "event": "conflicted",
+          "to": "error"
+        },
+        {
+          "from": "loading",
+          "event": "invalid",
+          "to": "error"
+        },
+        {
+          "from": "loading",
+          "event": "denied",
+          "to": "error"
+        },
+        {
+          "from": "loading",
+          "event": "failed_io",
+          "to": "error"
+        },
+        {
+          "from": "loading",
+          "event": "failed_unknown",
+          "to": "error"
+        },
+        {
+          "from": "error",
+          "event": "retry",
+          "to": "loading"
+        }
+      ],
+      "outcomeToState": {
+        "loading": "loading",
+        "empty": "success_empty",
+        "partial": "success_partial",
+        "full": "success_full",
+        "error": "error"
+      },
+      "errorCategoryToState": {
+        "parse": "error",
+        "permission": "error",
+        "validation": "error",
+        "conflict": "error",
+        "io": "error",
+        "unknown": "error"
+      }
+    }
+  ]
+}

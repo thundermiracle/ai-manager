@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thundermiracle.github.io/ai-manager/schemas/error-ui-contract.schema.json",
+  "title": "AI Manager Error and UI State Contract",
+  "type": "object",
+  "required": [
+    "version",
+    "updatedAt",
+    "errorCategories",
+    "actionCatalog",
+    "genericErrorPolicy",
+    "uiStates",
+    "flowContracts"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "updatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "errorCategories": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/errorCategory"
+      }
+    },
+    "actionCatalog": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9_]+$": {
+          "$ref": "#/$defs/actionDefinition"
+        }
+      }
+    },
+    "genericErrorPolicy": {
+      "type": "object",
+      "required": [
+        "disallowedMessagePhrases",
+        "fallbackCategory",
+        "fallbackCode",
+        "fallbackMessagePattern",
+        "fallbackSuggestedActions"
+      ],
+      "properties": {
+        "disallowedMessagePhrases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fallbackCategory": {
+          "$ref": "#/$defs/errorCategoryKind"
+        },
+        "fallbackCode": {
+          "type": "string",
+          "pattern": "^AM_[A-Z]+_[0-9]{3}$"
+        },
+        "fallbackMessagePattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fallbackSuggestedActions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "uiStates": {
+      "type": "object",
+      "required": [
+        "idle",
+        "loading",
+        "success_full",
+        "success_empty",
+        "success_partial",
+        "error"
+      ],
+      "properties": {
+        "idle": {
+          "$ref": "#/$defs/uiState"
+        },
+        "loading": {
+          "$ref": "#/$defs/uiState"
+        },
+        "success_full": {
+          "$ref": "#/$defs/uiState"
+        },
+        "success_empty": {
+          "$ref": "#/$defs/uiState"
+        },
+        "success_partial": {
+          "$ref": "#/$defs/uiState"
+        },
+        "error": {
+          "$ref": "#/$defs/uiState"
+        }
+      },
+      "additionalProperties": false
+    },
+    "flowContracts": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/flowContract"
+      }
+    }
+  },
+  "$defs": {
+    "errorCategoryKind": {
+      "type": "string",
+      "enum": [
+        "parse",
+        "permission",
+        "validation",
+        "conflict",
+        "io",
+        "unknown"
+      ]
+    },
+    "errorCategory": {
+      "type": "object",
+      "required": [
+        "category",
+        "canonicalCode",
+        "severity",
+        "retryable",
+        "nonActionable",
+        "messagePattern",
+        "suggestedActions"
+      ],
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/errorCategoryKind"
+        },
+        "canonicalCode": {
+          "type": "string",
+          "pattern": "^AM_[A-Z]+_[0-9]{3}$"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "warning",
+            "error"
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "nonActionable": {
+          "type": "boolean"
+        },
+        "messagePattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "suggestedActions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "actionDefinition": {
+      "type": "object",
+      "required": [
+        "label",
+        "description"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "uiState": {
+      "type": "object",
+      "required": [
+        "label",
+        "terminal",
+        "showSpinner",
+        "showData",
+        "showEmptyHint",
+        "showWarningBanner",
+        "showErrorBanner",
+        "allowRetry"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "showSpinner": {
+          "type": "boolean"
+        },
+        "showData": {
+          "type": "boolean"
+        },
+        "showEmptyHint": {
+          "type": "boolean"
+        },
+        "showWarningBanner": {
+          "type": "boolean"
+        },
+        "showErrorBanner": {
+          "type": "boolean"
+        },
+        "allowRetry": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "uiStateName": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "loading",
+        "success_full",
+        "success_empty",
+        "success_partial",
+        "error"
+      ]
+    },
+    "transition": {
+      "type": "object",
+      "required": [
+        "from",
+        "event",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/uiStateName"
+        },
+        "event": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]+$"
+        },
+        "to": {
+          "$ref": "#/$defs/uiStateName"
+        }
+      },
+      "additionalProperties": false
+    },
+    "flowContract": {
+      "type": "object",
+      "required": [
+        "flow",
+        "initialState",
+        "terminalStates",
+        "transitions",
+        "outcomeToState",
+        "errorCategoryToState"
+      ],
+      "properties": {
+        "flow": {
+          "type": "string",
+          "enum": [
+            "detection",
+            "read",
+            "write"
+          ]
+        },
+        "initialState": {
+          "$ref": "#/$defs/uiStateName"
+        },
+        "terminalStates": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/uiStateName"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        },
+        "outcomeToState": {
+          "type": "object",
+          "required": [
+            "loading",
+            "empty",
+            "partial",
+            "full",
+            "error"
+          ],
+          "properties": {
+            "loading": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "empty": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "partial": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "full": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "error": {
+              "$ref": "#/$defs/uiStateName"
+            }
+          },
+          "additionalProperties": false
+        },
+        "errorCategoryToState": {
+          "type": "object",
+          "required": [
+            "parse",
+            "permission",
+            "validation",
+            "conflict",
+            "io",
+            "unknown"
+          ],
+          "properties": {
+            "parse": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "permission": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "validation": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "conflict": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "io": {
+              "$ref": "#/$defs/uiStateName"
+            },
+            "unknown": {
+              "$ref": "#/$defs/uiStateName"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
