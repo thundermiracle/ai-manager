@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     application::{
         mcp_listing_service::McpListingService, mcp_mutation_service::McpMutationService,
-        skill_listing_service::SkillListingService,
+        skill_listing_service::SkillListingService, skill_mutation_service::SkillMutationService,
     },
     contracts::{
         command::CommandError,
@@ -137,6 +137,24 @@ impl<'a> AdapterService<'a> {
 
         if matches!(request.resource_kind, ResourceKind::Mcp) {
             let mutation_service = McpMutationService::new(self.detector_registry);
+            let outcome = mutation_service.mutate(
+                request.client,
+                request.action,
+                target_id,
+                request.payload.as_ref(),
+            )?;
+
+            return Ok(MutateResourceResponse {
+                accepted: true,
+                action: request.action,
+                target_id: target_id.to_string(),
+                message: outcome.message,
+                source_path: Some(outcome.source_path),
+            });
+        }
+
+        if matches!(request.resource_kind, ResourceKind::Skill) {
+            let mutation_service = SkillMutationService::new();
             let outcome = mutation_service.mutate(
                 request.client,
                 request.action,
@@ -425,5 +443,44 @@ mod tests {
             Some(expected_source_path.as_str())
         );
         assert!(content.contains("filesystem"));
+    }
+
+    #[test]
+    fn mutate_resource_adds_skill_entry_with_actionable_metadata() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-mutate-skill-add-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let response = service
+            .mutate_resource(&MutateResourceRequest {
+                client: ClientKind::Cursor,
+                resource_kind: ResourceKind::Skill,
+                action: MutationAction::Add,
+                target_id: "python-refactor".to_string(),
+                payload: Some(json!({
+                    "skills_dir": temp_dir.display().to_string(),
+                    "manifest": "# Python Refactor\n\nRefactor Python code safely.\n"
+                })),
+            })
+            .expect("Skill add should succeed");
+
+        let manifest_path = temp_dir.join("python-refactor").join("SKILL.md");
+        let content = fs::read_to_string(&manifest_path).expect("should read skill manifest");
+        let expected_source_path = manifest_path.display().to_string();
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(response.accepted);
+        assert!(response.message.contains("Added skill"));
+        assert_eq!(
+            response.source_path.as_deref(),
+            Some(expected_source_path.as_str())
+        );
+        assert!(content.contains("Python Refactor"));
     }
 }
