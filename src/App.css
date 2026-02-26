@@ -255,6 +255,15 @@ select {
   padding: 0.52rem 0.62rem;
 }
 
+.mcp-form textarea {
+  border-radius: 0.62rem;
+  border: 1px solid #bbcadc;
+  padding: 0.52rem 0.62rem;
+  font: inherit;
+  min-height: 8.2rem;
+  resize: vertical;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;

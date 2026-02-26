@@ -6,6 +6,7 @@ import { ClientStatusCard } from "../clients/components/ClientStatusCard";
 import { useClientDetections } from "../clients/useClientDetections";
 import { ViewStatePanel } from "../common/ViewStatePanel";
 import { McpManagerPanel } from "../mcp/McpManagerPanel";
+import { SkillsManagerPanel } from "../skills/SkillsManagerPanel";
 import { type AppRoute, NAVIGATION_ITEMS } from "./navigation";
 
 function findSelectedDetection(
@@ -28,24 +29,7 @@ function renderRouteContent(route: AppRoute, selectedDetection: ClientDetection 
     return <McpManagerPanel client={selectedDetection?.client ?? null} />;
   }
 
-  if (selectedDetection === null) {
-    return (
-      <ViewStatePanel
-        title="Client Selection Required"
-        message="Select a detected client first to open this workspace."
-      />
-    );
-  }
-
-  return (
-    <section className="feature-placeholder">
-      <h2>Skills Manager</h2>
-      <p>
-        Selected client: <strong>{formatClientLabel(selectedDetection.client)}</strong>
-      </p>
-      <p>This route scaffold is ready. Interactive add/remove flows are tracked in issue #29.</p>
-    </section>
-  );
+  return <SkillsManagerPanel client={selectedDetection?.client ?? null} />;
 }
 
 export function AppShell() {
