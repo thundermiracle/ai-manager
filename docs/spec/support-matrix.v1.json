@@ -1,0 +1,398 @@
+{
+  "$schema": "../../schemas/support-matrix.schema.json",
+  "version": "1.0.0",
+  "updatedAt": "2026-02-26",
+  "resolutionPolicy": {
+    "precedence": "ascending_priority_per_kind",
+    "tieBreaker": "more_specific_os_match_then_lexicographic_path",
+    "fallbackStrategy": "continue_to_next_candidate_until_exhausted"
+  },
+  "clients": [
+    {
+      "id": "claude_code",
+      "displayName": "Claude Code",
+      "category": "cli",
+      "binaryCandidates": [
+        {
+          "priority": 1,
+          "command": "claude",
+          "role": "happy_path"
+        },
+        {
+          "priority": 2,
+          "command": "claude-code",
+          "role": "fallback"
+        }
+      ],
+      "configPathCandidates": [
+        {
+          "kind": "mcp_config",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CLAUDE_CODE_MCP_CONFIG}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 2,
+          "os": [
+            "darwin",
+            "linux"
+          ],
+          "path": "~/.claude/claude_code_config.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 3,
+          "os": [
+            "win32"
+          ],
+          "path": "%USERPROFILE%/.claude/claude_code_config.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CLAUDE_CODE_SKILLS_DIR}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 2,
+          "os": [
+            "darwin",
+            "linux"
+          ],
+          "path": "~/.claude/skills",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 3,
+          "os": [
+            "win32"
+          ],
+          "path": "%USERPROFILE%/.claude/skills",
+          "role": "fallback"
+        }
+      ],
+      "detectionEvidenceRequirements": [
+        "binary_resolves",
+        "mcp_config_readable",
+        "skills_dir_accessible"
+      ],
+      "assumptions": [
+        "Environment override paths take precedence over default paths.",
+        "At least one CLI command candidate must resolve for detected status."
+      ]
+    },
+    {
+      "id": "codex_cli",
+      "displayName": "Codex CLI",
+      "category": "cli",
+      "binaryCandidates": [
+        {
+          "priority": 1,
+          "command": "codex",
+          "role": "happy_path"
+        },
+        {
+          "priority": 2,
+          "command": "codex-cli",
+          "role": "fallback"
+        }
+      ],
+      "configPathCandidates": [
+        {
+          "kind": "mcp_config",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CODEX_CLI_MCP_CONFIG}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 2,
+          "os": [
+            "darwin",
+            "linux"
+          ],
+          "path": "~/.codex/config.toml",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 3,
+          "os": [
+            "win32"
+          ],
+          "path": "%USERPROFILE%/.codex/config.toml",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CODEX_CLI_SKILLS_DIR}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 2,
+          "os": [
+            "darwin",
+            "linux"
+          ],
+          "path": "~/.codex/skills",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 3,
+          "os": [
+            "win32"
+          ],
+          "path": "%USERPROFILE%/.codex/skills",
+          "role": "fallback"
+        }
+      ],
+      "detectionEvidenceRequirements": [
+        "binary_resolves",
+        "mcp_config_readable",
+        "skills_dir_accessible"
+      ],
+      "assumptions": [
+        "TOML config path should be preferred when both JSON and TOML exist.",
+        "Detection remains partial if binary resolves but config is missing."
+      ]
+    },
+    {
+      "id": "cursor",
+      "displayName": "Cursor",
+      "category": "desktop",
+      "binaryCandidates": [
+        {
+          "priority": 1,
+          "command": "cursor",
+          "role": "happy_path"
+        },
+        {
+          "priority": 2,
+          "command": "Cursor",
+          "role": "fallback"
+        }
+      ],
+      "configPathCandidates": [
+        {
+          "kind": "mcp_config",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CURSOR_MCP_CONFIG}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 2,
+          "os": [
+            "darwin",
+            "linux"
+          ],
+          "path": "~/.cursor/mcp.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 3,
+          "os": [
+            "darwin"
+          ],
+          "path": "~/Library/Application Support/Cursor/User/mcp.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 4,
+          "os": [
+            "win32"
+          ],
+          "path": "%APPDATA%/Cursor/User/mcp.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CURSOR_SKILLS_DIR}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 2,
+          "os": [
+            "darwin",
+            "linux"
+          ],
+          "path": "~/.cursor/skills",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 3,
+          "os": [
+            "darwin"
+          ],
+          "path": "~/Library/Application Support/Cursor/User/skills",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 4,
+          "os": [
+            "win32"
+          ],
+          "path": "%APPDATA%/Cursor/User/skills",
+          "role": "fallback"
+        }
+      ],
+      "detectionEvidenceRequirements": [
+        "mcp_config_readable",
+        "skills_dir_accessible",
+        "app_data_root_exists"
+      ],
+      "assumptions": [
+        "Desktop detection does not require command resolution if config path is valid.",
+        "AppData style path is treated as fallback where home-directory path is present."
+      ]
+    },
+    {
+      "id": "codex_app",
+      "displayName": "Codex App",
+      "category": "desktop",
+      "binaryCandidates": [
+        {
+          "priority": 1,
+          "command": "codex-app",
+          "role": "happy_path"
+        },
+        {
+          "priority": 2,
+          "command": "Codex",
+          "role": "fallback"
+        }
+      ],
+      "configPathCandidates": [
+        {
+          "kind": "mcp_config",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CODEX_APP_MCP_CONFIG}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 2,
+          "os": [
+            "darwin"
+          ],
+          "path": "~/Library/Application Support/Codex/mcp.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 3,
+          "os": [
+            "linux"
+          ],
+          "path": "~/.config/Codex/mcp.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 4,
+          "os": [
+            "win32"
+          ],
+          "path": "%APPDATA%/Codex/mcp.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 1,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "${AI_MANAGER_CODEX_APP_SKILLS_DIR}",
+          "role": "happy_path"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 2,
+          "os": [
+            "darwin"
+          ],
+          "path": "~/Library/Application Support/Codex/skills",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 3,
+          "os": [
+            "linux"
+          ],
+          "path": "~/.config/Codex/skills",
+          "role": "fallback"
+        },
+        {
+          "kind": "skills_dir",
+          "priority": 4,
+          "os": [
+            "win32"
+          ],
+          "path": "%APPDATA%/Codex/skills",
+          "role": "fallback"
+        }
+      ],
+      "detectionEvidenceRequirements": [
+        "mcp_config_readable",
+        "skills_dir_accessible",
+        "app_data_root_exists"
+      ],
+      "assumptions": [
+        "Desktop app installs may not expose a shell command by default.",
+        "Detection should be downgraded to partial if only app-data root exists."
+      ]
+    }
+  ]
+}
