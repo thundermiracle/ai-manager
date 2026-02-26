@@ -18,8 +18,16 @@ pub fn probe_binary_path(candidates: &[&str]) -> Option<String> {
 }
 
 pub fn probe_config_path(env_var: &str, fallbacks: &[&str]) -> ConfigProbe {
-    if let Some(override_value) = read_env_value(env_var) {
-        let expanded = expand_user_path(&override_value);
+    let override_value = read_env_value(env_var);
+    probe_config_path_with_override(override_value.as_deref(), fallbacks)
+}
+
+pub fn probe_config_path_with_override(
+    override_value: Option<&str>,
+    fallbacks: &[&str],
+) -> ConfigProbe {
+    if let Some(override_value) = override_value {
+        let expanded = expand_user_path(override_value);
         if is_readable_file(&expanded) {
             return ConfigProbe::Resolved(expanded.to_string_lossy().to_string());
         }
@@ -74,4 +82,58 @@ fn find_command_in_path(command: &str) -> Option<PathBuf> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::{ConfigProbe, probe_config_path_with_override};
+
+    #[test]
+    fn override_path_precedence_blocks_fallback_resolution_when_invalid() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("ai-manager-detection-test-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let fallback_path = temp_dir.join("fallback-config.json");
+        fs::write(&fallback_path, "{}").expect("should create fallback fixture");
+
+        let fallback_str = fallback_path
+            .to_str()
+            .expect("fallback path should be valid utf-8");
+
+        let outcome = probe_config_path_with_override(
+            Some("/definitely/missing/config.json"),
+            &[fallback_str],
+        );
+
+        let _ = fs::remove_file(&fallback_path);
+        let _ = fs::remove_dir(&temp_dir);
+
+        assert!(matches!(outcome, ConfigProbe::OverrideInvalid(_)));
+    }
+
+    #[test]
+    fn fallback_path_resolves_when_override_is_not_set() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-detection-test-fallback-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let fallback_path = temp_dir.join("config.toml");
+        fs::write(&fallback_path, "version = 1").expect("should create fallback fixture");
+
+        let fallback_str = fallback_path
+            .to_str()
+            .expect("fallback path should be valid utf-8");
+
+        let outcome = probe_config_path_with_override(None, &[fallback_str]);
+
+        let _ = fs::remove_file(&fallback_path);
+        let _ = fs::remove_dir(&temp_dir);
+
+        assert!(matches!(outcome, ConfigProbe::Resolved(_)));
+    }
 }

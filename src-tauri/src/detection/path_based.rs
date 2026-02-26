@@ -72,7 +72,7 @@ fn resolve_status_and_note(
             DetectionStatus::Partial,
             20,
             format!(
-                "{} override '{}' is set but unreadable: {}",
+                "[config_override_invalid] {} override '{}' is set but unreadable: {}",
                 config.display_name, config.config_override_env_var, invalid_path
             ),
         );
@@ -84,23 +84,31 @@ fn resolve_status_and_note(
                 DetectionStatus::Detected,
                 100,
                 format!(
-                    "{} detector resolved both binary and config evidence.",
+                    "[detected] {} detector resolved both binary and config evidence.",
                     config.display_name
                 ),
             ),
-            (true, false) | (false, true) => (
+            (true, false) => (
                 DetectionStatus::Partial,
                 60,
                 format!(
-                    "{} detector resolved partial evidence (binary: {}, config: {}).",
-                    config.display_name, binary_found, config_found
+                    "[config_missing] {} binary resolved but config was not found.",
+                    config.display_name
+                ),
+            ),
+            (false, true) => (
+                DetectionStatus::Partial,
+                60,
+                format!(
+                    "[binary_missing] {} config resolved but binary was not found.",
+                    config.display_name
                 ),
             ),
             (false, false) => (
                 DetectionStatus::Absent,
                 0,
                 format!(
-                    "{} detector did not resolve any evidence.",
+                    "[binary_and_config_missing] {} detector did not resolve any evidence.",
                     config.display_name
                 ),
             ),
@@ -111,7 +119,7 @@ fn resolve_status_and_note(
                     DetectionStatus::Detected,
                     90,
                     format!(
-                        "{} detector resolved configuration evidence.",
+                        "[config_detected] {} detector resolved configuration evidence.",
                         config.display_name
                     ),
                 )
@@ -120,7 +128,7 @@ fn resolve_status_and_note(
                     DetectionStatus::Partial,
                     45,
                     format!(
-                        "{} detector resolved binary evidence only.",
+                        "[binary_only] {} detector resolved binary evidence only.",
                         config.display_name
                     ),
                 )
@@ -129,7 +137,7 @@ fn resolve_status_and_note(
                     DetectionStatus::Absent,
                     0,
                     format!(
-                        "{} detector did not resolve any evidence.",
+                        "[evidence_missing] {} detector did not resolve any evidence.",
                         config.display_name
                     ),
                 )
@@ -161,5 +169,37 @@ mod tests {
         assert!(matches!(status, DetectionStatus::Partial));
         assert_eq!(confidence, 20);
         assert!(note.contains("AI_MANAGER_TEST_INVALID_OVERRIDE"));
+        assert!(note.contains("[config_override_invalid]"));
+    }
+
+    #[test]
+    fn cli_detection_fixtures_distinguish_binary_and_config_failures() {
+        let config = PathBasedDetectorConfig {
+            client: ClientKind::ClaudeCode,
+            display_name: "Claude Code",
+            kind: DetectorKind::Cli,
+            binary_candidates: &[],
+            config_override_env_var: "AI_MANAGER_CLAUDE_CODE_MCP_CONFIG",
+            config_fallback_paths: &[],
+        };
+
+        let fixtures = vec![
+            (true, true, DetectionStatus::Detected, "[detected]"),
+            (true, false, DetectionStatus::Partial, "[config_missing]"),
+            (false, true, DetectionStatus::Partial, "[binary_missing]"),
+            (
+                false,
+                false,
+                DetectionStatus::Absent,
+                "[binary_and_config_missing]",
+            ),
+        ];
+
+        for (binary_found, config_found, expected_status, reason_code) in fixtures {
+            let (status, _, note) =
+                resolve_status_and_note(&config, binary_found, config_found, None);
+            assert_eq!(status, expected_status);
+            assert!(note.contains(reason_code));
+        }
     }
 }
