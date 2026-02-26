@@ -12,6 +12,8 @@
 - Create pull requests per issue.
 - Include unit tests for each implementation issue.
 - Add or update CI test coverage when applicable.
+- Always implement directly inside this repository working directory (`/Users/fengliu/Code/ai-manager`); do not use temporary clones or parallel worktrees for implementation.
+- Commit and push from this repository directory, then open/update PRs from the same local workspace.
 - Before every commit, run lint and unit tests (`pnpm run lint` and `pnpm test`) and commit only after both pass.
 - Keep Rust and TypeScript changes in separate commits when both are touched in the same issue.
 
