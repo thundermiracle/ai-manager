@@ -1,0 +1,53 @@
+name: macOS DMG Packaging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  package-macos-dmg:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build DMG package
+        run: pnpm run package:macos:dmg
+
+      - name: Verify packaging outputs
+        run: |
+          ls -la src-tauri/target/release/bundle/dmg
+          test -f dist/macos/dmg-manifest.json
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-manager-macos-dmg
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+      - name: Upload packaging manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-manager-macos-dmg-manifest
+          path: dist/macos/dmg-manifest.json
+          if-no-files-found: error
