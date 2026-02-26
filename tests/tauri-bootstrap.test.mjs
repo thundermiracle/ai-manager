@@ -24,10 +24,15 @@ test("package scripts expose desktop and frontend bootstrap commands", () => {
   assert.equal(typeof packageJson.scripts["pretauri:dev"], "string");
   assert.equal(typeof packageJson.scripts["pretauri:build"], "string");
   assert.equal(typeof packageJson.scripts.typecheck, "string");
+  assert.equal(typeof packageJson.scripts["fmt:rust"], "string");
+  assert.equal(typeof packageJson.scripts["test:rust"], "string");
   assert.equal(typeof packageJson.scripts["lint:ts"], "string");
   assert.equal(typeof packageJson.scripts["lint:rust"], "string");
   assert.equal(typeof packageJson.scripts.lint, "string");
   assert.equal(typeof packageJson.scripts.check, "string");
+  assert.equal(typeof packageJson.scripts["ci:web"], "string");
+  assert.equal(typeof packageJson.scripts["ci:rust"], "string");
+  assert.equal(typeof packageJson.scripts.ci, "string");
   assert.ok(packageJson.scripts["lint:ts"].includes("biome check ."));
   assert.ok(packageJson.scripts["lint:rust"].includes("ensure:tauri-icon"));
 });
