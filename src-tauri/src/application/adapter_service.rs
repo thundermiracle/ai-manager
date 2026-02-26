@@ -2,7 +2,8 @@ use std::path::Path;
 
 use crate::{
     application::{
-        mcp_listing_service::McpListingService, skill_listing_service::SkillListingService,
+        mcp_listing_service::McpListingService, mcp_mutation_service::McpMutationService,
+        skill_listing_service::SkillListingService,
     },
     contracts::{
         command::CommandError,
@@ -130,6 +131,25 @@ impl<'a> AdapterService<'a> {
                 action: request.action,
                 target_id: target_id.to_string(),
                 message,
+                source_path: Some(file_mutation_payload.target_path),
+            });
+        }
+
+        if matches!(request.resource_kind, ResourceKind::Mcp) {
+            let mutation_service = McpMutationService::new(self.detector_registry);
+            let outcome = mutation_service.mutate(
+                request.client,
+                request.action,
+                target_id,
+                request.payload.as_ref(),
+            )?;
+
+            return Ok(MutateResourceResponse {
+                accepted: true,
+                action: request.action,
+                target_id: target_id.to_string(),
+                message: outcome.message,
+                source_path: Some(outcome.source_path),
             });
         }
 
@@ -147,6 +167,7 @@ impl<'a> AdapterService<'a> {
             action: request.action,
             target_id: target_id.to_string(),
             message: result.message,
+            source_path: None,
         })
     }
 }
@@ -365,5 +386,44 @@ mod tests {
 
         assert!(error.message.contains("rollback_succeeded=true"));
         assert_eq!(content, "{\"before\":true}");
+    }
+
+    #[test]
+    fn mutate_resource_adds_mcp_entry_with_actionable_metadata() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+
+        let temp_dir =
+            std::env::temp_dir().join(format!("ai-manager-mutate-mcp-add-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+        let source = temp_dir.join("claude.json");
+        fs::write(&source, "{}").expect("should create target config");
+
+        let response = service
+            .mutate_resource(&MutateResourceRequest {
+                client: ClientKind::ClaudeCode,
+                resource_kind: ResourceKind::Mcp,
+                action: MutationAction::Add,
+                target_id: "filesystem".to_string(),
+                payload: Some(json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "command": "npx", "args": ["-y", "server"] },
+                    "enabled": true
+                })),
+            })
+            .expect("MCP add should succeed");
+
+        let content = fs::read_to_string(&source).expect("should read updated target");
+        let expected_source_path = source.display().to_string();
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(response.accepted);
+        assert!(response.message.contains("Added MCP"));
+        assert_eq!(
+            response.source_path.as_deref(),
+            Some(expected_source_path.as_str())
+        );
+        assert!(content.contains("filesystem"));
     }
 }
