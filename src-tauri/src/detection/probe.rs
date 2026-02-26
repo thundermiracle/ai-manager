@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 
 pub enum ConfigProbe {
     Resolved(String),
-    OverrideInvalid(String),
+    OverrideMissing(String),
+    OverridePermissionDenied(String),
+    PermissionDenied(String),
     Missing,
 }
 
@@ -28,18 +30,38 @@ pub fn probe_config_path_with_override(
 ) -> ConfigProbe {
     if let Some(override_value) = override_value {
         let expanded = expand_user_path(override_value);
-        if is_readable_file(&expanded) {
-            return ConfigProbe::Resolved(expanded.to_string_lossy().to_string());
-        }
-
-        return ConfigProbe::OverrideInvalid(expanded.to_string_lossy().to_string());
+        return match file_access_outcome(&expanded) {
+            FileAccessOutcome::ReadableFile => {
+                ConfigProbe::Resolved(expanded.to_string_lossy().to_string())
+            }
+            FileAccessOutcome::PermissionDenied => {
+                ConfigProbe::OverridePermissionDenied(expanded.to_string_lossy().to_string())
+            }
+            FileAccessOutcome::NotFoundOrNotFile => {
+                ConfigProbe::OverrideMissing(expanded.to_string_lossy().to_string())
+            }
+        };
     }
+
+    let mut first_permission_denied: Option<String> = None;
 
     for fallback in fallbacks {
         let expanded = expand_user_path(fallback);
-        if is_readable_file(&expanded) {
-            return ConfigProbe::Resolved(expanded.to_string_lossy().to_string());
+        match file_access_outcome(&expanded) {
+            FileAccessOutcome::ReadableFile => {
+                return ConfigProbe::Resolved(expanded.to_string_lossy().to_string());
+            }
+            FileAccessOutcome::PermissionDenied => {
+                if first_permission_denied.is_none() {
+                    first_permission_denied = Some(expanded.to_string_lossy().to_string());
+                }
+            }
+            FileAccessOutcome::NotFoundOrNotFile => {}
         }
+    }
+
+    if let Some(path) = first_permission_denied {
+        return ConfigProbe::PermissionDenied(path);
     }
 
     ConfigProbe::Missing
@@ -62,8 +84,25 @@ fn expand_user_path(value: &str) -> PathBuf {
     PathBuf::from(value)
 }
 
-fn is_readable_file(path: &Path) -> bool {
-    path.is_file() && std::fs::File::open(path).is_ok()
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FileAccessOutcome {
+    ReadableFile,
+    PermissionDenied,
+    NotFoundOrNotFile,
+}
+
+fn file_access_outcome(path: &Path) -> FileAccessOutcome {
+    if !path.is_file() {
+        return FileAccessOutcome::NotFoundOrNotFile;
+    }
+
+    match std::fs::File::open(path) {
+        Ok(_) => FileAccessOutcome::ReadableFile,
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            FileAccessOutcome::PermissionDenied
+        }
+        Err(_) => FileAccessOutcome::NotFoundOrNotFile,
+    }
 }
 
 fn find_command_in_path(command: &str) -> Option<PathBuf> {
@@ -111,7 +150,7 @@ mod tests {
         let _ = fs::remove_file(&fallback_path);
         let _ = fs::remove_dir(&temp_dir);
 
-        assert!(matches!(outcome, ConfigProbe::OverrideInvalid(_)));
+        assert!(matches!(outcome, ConfigProbe::OverrideMissing(_)));
     }
 
     #[test]
@@ -135,5 +174,54 @@ mod tests {
         let _ = fs::remove_dir(&temp_dir);
 
         assert!(matches!(outcome, ConfigProbe::Resolved(_)));
+    }
+
+    #[test]
+    fn override_path_reports_permission_denied_when_file_is_unreadable() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-detection-test-permission-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let protected_file = temp_dir.join("protected-config.json");
+        fs::write(&protected_file, "{}").expect("should create protected fixture");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&protected_file)
+                .expect("protected file metadata should exist")
+                .permissions();
+            perms.set_mode(0o000);
+            fs::set_permissions(&protected_file, perms).expect("should change protected mode");
+        }
+
+        let protected_str = protected_file
+            .to_str()
+            .expect("protected path should be valid utf-8");
+
+        let outcome = probe_config_path_with_override(Some(protected_str), &[]);
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&protected_file)
+                .expect("protected file metadata should exist")
+                .permissions();
+            perms.set_mode(0o644);
+            let _ = fs::set_permissions(&protected_file, perms);
+        }
+
+        let _ = fs::remove_file(&protected_file);
+        let _ = fs::remove_dir(&temp_dir);
+
+        #[cfg(unix)]
+        assert!(matches!(outcome, ConfigProbe::OverridePermissionDenied(_)));
+        #[cfg(not(unix))]
+        assert!(matches!(
+            outcome,
+            ConfigProbe::OverridePermissionDenied(_) | ConfigProbe::Resolved(_)
+        ));
     }
 }
