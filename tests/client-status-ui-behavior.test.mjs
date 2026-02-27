@@ -17,14 +17,11 @@ test("app shell and navigation do not expose issue number labels in UI text", as
 });
 
 test("desktop sidebar uses fixed positioning and mobile layout reverts to static", async () => {
-  const cssSource = await readWorkspaceFile("./src/App.css");
+  const shellSource = await readWorkspaceFile("./src/features/app-shell/AppShell.tsx");
 
-  assert.match(cssSource, /\.app-sidebar\s*\{[^}]*position:\s*fixed;/s);
-  assert.match(cssSource, /\.app-sidebar\s*\{[^}]*height:\s*calc\(100vh - 2rem\);/s);
-  assert.match(
-    cssSource,
-    /@media\s*\(max-width:\s*980px\)\s*\{[\s\S]*\.app-sidebar\s*\{[\s\S]*position:\s*static;/,
-  );
+  assert.match(shellSource, /fixed/);
+  assert.match(shellSource, /h-\[calc\(100vh-2rem\)\]/);
+  assert.match(shellSource, /max-\[980px\]:static/);
 });
 
 test("client status cards render details blocks collapsed by default", async () => {
@@ -32,7 +29,7 @@ test("client status cards render details blocks collapsed by default", async () 
     "./src/features/clients/components/ClientStatusCard.tsx",
   );
 
-  assert.match(cardSource, /<details className="client-details">/);
-  assert.match(cardSource, /<summary>Show tool details<\/summary>/);
-  assert.doesNotMatch(cardSource, /<details[^>]*\bopen\b/);
+  assert.match(cardSource, /<details className="rounded-lg border/);
+  assert.match(cardSource, /Show tool details/);
+  assert.doesNotMatch(cardSource, /<details[^>]*\sopen(?=[\s>])/);
 });

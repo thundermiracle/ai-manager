@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+
 interface ViewStatePanelProps {
   title: string;
   message: string;
@@ -7,14 +10,18 @@ interface ViewStatePanelProps {
 
 export function ViewStatePanel({ title, message, actionLabel, onAction }: ViewStatePanelProps) {
   return (
-    <section className="view-state-panel">
-      <h2>{title}</h2>
-      <p>{message}</p>
-      {actionLabel && onAction ? (
-        <button type="button" className="ghost-button" onClick={onAction}>
-          {actionLabel}
-        </button>
-      ) : null}
-    </section>
+    <Card className="border-dashed border-slate-300 bg-slate-50/80">
+      <CardHeader className="p-4 pb-2">
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2 p-4 pt-0">
+        <p className="leading-relaxed text-slate-700">{message}</p>
+        {actionLabel && onAction ? (
+          <Button type="button" variant="outline" onClick={onAction}>
+            {actionLabel}
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

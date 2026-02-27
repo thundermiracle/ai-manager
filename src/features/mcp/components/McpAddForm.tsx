@@ -1,5 +1,10 @@
 import { type FormEvent, useState } from "react";
 
+import { Alert } from "../../../components/ui/alert";
+import { Button } from "../../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 import type { AddMcpInput, McpTransportInput } from "../useMcpManager";
 
 interface McpAddFormProps {
@@ -90,78 +95,88 @@ export function McpAddForm({ disabled, onSubmit }: McpAddFormProps) {
   }
 
   return (
-    <form className="mcp-form" onSubmit={(event) => void handleSubmit(event)}>
-      <h3>Add MCP Entry</h3>
+    <Card>
+      <CardHeader className="p-4 pb-2">
+        <CardTitle className="text-base">Add MCP Entry</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 pt-2">
+        <form className="grid content-start gap-2" onSubmit={(event) => void handleSubmit(event)}>
+          {localError ? <Alert variant="destructive">{localError}</Alert> : null}
 
-      {localError ? <p className="mcp-feedback mcp-feedback-error">{localError}</p> : null}
-
-      <label htmlFor="mcp-target-id">Target ID</label>
-      <input
-        id="mcp-target-id"
-        value={targetId}
-        onChange={(event) => setTargetId(event.currentTarget.value)}
-        placeholder="filesystem"
-        disabled={disabled}
-      />
-
-      <label htmlFor="mcp-transport-mode">Transport</label>
-      <select
-        id="mcp-transport-mode"
-        value={transportMode}
-        onChange={(event) => setTransportMode(event.currentTarget.value as TransportMode)}
-        disabled={disabled}
-      >
-        <option value="stdio">stdio (command + args)</option>
-        <option value="sse">sse (url)</option>
-      </select>
-
-      {transportMode === "stdio" ? (
-        <>
-          <label htmlFor="mcp-command">Command</label>
-          <input
-            id="mcp-command"
-            value={command}
-            onChange={(event) => setCommand(event.currentTarget.value)}
-            placeholder="npx"
+          <Label htmlFor="mcp-target-id">Target ID</Label>
+          <Input
+            id="mcp-target-id"
+            value={targetId}
+            onChange={(event) => setTargetId(event.currentTarget.value)}
+            placeholder="filesystem"
             disabled={disabled}
           />
 
-          <label htmlFor="mcp-args">Args (comma-separated)</label>
-          <input
-            id="mcp-args"
-            value={argsInput}
-            onChange={(event) => setArgsInput(event.currentTarget.value)}
-            placeholder="-y, @scope/package"
+          <Label htmlFor="mcp-transport-mode">Transport</Label>
+          <select
+            id="mcp-transport-mode"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
+            value={transportMode}
+            onChange={(event) => setTransportMode(event.currentTarget.value as TransportMode)}
             disabled={disabled}
-          />
-        </>
-      ) : (
-        <>
-          <label htmlFor="mcp-url">SSE URL</label>
-          <input
-            id="mcp-url"
-            value={url}
-            onChange={(event) => setUrl(event.currentTarget.value)}
-            placeholder="https://example.com/sse"
-            disabled={disabled}
-          />
-        </>
-      )}
+          >
+            <option value="stdio">stdio (command + args)</option>
+            <option value="sse">sse (url)</option>
+          </select>
 
-      <label className="checkbox-row" htmlFor="mcp-enabled">
-        <input
-          id="mcp-enabled"
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => setEnabled(event.currentTarget.checked)}
-          disabled={disabled}
-        />
-        Enable this MCP entry immediately
-      </label>
+          {transportMode === "stdio" ? (
+            <>
+              <Label htmlFor="mcp-command">Command</Label>
+              <Input
+                id="mcp-command"
+                value={command}
+                onChange={(event) => setCommand(event.currentTarget.value)}
+                placeholder="npx"
+                disabled={disabled}
+              />
 
-      <button className="ghost-button" type="submit" disabled={disabled}>
-        Add MCP
-      </button>
-    </form>
+              <Label htmlFor="mcp-args">Args (comma-separated)</Label>
+              <Input
+                id="mcp-args"
+                value={argsInput}
+                onChange={(event) => setArgsInput(event.currentTarget.value)}
+                placeholder="-y, @scope/package"
+                disabled={disabled}
+              />
+            </>
+          ) : (
+            <>
+              <Label htmlFor="mcp-url">SSE URL</Label>
+              <Input
+                id="mcp-url"
+                value={url}
+                onChange={(event) => setUrl(event.currentTarget.value)}
+                placeholder="https://example.com/sse"
+                disabled={disabled}
+              />
+            </>
+          )}
+
+          <label
+            className="mt-1 flex items-center gap-2 text-sm text-slate-700"
+            htmlFor="mcp-enabled"
+          >
+            <input
+              id="mcp-enabled"
+              className="size-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => setEnabled(event.currentTarget.checked)}
+              disabled={disabled}
+            />
+            Enable this MCP entry immediately
+          </label>
+
+          <Button variant="outline" type="submit" disabled={disabled}>
+            Add MCP
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,3 +1,6 @@
+import { Alert } from "../../components/ui/alert";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
 import type { ErrorDiagnostic } from "./errorDiagnostics";
 
 interface ErrorRecoveryCalloutProps {
@@ -14,40 +17,42 @@ export function ErrorRecoveryCallout({
   onRetry,
 }: ErrorRecoveryCalloutProps) {
   return (
-    <section className="recovery-callout" role="alert">
-      <header className="recovery-callout-header">
-        <h3>{title}</h3>
-        <span
-          className={
-            diagnostic.recoverable
-              ? "recovery-callout-badge recovery-callout-badge-recoverable"
-              : "recovery-callout-badge recovery-callout-badge-nonrecoverable"
-          }
-        >
+    <Alert variant="destructive" className="grid gap-2">
+      <header className="flex items-center justify-between gap-2">
+        <h3 className="text-base font-semibold">{title}</h3>
+        <Badge variant={diagnostic.recoverable ? "warning" : "destructive"}>
           {diagnostic.recoverable ? "Recoverable" : "Non-recoverable"}
-        </span>
+        </Badge>
       </header>
 
-      <p className="recovery-callout-code">Code: {diagnostic.code}</p>
-      <p className="recovery-callout-message">{diagnostic.message}</p>
+      <p className="text-xs uppercase tracking-[0.04em] text-rose-900/90">
+        Code: {diagnostic.code}
+      </p>
+      <p className="leading-relaxed">{diagnostic.message}</p>
 
       {diagnostic.backupPath ? (
-        <p className="recovery-callout-backup">
-          Backup path: <code>{diagnostic.backupPath}</code>
+        <p className="text-sm">
+          Backup path:{" "}
+          <code className="rounded bg-rose-900/10 px-1.5 py-0.5">{diagnostic.backupPath}</code>
         </p>
       ) : null}
 
-      <ul className="recovery-callout-guidance">
+      <ul className="grid list-disc gap-1 pl-5 text-sm">
         {diagnostic.guidance.map((step, index) => (
           <li key={`${diagnostic.code}-${index.toString()}`}>{step}</li>
         ))}
       </ul>
 
       {onRetry && retryLabel ? (
-        <button type="button" className="ghost-button" onClick={onRetry}>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-fit border-rose-300 bg-white"
+          onClick={onRetry}
+        >
           {retryLabel}
-        </button>
+        </Button>
       ) : null}
-    </section>
+    </Alert>
   );
 }

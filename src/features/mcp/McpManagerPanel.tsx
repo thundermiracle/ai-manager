@@ -1,4 +1,7 @@
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import { Alert } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { formatClientLabel } from "../clients/client-labels";
 import { ErrorRecoveryCallout } from "../common/ErrorRecoveryCallout";
 import { ViewStatePanel } from "../common/ViewStatePanel";
@@ -46,17 +49,17 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
   }
 
   return (
-    <section className="mcp-panel">
-      <header className="mcp-header">
+    <Card className="bg-sky-50/40">
+      <CardHeader className="flex-row items-start justify-between gap-3 p-4">
         <div>
-          <h2>MCP Manager</h2>
-          <p>
+          <CardTitle className="text-lg">MCP Manager</CardTitle>
+          <p className="mt-1 text-sm text-slate-700">
             Managing <strong>{formatClientLabel(client)}</strong>
           </p>
         </div>
-        <button
+        <Button
           type="button"
-          className="ghost-button"
+          variant="outline"
           onClick={() => {
             clearFeedback();
             void refresh();
@@ -64,38 +67,38 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
           disabled={phase === "loading"}
         >
           {phase === "loading" ? "Loading..." : "Reload MCP List"}
-        </button>
-      </header>
+        </Button>
+      </CardHeader>
 
-      {warning ? <p className="mcp-feedback mcp-feedback-warning">{warning}</p> : null}
-      {operationError ? (
-        <ErrorRecoveryCallout
-          title="MCP list operation failed"
-          diagnostic={operationError}
-          retryLabel="Retry List"
-          onRetry={() => {
-            void refresh();
-          }}
-        />
-      ) : null}
-      {feedback?.kind === "success" ? (
-        <p className="mcp-feedback mcp-feedback-success">{feedback.message}</p>
-      ) : null}
-      {feedback?.kind === "error" && feedback.diagnostic ? (
-        <ErrorRecoveryCallout title="MCP mutation failed" diagnostic={feedback.diagnostic} />
-      ) : null}
-      {feedback?.kind === "error" && !feedback.diagnostic ? (
-        <p className="mcp-feedback mcp-feedback-error">{feedback.message}</p>
-      ) : null}
+      <CardContent className="grid gap-3 p-4 pt-0">
+        {warning ? <Alert variant="warning">{warning}</Alert> : null}
+        {operationError ? (
+          <ErrorRecoveryCallout
+            title="MCP list operation failed"
+            diagnostic={operationError}
+            retryLabel="Retry List"
+            onRetry={() => {
+              void refresh();
+            }}
+          />
+        ) : null}
+        {feedback?.kind === "success" ? <Alert variant="success">{feedback.message}</Alert> : null}
+        {feedback?.kind === "error" && feedback.diagnostic ? (
+          <ErrorRecoveryCallout title="MCP mutation failed" diagnostic={feedback.diagnostic} />
+        ) : null}
+        {feedback?.kind === "error" && !feedback.diagnostic ? (
+          <Alert variant="destructive">{feedback.message}</Alert>
+        ) : null}
 
-      <div className="mcp-layout">
-        <McpAddForm disabled={phase === "loading"} onSubmit={addMcp} />
-        <McpResourceTable
-          resources={resources}
-          pendingRemovalId={pendingRemovalId}
-          onRemove={handleRemove}
-        />
-      </div>
-    </section>
+        <div className="grid grid-cols-[minmax(14rem,18.5rem)_1fr] gap-3 max-[720px]:grid-cols-1">
+          <McpAddForm disabled={phase === "loading"} onSubmit={addMcp} />
+          <McpResourceTable
+            resources={resources}
+            pendingRemovalId={pendingRemovalId}
+            onRemove={handleRemove}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
