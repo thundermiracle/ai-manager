@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.thundermiracle.ai-manager",
   "build": {
-    "beforeDevCommand": "pnpm run pretauri:dev",
+    "beforeDevCommand": "pnpm run ensure:tauri-icon && pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm run pretauri:build",
+    "beforeBuildCommand": "pnpm run ensure:tauri-icon && pnpm build",
     "frontendDist": "../dist"
   },
   "app": {

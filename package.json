@@ -9,8 +9,6 @@
   },
   "scripts": {
     "ensure:tauri-icon": "node ./scripts/ensure-tauri-icon.mjs",
-    "pretauri:dev": "pnpm run ensure:tauri-icon && pnpm dev",
-    "pretauri:build": "pnpm run ensure:tauri-icon && pnpm build",
     "typecheck": "tsc --noEmit",
     "fmt:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
