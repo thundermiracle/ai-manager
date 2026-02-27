@@ -29,14 +29,22 @@ select {
 }
 
 .app-shell {
+  --sidebar-width: clamp(17rem, 24vw, 20rem);
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(17rem, 20rem) 1fr;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   gap: 1rem;
   padding: 1rem;
 }
 
 .app-sidebar {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  width: var(--sidebar-width);
+  height: calc(100vh - 2rem);
+  overflow-y: auto;
   border-radius: 1.25rem;
   background: linear-gradient(165deg, #16253d 0%, #1f3656 100%);
   color: #f0f5ff;
@@ -118,6 +126,7 @@ select {
 }
 
 .app-content {
+  grid-column: 2;
   border-radius: 1.25rem;
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(24, 51, 79, 0.15);
@@ -475,10 +484,51 @@ select {
   font-size: 0.9rem;
 }
 
+.client-details {
+  border-radius: 0.8rem;
+  border: 1px solid rgba(29, 62, 96, 0.16);
+  background: #f8fbff;
+  padding: 0.55rem 0.62rem;
+}
+
+.client-details[open] {
+  background: #f2f8ff;
+}
+
+.client-details summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1f456b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.client-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.client-details summary::after {
+  content: "▾";
+  font-size: 0.78rem;
+  transition: transform 140ms ease;
+}
+
+.client-details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.client-details .client-evidence-list {
+  margin-top: 0.58rem;
+}
+
 .client-note {
   color: #3c546f;
   line-height: 1.35;
   font-size: 0.88rem;
+  margin-top: 0.58rem;
 }
 
 .ghost-button {
@@ -510,7 +560,18 @@ select {
   }
 
   .app-sidebar {
+    position: static;
+    top: auto;
+    left: auto;
+    width: auto;
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
     grid-template-rows: auto;
+  }
+
+  .app-content {
+    grid-column: auto;
   }
 
   .nav-list {

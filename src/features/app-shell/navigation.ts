@@ -15,11 +15,11 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     route: "mcp",
     title: "MCP Manager",
-    subtitle: "Issue #28 target",
+    subtitle: "Manage MCP resources",
   },
   {
     route: "skills",
     title: "Skills Manager",
-    subtitle: "Issue #29 target",
+    subtitle: "Manage skill resources",
   },
 ];

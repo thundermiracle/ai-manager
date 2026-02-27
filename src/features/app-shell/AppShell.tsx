@@ -83,7 +83,6 @@ export function AppShell() {
       <section className="app-content">
         <header className="content-header">
           <div>
-            <p className="content-kicker">Issue #27</p>
             <h2>App Shell and Client Dashboard</h2>
             <p>
               {selectedDetection
