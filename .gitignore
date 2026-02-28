@@ -11,7 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
-src-tauri/icons
+src-tauri/icons/*
+!src-tauri/icons/icon.png
 
 # Editor directories and files
 .vscode/*

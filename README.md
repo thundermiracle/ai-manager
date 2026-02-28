@@ -50,4 +50,4 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - Backend commands are thin boundaries and delegate to `AdapterService` through `AdapterRegistry`.
 - CI runs separate `web-quality` and `rust-quality` jobs on pull requests and pushes to `main`.
 - `src-tauri/tauri.conf.json` is configured to use `pnpm` for both dev and build hooks.
-- `scripts/ensure-tauri-icon.mjs` generates the required Tauri icon in clean environments.
+- `src-tauri/icons/icon.png` is the single source asset; platform icons are generated via `pnpm run generate:tauri-icons`.

@@ -14,7 +14,6 @@ async function main() {
     throw new Error("macOS packaging is only supported on darwin hosts.");
   }
 
-  await runCommand("pnpm", ["run", "ensure:tauri-icon"]);
   await runCommand("pnpm", ["exec", "tauri", "build", "--bundles", "dmg"]);
 
   const dmgArtifact = await findLatestDmgArtifact(dmgOutputDir);
