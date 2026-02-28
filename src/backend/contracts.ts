@@ -58,6 +58,22 @@ export interface DetectClientsResponse {
   clients: ClientDetection[];
 }
 
+export interface DiscoverSkillRepositoryRequest {
+  github_repo_url: string;
+}
+
+export interface DiscoveredSkillCandidate {
+  manifest_path: string;
+  suggested_target_id: string;
+  summary: string;
+}
+
+export interface DiscoverSkillRepositoryResponse {
+  normalized_repo_url: string;
+  warning: string;
+  items: DiscoveredSkillCandidate[];
+}
+
 export interface ListResourcesRequest {
   client?: ClientKind | null;
   resource_kind: ResourceKind;

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { listResources, mutateResource } from "../../backend/client";
-import type { ClientKind, CommandEnvelope, ResourceRecord } from "../../backend/contracts";
+import { discoverSkillRepository, listResources, mutateResource } from "../../backend/client";
+import type {
+  ClientKind,
+  CommandEnvelope,
+  DiscoveredSkillCandidate,
+  ResourceRecord,
+} from "../../backend/contracts";
 import { redactNullableSensitiveText, redactSensitiveText } from "../../security/redaction";
 import {
   commandErrorToDiagnostic,
@@ -11,10 +16,24 @@ import {
 
 export type SkillInstallInputKind = "directory" | "file";
 
-export interface AddSkillInput {
-  targetId: string;
-  manifest: string;
-  installKind: SkillInstallInputKind;
+export type AddSkillInput =
+  | {
+      mode: "manual";
+      targetId: string;
+      manifest: string;
+      installKind: SkillInstallInputKind;
+    }
+  | {
+      mode: "github";
+      targetId: string;
+      githubRepoUrl: string;
+      githubSkillPath: string;
+    };
+
+export interface GithubSkillDiscoveryResult {
+  normalizedRepoUrl: string;
+  warning: string;
+  items: DiscoveredSkillCandidate[];
 }
 
 interface MutationFeedback {
@@ -34,6 +53,7 @@ interface UseSkillManagerResult {
   pendingRemovalId: string | null;
   refresh: () => Promise<void>;
   addSkill: (input: AddSkillInput) => Promise<boolean>;
+  discoverGithubSkills: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
   removeSkill: (targetId: string, sourcePath: string | null) => Promise<boolean>;
   clearFeedback: () => void;
 }
@@ -122,15 +142,24 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
       }
 
       try {
+        const payload: Record<string, unknown> =
+          input.mode === "github"
+            ? {
+                github_repo_url: input.githubRepoUrl.trim(),
+                github_skill_path: input.githubSkillPath,
+                install_kind: "directory",
+              }
+            : {
+                manifest: input.manifest,
+                install_kind: input.installKind,
+              };
+
         const envelope = await mutateResource({
           client,
           resource_kind: "skill",
           action: "add",
           target_id: input.targetId,
-          payload: {
-            manifest: input.manifest,
-            install_kind: input.installKind,
-          },
+          payload,
         });
 
         if (!envelope.ok || envelope.data === null) {
@@ -158,6 +187,48 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
     },
     [client, refresh],
   );
+
+  const discoverGithubSkills = useCallback(async (githubRepoUrl: string) => {
+    const normalizedUrl = githubRepoUrl.trim();
+    if (normalizedUrl.length === 0) {
+      const diagnostic = runtimeErrorToDiagnostic("GitHub repository URL is required.");
+      setFeedback({
+        kind: "error",
+        message: diagnostic.message,
+        diagnostic,
+      });
+      return null;
+    }
+
+    try {
+      const envelope = await discoverSkillRepository({
+        github_repo_url: normalizedUrl,
+      });
+      if (!envelope.ok || envelope.data === null) {
+        const diagnostic = envelopeErrorDiagnostic(
+          envelope,
+          "Discover command failed without an explicit error payload.",
+        );
+        setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
+        return null;
+      }
+
+      return {
+        normalizedRepoUrl: envelope.data.normalized_repo_url,
+        warning: envelope.data.warning,
+        items: envelope.data.items,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown discover runtime error.";
+      const diagnostic = runtimeErrorToDiagnostic(message);
+      setFeedback({
+        kind: "error",
+        message: diagnostic.message,
+        diagnostic,
+      });
+      return null;
+    }
+  }, []);
 
   const removeSkill = useCallback(
     async (targetId: string, sourcePath: string | null) => {
@@ -220,6 +291,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
     pendingRemovalId,
     refresh,
     addSkill,
+    discoverGithubSkills,
     removeSkill,
     clearFeedback: () => setFeedback(null),
   };

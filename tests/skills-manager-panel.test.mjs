@@ -19,10 +19,37 @@ test("skills manager hook calls list and mutate commands", async () => {
   const hookSource = await readWorkspaceFile("./src/features/skills/useSkillManager.ts");
 
   assert.match(hookSource, /listResources/);
+  assert.match(hookSource, /discoverSkillRepository/);
   assert.match(hookSource, /mutateResource/);
   assert.match(hookSource, /resource_kind: "skill"/);
   assert.match(hookSource, /action: "add"/);
   assert.match(hookSource, /action: "remove"/);
+  assert.match(hookSource, /github_repo_url/);
+  assert.match(hookSource, /github_skill_path/);
+  assert.match(hookSource, /input\.mode === "github"/);
+  assert.match(hookSource, /manifest: input\.manifest/);
+});
+
+test("skills add form separates manual and GitHub modes", async () => {
+  const formSource = await readWorkspaceFile("./src/features/skills/SkillAddForm.tsx");
+  const stateSource = await readWorkspaceFile("./src/features/skills/useSkillAddForm.ts");
+
+  assert.match(formSource, /Add Method/);
+  assert.match(formSource, /Manual/);
+  assert.match(formSource, /GitHub URL/);
+  assert.match(formSource, /GitHub Repository URL/);
+  assert.match(formSource, /Discovered Skills/);
+  assert.match(formSource, /I understand remote repository content can be unsafe/);
+  assert.match(formSource, /id="skill-github-url"/);
+  assert.match(formSource, /onGithubRepoUrlChange/);
+  assert.match(formSource, /onDiscoverGithubRepo/);
+  assert.match(formSource, /onSelectedGithubManifestPathChange/);
+  assert.match(formSource, /onGithubRiskAcknowledgedChange/);
+  assert.match(stateSource, /export type SkillAddMode = "manual" \| "github"/);
+  assert.match(stateSource, /githubRepoUrl/);
+  assert.match(stateSource, /discoverGithubRepo/);
+  assert.match(stateSource, /selectedGithubManifestPath/);
+  assert.match(stateSource, /githubRiskAcknowledged/);
 });
 
 test("skills manager remove action uses in-app confirmation modal", async () => {

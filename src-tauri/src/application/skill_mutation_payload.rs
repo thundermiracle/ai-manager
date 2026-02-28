@@ -9,6 +9,8 @@ pub enum SkillInstallKind {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SkillMutationPayload {
     pub source_path: Option<String>,
+    pub github_repo_url: Option<String>,
+    pub github_skill_path: Option<String>,
     pub skills_dir: Option<String>,
     pub manifest: Option<String>,
     pub install_kind: Option<SkillInstallKind>,
@@ -30,6 +32,8 @@ pub fn parse_skill_mutation_payload(
     };
 
     let source_path = read_trimmed_string(payload, "source_path");
+    let github_repo_url = read_trimmed_string(payload, "github_repo_url");
+    let github_skill_path = read_trimmed_string(payload, "github_skill_path");
     let skills_dir = read_trimmed_string(payload, "skills_dir");
     let manifest = read_manifest(payload);
     let fail_after_write = payload
@@ -48,20 +52,37 @@ pub fn parse_skill_mutation_payload(
         None
     };
 
-    if source_path.is_some() && manifest.is_some() {
+    let source_option_count = [source_path.is_some(), github_repo_url.is_some(), manifest.is_some()]
+        .into_iter()
+        .filter(|is_some| *is_some)
+        .count();
+
+    if source_option_count > 1 {
         return Err(CommandError::validation(
-            "payload.source_path and payload.manifest cannot be used together.",
+            "payload.source_path, payload.github_repo_url, and payload.manifest are mutually exclusive.",
         ));
     }
 
-    if matches!(action, MutationAction::Add) && source_path.is_none() && manifest.is_none() {
+    if github_skill_path.is_some() && github_repo_url.is_none() {
         return Err(CommandError::validation(
-            "payload.manifest or payload.source_path is required for skill add mutation.",
+            "payload.github_skill_path requires payload.github_repo_url.",
+        ));
+    }
+
+    if matches!(action, MutationAction::Add)
+        && source_path.is_none()
+        && github_repo_url.is_none()
+        && manifest.is_none()
+    {
+        return Err(CommandError::validation(
+            "payload.manifest, payload.source_path, or payload.github_repo_url is required for skill add mutation.",
         ));
     }
 
     Ok(SkillMutationPayload {
         source_path,
+        github_repo_url,
+        github_skill_path,
         skills_dir,
         manifest,
         install_kind,
@@ -112,7 +133,7 @@ mod tests {
         assert!(
             error
                 .message
-                .contains("payload.manifest or payload.source_path")
+                .contains("payload.manifest, payload.source_path, or payload.github_repo_url")
         );
     }
 
@@ -132,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn source_and_manifest_are_mutually_exclusive() {
+    fn source_options_are_mutually_exclusive() {
         let error = parse_skill_mutation_payload(
             MutationAction::Add,
             Some(&json!({
@@ -142,7 +163,44 @@ mod tests {
         )
         .expect_err("source_path + manifest should fail");
 
-        assert!(error.message.contains("cannot be used together"));
+        assert!(error.message.contains("mutually exclusive"));
+    }
+
+    #[test]
+    fn github_repo_url_is_parsed_for_add() {
+        let payload = parse_skill_mutation_payload(
+            MutationAction::Add,
+            Some(&json!({
+                "github_repo_url": "https://github.com/thundermiracle/skills",
+                "github_skill_path": "python-refactor/SKILL.md",
+                "install_kind": "directory"
+            })),
+        )
+        .expect("github repo payload should parse");
+
+        assert_eq!(
+            payload.github_repo_url.as_deref(),
+            Some("https://github.com/thundermiracle/skills")
+        );
+        assert_eq!(
+            payload.github_skill_path.as_deref(),
+            Some("python-refactor/SKILL.md")
+        );
+        assert!(payload.manifest.is_none());
+        assert!(payload.source_path.is_none());
+    }
+
+    #[test]
+    fn github_skill_path_requires_github_repo_url() {
+        let error = parse_skill_mutation_payload(
+            MutationAction::Add,
+            Some(&json!({
+                "github_skill_path": "python-refactor/SKILL.md",
+            })),
+        )
+        .expect_err("github_skill_path should require github_repo_url");
+
+        assert!(error.message.contains("requires payload.github_repo_url"));
     }
 
     #[test]
@@ -151,6 +209,8 @@ mod tests {
             .expect("remove payload should be optional");
 
         assert!(payload.source_path.is_none());
+        assert!(payload.github_repo_url.is_none());
+        assert!(payload.github_skill_path.is_none());
         assert!(payload.manifest.is_none());
     }
 }

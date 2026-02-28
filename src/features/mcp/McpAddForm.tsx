@@ -2,7 +2,6 @@ import type { FormEvent } from "react";
 
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { cn } from "../../lib/utils";
@@ -18,7 +17,6 @@ interface McpAddFormProps {
   onUrlChange: (value: string) => void;
   onEnabledChange: (value: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  framed?: boolean;
   className?: string;
 }
 
@@ -32,7 +30,6 @@ export function McpAddForm({
   onUrlChange,
   onEnabledChange,
   onSubmit,
-  framed = true,
   className,
 }: McpAddFormProps) {
   const form = (
@@ -114,16 +111,5 @@ export function McpAddForm({
     </form>
   );
 
-  if (!framed) {
-    return form;
-  }
-
-  return (
-    <Card>
-      <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-base">Add MCP Entry</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-2">{form}</CardContent>
-    </Card>
-  );
+  return form;
 }

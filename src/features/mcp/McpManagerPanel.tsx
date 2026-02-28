@@ -197,7 +197,6 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
           onUrlChange={addForm.setUrl}
           onEnabledChange={addForm.setEnabled}
           onSubmit={addForm.submit}
-          framed={false}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>

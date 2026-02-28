@@ -33,6 +33,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     feedback,
     pendingRemovalId,
     addSkill,
+    discoverGithubSkills,
     removeSkill,
     refresh,
     clearFeedback,
@@ -40,6 +41,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
 
   const addForm = useSkillAddForm({
     onSubmit: addSkill,
+    onDiscoverGithubRepo: discoverGithubSkills,
     onAccepted: () => setComposerOpen(false),
   });
 
@@ -184,16 +186,21 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
         open={isComposerOpen}
         title="Add Skill Entry"
         description="Install a skill from a compact composer while keeping the list in view."
+        panelClassName="max-w-[42rem] max-[920px]:max-w-full"
         onClose={() => setComposerOpen(false)}
       >
         <SkillAddForm
           disabled={phase === "loading"}
           state={addForm.state}
+          onModeChange={addForm.setMode}
           onTargetIdChange={addForm.setTargetId}
           onInstallKindChange={addForm.setInstallKind}
           onManifestChange={addForm.setManifest}
+          onGithubRepoUrlChange={addForm.setGithubRepoUrl}
+          onSelectedGithubManifestPathChange={addForm.setSelectedGithubManifestPath}
+          onGithubRiskAcknowledgedChange={addForm.setGithubRiskAcknowledged}
+          onDiscoverGithubRepo={addForm.discoverGithubRepo}
           onSubmit={addForm.submit}
-          framed={false}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>

@@ -14,10 +14,10 @@ const commandContractRs = readFileSync(
 const tsClient = readFileSync(new URL("../src/backend/client.ts", import.meta.url), "utf8");
 const tsContracts = readFileSync(new URL("../src/backend/contracts.ts", import.meta.url), "utf8");
 
-test("backend exposes detect/list/mutate commands through one invoke handler", () => {
+test("backend exposes detect/discover/list/mutate commands through one invoke handler", () => {
   assert.match(
     libRs,
-    /generate_handler!\[\s*detect_clients,\s*list_resources,\s*mutate_resource\s*\]/s,
+    /generate_handler!\[\s*detect_clients,\s*discover_skill_repository,\s*list_resources,\s*mutate_resource\s*\]/s,
   );
 });
 
@@ -40,6 +40,7 @@ test("shared command envelope contract is standardized", () => {
 test("frontend typed client maps one-to-one to backend commands", () => {
   assert.match(tsClient, /invoke\("detect_clients", \{ request \}\)/);
   assert.doesNotMatch(tsClient, /install_client/);
+  assert.match(tsClient, /invoke\("discover_skill_repository", \{ request \}\)/);
   assert.match(tsClient, /invoke\("list_resources", \{ request \}\)/);
   assert.match(tsClient, /invoke\("mutate_resource", \{ request \}\)/);
 });
@@ -50,6 +51,8 @@ test("frontend contracts include shared wrapper and command-specific requests", 
   assert.match(tsContracts, /confidence: number/);
   assert.doesNotMatch(tsContracts, /export interface InstallClientRequest/);
   assert.doesNotMatch(tsContracts, /install_guide_url/);
+  assert.match(tsContracts, /export interface DiscoverSkillRepositoryRequest/);
+  assert.match(tsContracts, /export interface DiscoveredSkillCandidate/);
   assert.match(tsContracts, /export interface ListResourcesRequest/);
   assert.match(tsContracts, /export interface MutateResourceRequest/);
 });

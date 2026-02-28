@@ -9,7 +9,7 @@ pub mod parsers;
 mod security;
 mod state;
 
-use commands::{detect_clients, list_resources, mutate_resource};
+use commands::{detect_clients, discover_skill_repository, list_resources, mutate_resource};
 use state::AppState;
 use tauri::Manager;
 
@@ -19,6 +19,7 @@ pub fn run() {
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             detect_clients,
+            discover_skill_repository,
             list_resources,
             mutate_resource
         ])

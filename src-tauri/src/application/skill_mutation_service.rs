@@ -10,6 +10,7 @@ use crate::{
 };
 
 use super::{
+    skill_github_repository::read_github_skill_manifest,
     skill_metadata_parser::parse_skill_metadata,
     skill_mutation_path_resolver::resolve_skill_root_path,
     skill_mutation_payload::{
@@ -57,7 +58,7 @@ impl Default for SkillMutationService {
 struct SkillManifestSource {
     manifest: String,
     install_kind: SkillInstallKind,
-    source_path: Option<PathBuf>,
+    source_reference: Option<String>,
 }
 
 fn add_skill(
@@ -67,7 +68,7 @@ fn add_skill(
 ) -> Result<SkillMutationResult, CommandError> {
     let root_path =
         resolve_skill_root_path(client, MutationAction::Add, payload.skills_dir.as_deref())?;
-    let manifest_source = resolve_manifest_source(payload)?;
+    let manifest_source = resolve_manifest_source(target_id, payload)?;
 
     let metadata = parse_skill_metadata(&manifest_source.manifest);
     if metadata.description.is_none() {
@@ -135,8 +136,8 @@ fn add_skill(
         client.as_str(),
         destination_manifest.display()
     );
-    if let Some(source_path) = manifest_source.source_path {
-        message.push_str(&format!(" Source: {}.", source_path.display()));
+    if let Some(source_reference) = manifest_source.source_reference {
+        message.push_str(&format!(" Source: {}.", source_reference));
     }
     if let Some(backup_path) = outcome.backup_path {
         message.push_str(&format!(" Backup: {}.", backup_path));
@@ -198,6 +199,7 @@ fn remove_skill(
 }
 
 fn resolve_manifest_source(
+    target_id: &str,
     payload: &SkillMutationPayload,
 ) -> Result<SkillManifestSource, CommandError> {
     if let Some(source_path) = payload.source_path.as_deref() {
@@ -249,20 +251,37 @@ fn resolve_manifest_source(
         return Ok(SkillManifestSource {
             manifest,
             install_kind: inferred_kind,
-            source_path: Some(manifest_path),
+            source_reference: Some(manifest_path.display().to_string()),
+        });
+    }
+
+    if let Some(github_repo_url) = payload.github_repo_url.as_deref() {
+        let github_manifest = read_github_skill_manifest(
+            github_repo_url,
+            target_id,
+            payload.github_skill_path.as_deref(),
+        )?;
+
+        return Ok(SkillManifestSource {
+            manifest: github_manifest.manifest,
+            install_kind: SkillInstallKind::Directory,
+            source_reference: Some(format!(
+                "{} ({})",
+                github_manifest.normalized_repo_url, github_manifest.manifest_path
+            )),
         });
     }
 
     let Some(manifest) = payload.manifest.clone() else {
         return Err(CommandError::validation(
-            "payload.manifest or payload.source_path is required for skill add mutation.",
+            "payload.manifest, payload.source_path, or payload.github_repo_url is required for skill add mutation.",
         ));
     };
 
     Ok(SkillManifestSource {
         manifest,
         install_kind: payload.install_kind.unwrap_or(SkillInstallKind::Directory),
-        source_path: None,
+        source_reference: None,
     })
 }
 

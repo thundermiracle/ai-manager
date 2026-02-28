@@ -9,6 +9,7 @@ interface SlideOverPanelProps {
   description?: string;
   onClose: () => void;
   children: ReactNode;
+  panelClassName?: string;
 }
 
 export function SlideOverPanel({
@@ -17,6 +18,7 @@ export function SlideOverPanel({
   description,
   onClose,
   children,
+  panelClassName,
 }: SlideOverPanelProps) {
   useEffect(() => {
     if (!open) {
@@ -52,6 +54,7 @@ export function SlideOverPanel({
         className={cn(
           "absolute inset-y-0 right-0 z-10 w-full max-w-[28.5rem] border-l border-slate-200 bg-white/95 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.24)] backdrop-blur",
           "max-[640px]:max-w-full max-[640px]:p-4",
+          panelClassName,
         )}
       >
         <header className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
@@ -66,7 +69,7 @@ export function SlideOverPanel({
           </Button>
         </header>
 
-        <div className="mt-4 overflow-y-auto pb-8">{children}</div>
+        <div className="mt-4 min-w-0 overflow-x-hidden overflow-y-auto pb-8">{children}</div>
       </section>
     </div>
   );

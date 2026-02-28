@@ -4,6 +4,8 @@ import type {
   CommandEnvelope,
   DetectClientsRequest,
   DetectClientsResponse,
+  DiscoverSkillRepositoryRequest,
+  DiscoverSkillRepositoryResponse,
   ListResourcesRequest,
   ListResourcesResponse,
   MutateResourceRequest,
@@ -14,6 +16,12 @@ export async function detectClients(
   request: DetectClientsRequest,
 ): Promise<CommandEnvelope<DetectClientsResponse>> {
   return invoke("detect_clients", { request });
+}
+
+export async function discoverSkillRepository(
+  request: DiscoverSkillRepositoryRequest,
+): Promise<CommandEnvelope<DiscoverSkillRepositoryResponse>> {
+  return invoke("discover_skill_repository", { request });
 }
 
 export async function listResources(
