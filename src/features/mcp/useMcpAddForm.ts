@@ -16,6 +16,7 @@ export interface McpAddFormState {
 
 interface UseMcpAddFormParams {
   onSubmit: (input: AddMcpInput) => Promise<boolean>;
+  onAccepted?: () => void;
 }
 
 interface UseMcpAddFormResult {
@@ -80,7 +81,7 @@ function createTransportPayload(
   };
 }
 
-export function useMcpAddForm({ onSubmit }: UseMcpAddFormParams): UseMcpAddFormResult {
+export function useMcpAddForm({ onSubmit, onAccepted }: UseMcpAddFormParams): UseMcpAddFormResult {
   const [state, setState] = useState<McpAddFormState>(DEFAULT_STATE);
 
   const setTargetId = useCallback((value: string) => {
@@ -145,9 +146,10 @@ export function useMcpAddForm({ onSubmit }: UseMcpAddFormParams): UseMcpAddFormR
           targetId: "",
           url: current.transportMode === "sse" ? DEFAULT_STATE.url : current.url,
         }));
+        onAccepted?.();
       }
     },
-    [onSubmit, state],
+    [onAccepted, onSubmit, state],
   );
 
   return {

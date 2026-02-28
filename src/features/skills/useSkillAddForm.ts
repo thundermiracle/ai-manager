@@ -11,6 +11,7 @@ export interface SkillAddFormState {
 
 interface UseSkillAddFormParams {
   onSubmit: (input: AddSkillInput) => Promise<boolean>;
+  onAccepted?: () => void;
 }
 
 interface UseSkillAddFormResult {
@@ -33,7 +34,10 @@ const DEFAULT_STATE: SkillAddFormState = {
   localError: null,
 };
 
-export function useSkillAddForm({ onSubmit }: UseSkillAddFormParams): UseSkillAddFormResult {
+export function useSkillAddForm({
+  onSubmit,
+  onAccepted,
+}: UseSkillAddFormParams): UseSkillAddFormResult {
   const [state, setState] = useState<SkillAddFormState>(DEFAULT_STATE);
 
   const setTargetId = useCallback((value: string) => {
@@ -73,9 +77,10 @@ export function useSkillAddForm({ onSubmit }: UseSkillAddFormParams): UseSkillAd
 
       if (accepted) {
         setState((current) => ({ ...current, targetId: "" }));
+        onAccepted?.();
       }
     },
-    [onSubmit, state],
+    [onAccepted, onSubmit, state],
   );
 
   return {

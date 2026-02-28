@@ -58,6 +58,7 @@ function App() {
     () => renderRouteContent(activeRoute, selectedDetection),
     [activeRoute, selectedDetection],
   );
+  const isDashboardRoute = activeRoute === "dashboard";
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_8%_2%,#f9f8f3_0%,#edf6ff_40%,#e9f0f4_100%)] p-4 text-slate-900 max-[720px]:p-3">
@@ -170,16 +171,54 @@ function App() {
 
         {phase === "ready" && detections.length > 0 ? (
           <>
-            <section className="grid grid-cols-[repeat(auto-fit,minmax(16.3rem,1fr))] gap-3">
-              {detections.map((detection) => (
-                <ClientStatusCard
-                  key={detection.client}
-                  detection={detection}
-                  selected={detection.client === selectedClient}
-                  onSelect={setSelectedClient}
-                />
-              ))}
-            </section>
+            {isDashboardRoute ? (
+              <section className="grid grid-cols-[repeat(auto-fit,minmax(16.3rem,1fr))] gap-3">
+                {detections.map((detection) => (
+                  <ClientStatusCard
+                    key={detection.client}
+                    detection={detection}
+                    selected={detection.client === selectedClient}
+                    onSelect={setSelectedClient}
+                  />
+                ))}
+              </section>
+            ) : (
+              <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
+                <div className="grid gap-1">
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate-500">
+                    Active Client
+                  </p>
+                  <p className="text-sm text-slate-700">
+                    Manager views prioritize resource operations. Open dashboard for full tool
+                    cards.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 max-[720px]:w-full">
+                  <select
+                    className="h-10 min-w-[13.5rem] rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 max-[720px]:w-full"
+                    value={selectedClient ?? ""}
+                    onChange={(event) =>
+                      setSelectedClient(event.currentTarget.value as ClientDetection["client"])
+                    }
+                  >
+                    {detections.map((detection) => (
+                      <option key={detection.client} value={detection.client}>
+                        {formatClientLabel(detection.client)}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveRoute("dashboard")}
+                  >
+                    Open Dashboard
+                  </Button>
+                </div>
+              </section>
+            )}
 
             {featureContent}
           </>
