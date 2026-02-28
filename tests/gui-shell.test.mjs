@@ -32,3 +32,12 @@ test("app uses detection hook and state panels", async () => {
   assert.match(shellSource, /ClientStatusCard/);
   assert.match(shellSource, /ViewStatePanel/);
 });
+
+test("dashboard header is rendered only on dashboard route", async () => {
+  const shellSource = await readWorkspaceFile("./src/App.tsx");
+
+  assert.match(
+    shellSource,
+    /\{isDashboardRoute \? \(\s*<>\s*<header[\s\S]*App Shell and Client Dashboard/s,
+  );
+});

@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import { ConfirmModal } from "../../components/shared/ConfirmModal";
 import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
 import { SlideOverPanel } from "../../components/shared/SlideOverPanel";
+import { Snackbar } from "../../components/shared/Snackbar";
 import { ViewStatePanel } from "../../components/shared/ViewStatePanel";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
@@ -20,6 +22,7 @@ interface SkillsManagerPanelProps {
 
 export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const {
@@ -41,6 +44,11 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const transientFeedback =
+    feedback !== null &&
+    (feedback.kind === "success" || (feedback.kind === "error" && !feedback.diagnostic))
+      ? feedback
+      : null;
   const filteredResources = useMemo(() => {
     if (normalizedQuery.length === 0) {
       return resources;
@@ -62,15 +70,23 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   }, [normalizedQuery, resources]);
 
   async function handleRemove(resource: ResourceRecord) {
-    if (
-      !window.confirm(
-        `Remove Skill '${resource.display_name}' from ${formatClientLabel(resource.client)}?`,
-      )
-    ) {
+    setRemovalCandidate(resource);
+  }
+
+  async function handleConfirmRemoval() {
+    if (removalCandidate === null) {
       return;
     }
 
-    await removeSkill(resource.display_name, resource.source_path);
+    await removeSkill(removalCandidate.display_name, null);
+    setRemovalCandidate(null);
+  }
+
+  function handleCancelRemoval() {
+    if (pendingRemovalId !== null) {
+      return;
+    }
+    setRemovalCandidate(null);
   }
 
   function openComposer() {
@@ -147,16 +163,8 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
               }}
             />
           ) : null}
-          {feedback?.kind === "success" ? (
-            <Alert variant="success" className="border-emerald-300/80 bg-emerald-50/75">
-              {feedback.message}
-            </Alert>
-          ) : null}
           {feedback?.kind === "error" && feedback.diagnostic ? (
             <ErrorRecoveryCallout title="Skill mutation failed" diagnostic={feedback.diagnostic} />
-          ) : null}
-          {feedback?.kind === "error" && !feedback.diagnostic ? (
-            <Alert variant="destructive">{feedback.message}</Alert>
           ) : null}
 
           <SkillResourceTable
@@ -189,6 +197,35 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>
+
+      <ConfirmModal
+        open={removalCandidate !== null}
+        title="Remove Skill Entry"
+        description={
+          removalCandidate ? (
+            <p>
+              Remove Skill <strong>{removalCandidate.display_name}</strong> from{" "}
+              <strong>{formatClientLabel(removalCandidate.client)}</strong>?
+            </p>
+          ) : (
+            ""
+          )
+        }
+        confirmLabel={pendingRemovalId === null ? "Remove Skill" : "Removing..."}
+        confirmDisabled={pendingRemovalId !== null}
+        onConfirm={() => {
+          void handleConfirmRemoval();
+        }}
+        onCancel={handleCancelRemoval}
+      />
+
+      <Snackbar
+        open={transientFeedback !== null}
+        tone={transientFeedback?.kind === "error" ? "error" : "success"}
+        message={transientFeedback?.message ?? ""}
+        durationMs={5000}
+        onClose={clearFeedback}
+      />
     </>
   );
 }

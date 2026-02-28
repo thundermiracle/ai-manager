@@ -101,32 +101,36 @@ function App() {
         </nav>
       </aside>
 
-      <section className="ml-[calc(clamp(17rem,24vw,20rem)+1rem)] grid gap-4 rounded-[1.25rem] border border-slate-200/80 bg-white/85 p-5 shadow-[0_20px_36px_rgba(22,35,64,0.09)] backdrop-blur max-[980px]:ml-0 max-[720px]:rounded-xl max-[720px]:p-4">
-        <header className="flex items-start justify-between gap-3 max-[720px]:flex-col">
-          <div>
-            <h2 className="text-[clamp(1.3rem,2.4vw,1.65rem)] font-semibold leading-tight">
-              App Shell and Client Dashboard
-            </h2>
-            <p className="mt-1.5 text-slate-700">
-              {selectedDetection
-                ? `Current client: ${formatClientLabel(selectedDetection.client)}`
-                : "Choose a client to continue."}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void refresh();
-            }}
-            disabled={phase === "loading"}
-          >
-            {phase === "loading" ? "Refreshing..." : "Refresh Detection"}
-          </Button>
-        </header>
+      <section className="ml-[calc(clamp(17rem,24vw,20rem)+1rem)] grid content-start min-h-[calc(100vh-2rem)] gap-4 rounded-[1.25rem] border border-slate-200/80 bg-white/85 p-5 shadow-[0_20px_36px_rgba(22,35,64,0.09)] backdrop-blur max-[980px]:ml-0 max-[720px]:rounded-xl max-[720px]:p-4">
+        {isDashboardRoute ? (
+          <>
+            <header className="flex items-start justify-between gap-3 max-[720px]:flex-col">
+              <div>
+                <h2 className="text-[clamp(1.3rem,2.4vw,1.65rem)] font-semibold leading-tight">
+                  App Shell and Client Dashboard
+                </h2>
+                <p className="mt-1.5 text-slate-700">
+                  {selectedDetection
+                    ? `Current client: ${formatClientLabel(selectedDetection.client)}`
+                    : "Choose a client to continue."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  void refresh();
+                }}
+                disabled={phase === "loading"}
+              >
+                {phase === "loading" ? "Refreshing..." : "Refresh Detection"}
+              </Button>
+            </header>
 
-        {lastOperationId ? (
-          <p className="mt-[-0.1rem] text-sm text-slate-500">Operation: {lastOperationId}</p>
+            {lastOperationId ? (
+              <p className="mt-[-0.1rem] text-sm text-slate-500">Operation: {lastOperationId}</p>
+            ) : null}
+          </>
         ) : null}
 
         {phase === "loading" ? (

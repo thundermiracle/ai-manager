@@ -24,3 +24,19 @@ test("skills manager hook calls list and mutate commands", async () => {
   assert.match(hookSource, /action: "add"/);
   assert.match(hookSource, /action: "remove"/);
 });
+
+test("skills manager remove action uses in-app confirmation modal", async () => {
+  const panelSource = await readWorkspaceFile("./src/features/skills/SkillsManagerPanel.tsx");
+
+  assert.match(panelSource, /ConfirmModal/);
+  assert.match(panelSource, /Remove Skill Entry/);
+  assert.doesNotMatch(panelSource, /window\.confirm/);
+});
+
+test("skills manager uses snackbar for transient feedback", async () => {
+  const panelSource = await readWorkspaceFile("./src/features/skills/SkillsManagerPanel.tsx");
+
+  assert.match(panelSource, /Snackbar/);
+  assert.match(panelSource, /durationMs=\{5000\}/);
+  assert.doesNotMatch(panelSource, /feedback\?\.kind === "success"[\s\S]*<Alert/s);
+});
