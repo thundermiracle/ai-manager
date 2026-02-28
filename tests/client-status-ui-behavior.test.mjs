@@ -27,7 +27,21 @@ test("desktop sidebar uses fixed positioning and mobile layout reverts to static
 test("client status cards render details blocks collapsed by default", async () => {
   const cardSource = await readWorkspaceFile("./src/features/clients/ClientStatusCard.tsx");
 
-  assert.match(cardSource, /<details className="rounded-lg border/);
+  assert.match(cardSource, /<details className="min-w-0 rounded-lg border/);
   assert.match(cardSource, /Show tool details/);
   assert.doesNotMatch(cardSource, /<details[^>]*\sopen(?=[\s>])/);
+});
+
+test("client status cards expose install-doc icon action in header", async () => {
+  const cardSource = await readWorkspaceFile("./src/features/clients/ClientStatusCard.tsx");
+
+  assert.match(cardSource, /openUrl/);
+  assert.match(cardSource, /DocsIcon/);
+  assert.match(cardSource, /getClientInstallGuideUrl/);
+  assert.match(cardSource, /<DetectionStatusBadge status=\{detection\.status\} \/>/);
+  assert.match(cardSource, /Open install guide for/);
+  assert.match(cardSource, /break-all/);
+  assert.doesNotMatch(cardSource, /installClient/);
+  assert.doesNotMatch(cardSource, /ConfirmModal/);
+  assert.doesNotMatch(cardSource, /shouldOfferInstallGuide/);
 });

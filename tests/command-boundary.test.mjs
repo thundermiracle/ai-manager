@@ -39,6 +39,7 @@ test("shared command envelope contract is standardized", () => {
 
 test("frontend typed client maps one-to-one to backend commands", () => {
   assert.match(tsClient, /invoke\("detect_clients", \{ request \}\)/);
+  assert.doesNotMatch(tsClient, /install_client/);
   assert.match(tsClient, /invoke\("list_resources", \{ request \}\)/);
   assert.match(tsClient, /invoke\("mutate_resource", \{ request \}\)/);
 });
@@ -47,6 +48,8 @@ test("frontend contracts include shared wrapper and command-specific requests", 
   assert.match(tsContracts, /export interface CommandEnvelope<T>/);
   assert.match(tsContracts, /export interface DetectClientsRequest/);
   assert.match(tsContracts, /confidence: number/);
+  assert.doesNotMatch(tsContracts, /export interface InstallClientRequest/);
+  assert.doesNotMatch(tsContracts, /install_guide_url/);
   assert.match(tsContracts, /export interface ListResourcesRequest/);
   assert.match(tsContracts, /export interface MutateResourceRequest/);
 });
