@@ -1,7 +1,7 @@
-import { Alert } from "../../components/ui/alert";
-import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
-import type { ErrorDiagnostic } from "./errorDiagnostics";
+import type { ErrorDiagnostic } from "../../features/common/errorDiagnostics";
+import { Alert } from "../ui/alert";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 
 interface ErrorRecoveryCalloutProps {
   title: string;

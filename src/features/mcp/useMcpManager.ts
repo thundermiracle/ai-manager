@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { listResources, mutateResource } from "../../backend/client";
 import type { ClientKind, CommandEnvelope, ResourceRecord } from "../../backend/contracts";
@@ -41,7 +41,6 @@ interface UseMcpManagerResult {
   operationError: ErrorDiagnostic | null;
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
-  sourcePathHint: string | null;
   refresh: () => Promise<void>;
   addMcp: (input: AddMcpInput) => Promise<boolean>;
   removeMcp: (targetId: string, sourcePath: string | null) => Promise<boolean>;
@@ -232,11 +231,6 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
     [client, refresh],
   );
 
-  const sourcePathHint = useMemo(
-    () => resources.find((entry) => entry.source_path !== null)?.source_path ?? null,
-    [resources],
-  );
-
   return {
     phase,
     resources,
@@ -244,7 +238,6 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
     operationError,
     feedback,
     pendingRemovalId,
-    sourcePathHint,
     refresh,
     addMcp,
     removeMcp,

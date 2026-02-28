@@ -8,8 +8,8 @@ async function readWorkspaceFile(relativePath) {
   return readFile(new URL(relativePath, WORKSPACE_ROOT), "utf8");
 }
 
-test("app shell renders the MCP manager route component", async () => {
-  const shellSource = await readWorkspaceFile("./src/features/app-shell/AppShell.tsx");
+test("app renders the MCP manager route component", async () => {
+  const shellSource = await readWorkspaceFile("./src/App.tsx");
 
   assert.match(shellSource, /McpManagerPanel/);
   assert.match(shellSource, /route === "mcp"/);

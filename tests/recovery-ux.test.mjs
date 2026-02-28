@@ -30,8 +30,8 @@ test("mcp and skills panels render recovery callouts for actionable failures", a
   assert.match(skills, /Skill mutation failed/);
 });
 
-test("app shell uses recovery callout for detection failures", async () => {
-  const shell = await readWorkspaceFile("./src/features/app-shell/AppShell.tsx");
+test("app uses recovery callout for detection failures", async () => {
+  const shell = await readWorkspaceFile("./src/App.tsx");
 
   assert.match(shell, /ErrorRecoveryCallout/);
   assert.match(shell, /diagnostic=\{errorDiagnostic\}/);

@@ -1,6 +1,6 @@
-import type { ResourceRecord } from "../../../backend/contracts";
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent } from "../../../components/ui/card";
+import type { ResourceRecord } from "../../backend/contracts";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,7 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../../components/ui/table";
+} from "../../components/ui/table";
 
 interface McpResourceTableProps {
   resources: ResourceRecord[];

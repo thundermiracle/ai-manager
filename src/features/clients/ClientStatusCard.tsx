@@ -1,8 +1,8 @@
-import type { ClientDetection } from "../../../backend/contracts";
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardHeader } from "../../../components/ui/card";
-import { formatClientLabel } from "../client-labels";
-import { StatusBadge } from "./StatusBadge";
+import type { ClientDetection } from "../../backend/contracts";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader } from "../../components/ui/card";
+import { formatClientLabel } from "./client-labels";
+import { DetectionStatusBadge } from "./DetectionStatusBadge";
 
 interface ClientStatusCardProps {
   detection: ClientDetection;
@@ -30,7 +30,7 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
           </p>
           <h3 className="text-[1.06rem] leading-tight">{formatClientLabel(detection.client)}</h3>
         </div>
-        <StatusBadge status={detection.status} />
+        <DetectionStatusBadge status={detection.status} />
       </CardHeader>
 
       <CardContent className="grid gap-3 p-4 pt-0">

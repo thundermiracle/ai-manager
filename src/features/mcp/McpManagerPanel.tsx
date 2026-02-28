@@ -1,12 +1,13 @@
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
+import { ViewStatePanel } from "../../components/shared/ViewStatePanel";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { formatClientLabel } from "../clients/client-labels";
-import { ErrorRecoveryCallout } from "../common/ErrorRecoveryCallout";
-import { ViewStatePanel } from "../common/ViewStatePanel";
-import { McpAddForm } from "./components/McpAddForm";
-import { McpResourceTable } from "./components/McpResourceTable";
+import { McpAddForm } from "./McpAddForm";
+import { McpResourceTable } from "./McpResourceTable";
+import { useMcpAddForm } from "./useMcpAddForm";
 import { useMcpManager } from "./useMcpManager";
 
 interface McpManagerPanelProps {
@@ -26,6 +27,7 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     refresh,
     clearFeedback,
   } = useMcpManager(client);
+  const addForm = useMcpAddForm({ onSubmit: addMcp });
 
   async function handleRemove(resource: ResourceRecord) {
     if (
@@ -91,7 +93,17 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
         ) : null}
 
         <div className="grid grid-cols-[minmax(14rem,18.5rem)_1fr] gap-3 max-[720px]:grid-cols-1">
-          <McpAddForm disabled={phase === "loading"} onSubmit={addMcp} />
+          <McpAddForm
+            disabled={phase === "loading"}
+            state={addForm.state}
+            onTargetIdChange={addForm.setTargetId}
+            onTransportModeChange={addForm.setTransportMode}
+            onCommandChange={addForm.setCommand}
+            onArgsInputChange={addForm.setArgsInput}
+            onUrlChange={addForm.setUrl}
+            onEnabledChange={addForm.setEnabled}
+            onSubmit={addForm.submit}
+          />
           <McpResourceTable
             resources={resources}
             pendingRemovalId={pendingRemovalId}

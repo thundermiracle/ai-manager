@@ -1,5 +1,5 @@
-import type { DetectionStatus } from "../../../backend/contracts";
-import { Badge } from "../../../components/ui/badge";
+import type { DetectionStatus } from "../../backend/contracts";
+import { Badge } from "../../components/ui/badge";
 
 const STATUS_LABEL: Record<DetectionStatus, string> = {
   absent: "Absent",
@@ -16,10 +16,10 @@ const STATUS_VARIANT: Record<DetectionStatus, "secondary" | "warning" | "success
     error: "destructive",
   };
 
-interface StatusBadgeProps {
+interface DetectionStatusBadgeProps {
   status: DetectionStatus;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function DetectionStatusBadge({ status }: DetectionStatusBadgeProps) {
   return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>;
 }

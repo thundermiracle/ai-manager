@@ -1,12 +1,13 @@
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
+import { ViewStatePanel } from "../../components/shared/ViewStatePanel";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { formatClientLabel } from "../clients/client-labels";
-import { ErrorRecoveryCallout } from "../common/ErrorRecoveryCallout";
-import { ViewStatePanel } from "../common/ViewStatePanel";
-import { SkillAddForm } from "./components/SkillAddForm";
-import { SkillResourceTable } from "./components/SkillResourceTable";
+import { SkillAddForm } from "./SkillAddForm";
+import { SkillResourceTable } from "./SkillResourceTable";
+import { useSkillAddForm } from "./useSkillAddForm";
 import { useSkillManager } from "./useSkillManager";
 
 interface SkillsManagerPanelProps {
@@ -26,6 +27,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     refresh,
     clearFeedback,
   } = useSkillManager(client);
+  const addForm = useSkillAddForm({ onSubmit: addSkill });
 
   async function handleRemove(resource: ResourceRecord) {
     if (
@@ -91,7 +93,14 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
         ) : null}
 
         <div className="grid grid-cols-[minmax(14rem,18.5rem)_1fr] gap-3 max-[720px]:grid-cols-1">
-          <SkillAddForm disabled={phase === "loading"} onSubmit={addSkill} />
+          <SkillAddForm
+            disabled={phase === "loading"}
+            state={addForm.state}
+            onTargetIdChange={addForm.setTargetId}
+            onInstallKindChange={addForm.setInstallKind}
+            onManifestChange={addForm.setManifest}
+            onSubmit={addForm.submit}
+          />
           <SkillResourceTable
             resources={resources}
             pendingRemovalId={pendingRemovalId}
