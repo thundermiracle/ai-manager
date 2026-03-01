@@ -12,9 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
 import { SkillAddForm } from "./SkillAddForm";
+import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
 import { SkillResourceTable } from "./SkillResourceTable";
 import { useSkillAddForm } from "./useSkillAddForm";
+import { useSkillCopyForm } from "./useSkillCopyForm";
 import { useSkillEditForm } from "./useSkillEditForm";
 import { useSkillManager } from "./useSkillManager";
 
@@ -24,6 +26,7 @@ interface SkillsManagerPanelProps {
 
 export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [isCopyOpen, setCopyOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,7 +39,9 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     feedback,
     pendingRemovalId,
     pendingUpdateId,
+    pendingCopyId,
     addSkill,
+    copySkill,
     updateSkill,
     discoverGithubSkills,
     removeSkill,
@@ -52,6 +57,10 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   const editForm = useSkillEditForm({
     onSubmit: updateSkill,
     onAccepted: () => setEditOpen(false),
+  });
+  const copyForm = useSkillCopyForm({
+    onSubmit: copySkill,
+    onAccepted: () => setCopyOpen(false),
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -98,6 +107,12 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     clearFeedback();
     editForm.loadResource(resource);
     setEditOpen(true);
+  }
+
+  async function handleCopy(resource: ResourceRecord) {
+    clearFeedback();
+    copyForm.loadResource(resource);
+    setCopyOpen(true);
   }
 
   async function handleConfirmRemoval() {
@@ -195,6 +210,8 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
             resources={filteredResources}
             pendingRemovalId={pendingRemovalId}
             pendingUpdateId={pendingUpdateId}
+            pendingCopyId={pendingCopyId}
+            onCopy={handleCopy}
             onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
@@ -225,6 +242,30 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
           onGithubRiskAcknowledgedChange={addForm.setGithubRiskAcknowledged}
           onDiscoverGithubRepo={addForm.discoverGithubRepo}
           onSubmit={addForm.submit}
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        />
+      </SlideOverPanel>
+
+      <SlideOverPanel
+        open={isCopyOpen}
+        title="Copy Skill Entry"
+        description="Copy the selected skill to a different AI client."
+        panelClassName="max-w-[40rem] max-[920px]:max-w-full"
+        onClose={() => {
+          if (pendingCopyId !== null) {
+            return;
+          }
+          setCopyOpen(false);
+          copyForm.reset();
+        }}
+      >
+        <SkillCopyForm
+          disabled={phase === "loading" || pendingCopyId !== null}
+          state={copyForm.state}
+          onDestinationClientChange={copyForm.setDestinationClient}
+          onTargetIdChange={copyForm.setTargetId}
+          onInstallKindChange={copyForm.setInstallKind}
+          onSubmit={copyForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>

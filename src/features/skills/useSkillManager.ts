@@ -36,6 +36,15 @@ export interface UpdateSkillInput {
   installKind: SkillInstallInputKind;
 }
 
+export interface CopySkillInput {
+  sourceClient: ClientKind;
+  sourceResourceId: string;
+  destinationClient: ClientKind;
+  targetId: string;
+  manifest: string;
+  installKind: SkillInstallInputKind;
+}
+
 export interface GithubSkillDiscoveryResult {
   normalizedRepoUrl: string;
   warning: string;
@@ -58,9 +67,11 @@ interface UseSkillManagerResult {
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
   pendingUpdateId: string | null;
+  pendingCopyId: string | null;
   refresh: () => Promise<void>;
   addSkill: (input: AddSkillInput) => Promise<boolean>;
   updateSkill: (input: UpdateSkillInput) => Promise<boolean>;
+  copySkill: (input: CopySkillInput) => Promise<boolean>;
   discoverGithubSkills: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
   removeSkill: (targetId: string, sourcePath: string | null) => Promise<boolean>;
   clearFeedback: () => void;
@@ -93,6 +104,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
+  const [pendingCopyId, setPendingCopyId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (client === null) {
@@ -346,6 +358,109 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
     [client, refresh],
   );
 
+  const copySkill = useCallback(
+    async (input: CopySkillInput) => {
+      if (client === null) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Select a client before copying a skill entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      if (input.sourceClient !== client) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Selected source client is stale. Reload the skills list and retry the copy operation.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      if (input.destinationClient === input.sourceClient) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Choose a different destination client when copying a skill entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      const normalizedTargetId = input.targetId.trim();
+      if (normalizedTargetId.length === 0) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Target ID is required before copying a skill entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      if (input.manifest.trim().length === 0) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Manifest content is required before copying a skill entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      setPendingCopyId(input.sourceResourceId);
+      try {
+        const envelope = await mutateResource({
+          client: input.destinationClient,
+          resource_kind: "skill",
+          action: "add",
+          target_id: normalizedTargetId,
+          payload: {
+            manifest: input.manifest,
+            install_kind: input.installKind,
+          },
+        });
+
+        if (!envelope.ok || envelope.data === null) {
+          const diagnostic = envelopeErrorDiagnostic(
+            envelope,
+            "Mutation command failed without an explicit error payload.",
+          );
+          setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
+          return false;
+        }
+
+        setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown copy runtime error.";
+        const diagnostic = runtimeErrorToDiagnostic(message);
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      } finally {
+        setPendingCopyId(null);
+      }
+    },
+    [client],
+  );
+
   return {
     phase,
     resources,
@@ -354,9 +469,11 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
     feedback,
     pendingRemovalId,
     pendingUpdateId,
+    pendingCopyId,
     refresh,
     addSkill,
     updateSkill,
+    copySkill,
     discoverGithubSkills,
     removeSkill,
     clearFeedback: () => setFeedback(null),
