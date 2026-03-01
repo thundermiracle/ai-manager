@@ -76,9 +76,7 @@ mod tests {
             assert!(detection.confidence <= 100);
             assert!(matches!(
                 detection.client,
-                ClientKind::ClaudeCode
-                    | ClientKind::Codex
-                    | ClientKind::Cursor
+                ClientKind::ClaudeCode | ClientKind::Codex | ClientKind::Cursor
             ));
         }
     }

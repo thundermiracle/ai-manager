@@ -158,10 +158,8 @@ mod tests {
 
     #[test]
     fn invalid_override_returns_actionable_warning() {
-        let resolution = resolve_skill_dir_with_override(
-            ClientKind::Codex,
-            Some("/definitely/missing/skills"),
-        );
+        let resolution =
+            resolve_skill_dir_with_override(ClientKind::Codex, Some("/definitely/missing/skills"));
 
         assert!(resolution.path.is_none());
         assert!(resolution.warnings.iter().any(|warning| {

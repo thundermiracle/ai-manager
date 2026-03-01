@@ -229,12 +229,7 @@ enabled = false
                 .iter()
                 .any(|entry| entry.id == "claude_code::filesystem")
         );
-        assert!(
-            result
-                .items
-                .iter()
-                .any(|entry| entry.id == "codex::github")
-        );
+        assert!(result.items.iter().any(|entry| entry.id == "codex::github"));
     }
 
     #[test]

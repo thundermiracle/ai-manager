@@ -54,7 +54,7 @@ fn default_mcp_config_path(client: ClientKind) -> PathBuf {
         ),
         ClientKind::Codex => expand_user_path(
             &read_first_env(&["AI_MANAGER_CODEX_MCP_CONFIG"])
-            .unwrap_or_else(|| "~/.codex/config.toml".to_string()),
+                .unwrap_or_else(|| "~/.codex/config.toml".to_string()),
         ),
         ClientKind::Cursor => expand_user_path(
             &env::var("AI_MANAGER_CURSOR_MCP_CONFIG")
