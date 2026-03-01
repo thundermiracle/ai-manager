@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::{
     application::{
+        detection::detection_service::DetectionService,
         mcp::{listing_service::McpListingService, mutation_service::McpMutationService},
         skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
     },
@@ -33,13 +34,8 @@ impl<'a> AdapterService<'a> {
     }
 
     pub fn detect_clients(&self, request: DetectClientsRequest) -> DetectClientsResponse {
-        let clients = self
-            .detector_registry
-            .all()
-            .map(|detector| detector.detect(&request))
-            .collect();
-
-        DetectClientsResponse { clients }
+        let detection_service = DetectionService::new(self.detector_registry);
+        detection_service.detect_clients(&request)
     }
 
     pub fn list_resources(
