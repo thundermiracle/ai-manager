@@ -1,8 +1,6 @@
-use crate::{
-    contracts::{
-        command::CommandError,
-        skill_discovery::{DiscoverSkillRepositoryResponse, DiscoveredSkillCandidate},
-    },
+use crate::contracts::{
+    command::CommandError,
+    skill_discovery::{DiscoverSkillRepositoryResponse, DiscoveredSkillCandidate},
 };
 
 use super::skill_github_repository::scan_github_repository;

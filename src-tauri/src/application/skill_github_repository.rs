@@ -94,8 +94,7 @@ pub fn read_github_skill_manifest(
     github_skill_path: Option<&str>,
 ) -> Result<GitHubSkillManifest, CommandError> {
     with_cloned_repository(github_repo_url, |normalized_repo_url, repo_root| {
-        let manifest_path =
-            resolve_github_manifest_path(repo_root, target_id, github_skill_path)?;
+        let manifest_path = resolve_github_manifest_path(repo_root, target_id, github_skill_path)?;
         let manifest = fs::read_to_string(&manifest_path).map_err(|error| {
             CommandError::internal(format!(
                 "Failed to read skill source manifest '{}': {}",
@@ -125,7 +124,10 @@ pub fn normalize_github_repo_url(value: &str) -> Result<String, CommandError> {
         ));
     };
 
-    let segments: Vec<&str> = path.split('/').filter(|segment| !segment.is_empty()).collect();
+    let segments: Vec<&str> = path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect();
     if segments.len() != 2 {
         return Err(CommandError::validation(
             "payload.github_repo_url must point to a repository root URL like 'https://github.com/<owner>/<repo>'.",
@@ -143,10 +145,7 @@ pub fn normalize_github_repo_url(value: &str) -> Result<String, CommandError> {
     Ok(format!("https://github.com/{owner}/{repo}"))
 }
 
-fn with_cloned_repository<T, F>(
-    github_repo_url: &str,
-    operation: F,
-) -> Result<T, CommandError>
+fn with_cloned_repository<T, F>(github_repo_url: &str, operation: F) -> Result<T, CommandError>
 where
     F: FnOnce(&str, &Path) -> Result<T, CommandError>,
 {
@@ -233,10 +232,12 @@ fn resolve_explicit_manifest_path(
             "payload.github_skill_path must not be empty.",
         ));
     }
-    if candidate
-        .components()
-        .any(|component| matches!(component, Component::ParentDir | Component::RootDir | Component::Prefix(_)))
-    {
+    if candidate.components().any(|component| {
+        matches!(
+            component,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    }) {
         return Err(CommandError::validation(
             "payload.github_skill_path must be a relative path within the repository.",
         ));
@@ -433,10 +434,8 @@ mod tests {
 
     #[test]
     fn resolve_explicit_manifest_path_accepts_relative_skill_md() {
-        let root = std::env::temp_dir().join(format!(
-            "ai-manager-explicit-path-{}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("ai-manager-explicit-path-{}", std::process::id()));
         let _ = fs::create_dir_all(root.join("python-refactor"));
         let manifest_path = root.join("python-refactor").join("SKILL.md");
         fs::write(&manifest_path, "# Skill").expect("should write manifest");
