@@ -1,6 +1,6 @@
 use crate::{
-    interface::contracts::{common::ResourceKind, mutate::MutationAction},
     domain::{AdapterListResult, AdapterMutationResult, ClientProfile},
+    interface::contracts::{common::ResourceKind, mutate::MutationAction},
 };
 
 pub fn list_placeholder(

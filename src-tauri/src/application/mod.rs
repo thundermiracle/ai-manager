@@ -1,7 +1,7 @@
 mod adapter_service;
-mod detection;
 #[cfg(test)]
 mod critical_paths_suite;
+mod detection;
 mod mcp;
 mod skill;
 

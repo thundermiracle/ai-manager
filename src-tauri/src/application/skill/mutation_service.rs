@@ -5,17 +5,15 @@ use std::{
 };
 
 use crate::{
-    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
     infra::{MutationTestHooks, SafeFileMutator},
+    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
 };
 
 use super::{
     github_repository::read_github_skill_manifest,
     metadata_parser::parse_skill_metadata,
     mutation_path_resolver::resolve_skill_root_path,
-    mutation_payload::{
-        SkillInstallKind, SkillMutationPayload, parse_skill_mutation_payload,
-    },
+    mutation_payload::{SkillInstallKind, SkillMutationPayload, parse_skill_mutation_payload},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

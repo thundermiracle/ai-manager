@@ -1,8 +1,8 @@
 use std::{env, path::PathBuf};
 
 use crate::{
-    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
     infra::DetectorRegistry,
+    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
 };
 
 pub fn resolve_mcp_config_path(

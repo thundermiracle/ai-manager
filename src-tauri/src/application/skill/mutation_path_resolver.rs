@@ -1,6 +1,8 @@
 use std::{env, path::PathBuf};
 
-use crate::interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction};
+use crate::interface::contracts::{
+    command::CommandError, common::ClientKind, mutate::MutationAction,
+};
 
 use super::path_resolver::{preferred_skill_dir, resolve_skill_dir};
 

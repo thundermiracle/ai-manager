@@ -3,9 +3,9 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
 };
 
-use crate::interface::contracts::common::{LifecyclePhase, LifecycleSnapshot};
-use crate::infra::DetectorRegistry;
 use crate::infra::AdapterRegistry;
+use crate::infra::DetectorRegistry;
+use crate::interface::contracts::common::{LifecyclePhase, LifecycleSnapshot};
 
 use super::clock::now_epoch_ms;
 

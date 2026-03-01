@@ -11,9 +11,9 @@ use super::{
     mcp::mutation_service::McpMutationService, skill::mutation_service::SkillMutationService,
 };
 use crate::{
-    interface::contracts::{common::ClientKind, mutate::MutationAction},
     infra::DetectorRegistry,
     infra::parsers::{ParseOutcome, ParserRegistry},
+    interface::contracts::{common::ClientKind, mutate::MutationAction},
 };
 
 #[derive(Debug, Deserialize)]
