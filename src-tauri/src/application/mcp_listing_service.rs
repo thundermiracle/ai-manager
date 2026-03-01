@@ -109,9 +109,13 @@ where
                         display_name: server.name,
                         enabled: server.enabled,
                         transport_kind: Some(server.transport_kind),
+                        transport_command: server.transport_command,
+                        transport_args: Some(server.transport_args),
+                        transport_url: server.transport_url,
                         source_path: Some(config_path.to_string()),
                         description: None,
                         install_kind: None,
+                        manifest_content: None,
                     });
                 }
             }

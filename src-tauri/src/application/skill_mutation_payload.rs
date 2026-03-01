@@ -26,7 +26,7 @@ pub fn parse_skill_mutation_payload(
             Ok(SkillMutationPayload::default())
         } else {
             Err(CommandError::validation(
-                "payload is required for skill add mutation.",
+                "payload is required for skill add/update mutation.",
             ))
         };
     };
@@ -69,13 +69,13 @@ pub fn parse_skill_mutation_payload(
         ));
     }
 
-    if matches!(action, MutationAction::Add)
+    if matches!(action, MutationAction::Add | MutationAction::Update)
         && source_path.is_none()
         && github_repo_url.is_none()
         && manifest.is_none()
     {
         return Err(CommandError::validation(
-            "payload.manifest, payload.source_path, or payload.github_repo_url is required for skill add mutation.",
+            "payload.manifest, payload.source_path, or payload.github_repo_url is required for skill add/update mutation.",
         ));
     }
 
@@ -212,5 +212,17 @@ mod tests {
         assert!(payload.github_repo_url.is_none());
         assert!(payload.github_skill_path.is_none());
         assert!(payload.manifest.is_none());
+    }
+
+    #[test]
+    fn update_requires_content_source() {
+        let error = parse_skill_mutation_payload(MutationAction::Update, Some(&json!({})))
+            .expect_err("update should require manifest/source");
+
+        assert!(
+            error
+                .message
+                .contains("payload.manifest, payload.source_path, or payload.github_repo_url")
+        );
     }
 }

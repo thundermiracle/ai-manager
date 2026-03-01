@@ -73,6 +73,9 @@ impl<'a> McpMutationService<'a> {
             MutationAction::Remove => {
                 format!("Removed MCP '{}' for '{}'.", target_id, client.as_str())
             }
+            MutationAction::Update => {
+                format!("Updated MCP '{}' for '{}'.", target_id, client.as_str())
+            }
         };
         if let Some(backup_path) = write_result.backup_path {
             message.push_str(&format!(" Backup: {}.", backup_path));
@@ -156,6 +159,33 @@ fn mutate_json_content(
                 )));
             }
         }
+        MutationAction::Update => {
+            let Some(current_entry) = section_object.get(target_id) else {
+                return Err(CommandError::validation(format!(
+                    "MCP '{}' does not exist.",
+                    target_id
+                )));
+            };
+            let current_enabled = current_entry
+                .as_object()
+                .and_then(|entry| entry.get("enabled"))
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(true);
+
+            let Some(transport) = payload.transport.as_ref() else {
+                return Err(CommandError::validation(
+                    "payload.transport is required for MCP add/update mutation.",
+                ));
+            };
+
+            section_object.insert(
+                target_id.to_string(),
+                build_json_transport_payload(
+                    transport,
+                    payload.enabled.unwrap_or(current_enabled),
+                ),
+            );
+        }
     }
 
     let mut serialized = serde_json::to_string_pretty(&root).map_err(|error| {
@@ -232,6 +262,33 @@ fn mutate_toml_content(
                     target_id
                 )));
             }
+        }
+        MutationAction::Update => {
+            let Some(current_entry) = section_table.get(target_id) else {
+                return Err(CommandError::validation(format!(
+                    "MCP '{}' does not exist.",
+                    target_id
+                )));
+            };
+            let current_enabled = current_entry
+                .as_table()
+                .and_then(|entry| entry.get("enabled"))
+                .and_then(toml::Value::as_bool)
+                .unwrap_or(true);
+
+            let Some(transport) = payload.transport.as_ref() else {
+                return Err(CommandError::validation(
+                    "payload.transport is required for MCP add/update mutation.",
+                ));
+            };
+
+            section_table.insert(
+                target_id.to_string(),
+                build_toml_transport_payload(
+                    transport,
+                    payload.enabled.unwrap_or(current_enabled),
+                ),
+            );
         }
     }
 
@@ -377,6 +434,75 @@ mod tests {
 
         assert!(error.message.contains("already exists"));
         assert_eq!(content, original);
+    }
+
+    #[test]
+    fn update_mcp_in_json_config_succeeds() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-mcp-update-json-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+        let source = temp_dir.join("cursor.json");
+        fs::write(
+            &source,
+            r#"{
+  "mcpServers": {
+    "filesystem": { "command": "npx", "args": ["-y", "old-server"], "enabled": true }
+  }
+}"#,
+        )
+        .expect("should create json config");
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        let result = service
+            .mutate(
+                ClientKind::Cursor,
+                MutationAction::Update,
+                "filesystem",
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "url": "https://mcp.example.com/sse" },
+                    "enabled": false
+                })),
+            )
+            .expect("update should succeed");
+
+        let content = fs::read_to_string(&source).expect("should read updated json config");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(content.contains("\"url\": \"https://mcp.example.com/sse\""));
+        assert!(content.contains("\"enabled\": false"));
+        assert!(result.message.contains("Updated MCP"));
+    }
+
+    #[test]
+    fn update_missing_mcp_is_validation_error() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-mcp-update-missing-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+        let source = temp_dir.join("cursor.json");
+        fs::write(&source, r#"{ "mcpServers": {} }"#).expect("should create json config");
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        let error = service
+            .mutate(
+                ClientKind::Cursor,
+                MutationAction::Update,
+                "filesystem",
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "command": "npx" }
+                })),
+            )
+            .expect_err("update should fail when entry is missing");
+
+        let _ = fs::remove_dir_all(&temp_dir);
+        assert!(error.message.contains("does not exist"));
     }
 
     #[test]

@@ -44,6 +44,7 @@ impl SkillMutationService {
         match action {
             MutationAction::Add => add_skill(client, target_id, &payload),
             MutationAction::Remove => remove_skill(client, target_id, &payload),
+            MutationAction::Update => update_skill(client, target_id, &payload),
         }
     }
 }
@@ -198,6 +199,74 @@ fn remove_skill(
     })
 }
 
+fn update_skill(
+    client: ClientKind,
+    target_id: &str,
+    payload: &SkillMutationPayload,
+) -> Result<SkillMutationResult, CommandError> {
+    let root_path = resolve_skill_root_path(
+        client,
+        MutationAction::Update,
+        payload.skills_dir.as_deref(),
+    )?;
+    let target_manifest = resolve_update_target(&root_path, target_id)?;
+    let target_install_kind = infer_install_kind_from_manifest_path(&target_manifest);
+
+    if let Some(requested_kind) = payload.install_kind
+        && requested_kind != target_install_kind
+    {
+        return Err(CommandError::validation(
+            "payload.install_kind must match the currently installed skill layout for update mutations.",
+        ));
+    }
+
+    let manifest_source = resolve_manifest_source(target_id, payload)?;
+    let metadata = parse_skill_metadata(&manifest_source.manifest);
+    if metadata.description.is_none() {
+        return Err(CommandError::validation(
+            "Skill manifest metadata is incompatible: include at least one heading or description line.",
+        ));
+    }
+
+    let mutator = SafeFileMutator::new();
+    let outcome = if payload.fail_after_write {
+        mutator.replace_file_with_hooks(
+            &target_manifest,
+            manifest_source.manifest.as_bytes(),
+            MutationTestHooks {
+                fail_after_backup: false,
+                fail_after_write: true,
+            },
+        )
+    } else {
+        mutator.replace_file(&target_manifest, manifest_source.manifest.as_bytes())
+    }
+    .map_err(|failure| {
+        CommandError::internal(format!(
+            "[stage={:?}] {} (rollback_succeeded={})",
+            failure.stage, failure.message, failure.rollback_succeeded
+        ))
+    })?;
+
+    let mut message = format!(
+        "Updated skill '{}' for '{}'. Installed at '{}'.",
+        target_id,
+        client.as_str(),
+        target_manifest.display()
+    );
+    if let Some(source_reference) = manifest_source.source_reference {
+        message.push_str(&format!(" Source: {}.", source_reference));
+    }
+    if let Some(backup_path) = outcome.backup_path {
+        message.push_str(&format!(" Backup: {}.", backup_path));
+    }
+
+    Ok(SkillMutationResult {
+        source_path: target_manifest.display().to_string(),
+        message,
+    })
+}
+
 fn resolve_manifest_source(
     target_id: &str,
     payload: &SkillMutationPayload,
@@ -274,7 +343,7 @@ fn resolve_manifest_source(
 
     let Some(manifest) = payload.manifest.clone() else {
         return Err(CommandError::validation(
-            "payload.manifest, payload.source_path, or payload.github_repo_url is required for skill add mutation.",
+            "payload.manifest, payload.source_path, or payload.github_repo_url is required for skill add/update mutation.",
         ));
     };
 
@@ -330,6 +399,21 @@ fn resolve_removal_targets(
     Ok(targets)
 }
 
+fn resolve_update_target(root_path: &Path, target_id: &str) -> Result<PathBuf, CommandError> {
+    let targets = resolve_removal_targets(root_path, target_id, None)?;
+    if targets.len() > 1 {
+        return Err(CommandError::validation(format!(
+            "Skill '{}' has multiple installed manifests. Remove stale entries before updating.",
+            target_id
+        )));
+    }
+
+    targets
+        .into_iter()
+        .next()
+        .ok_or_else(|| CommandError::validation(format!("Skill '{}' does not exist.", target_id)))
+}
+
 fn validate_skill_target_id(target_id: &str) -> Result<(), CommandError> {
     if target_id.contains('/') || target_id.contains('\\') || target_id.contains("..") {
         return Err(CommandError::validation(
@@ -346,6 +430,14 @@ fn directory_manifest_path(root_path: &Path, target_id: &str) -> PathBuf {
 
 fn file_manifest_path(root_path: &Path, target_id: &str) -> PathBuf {
     root_path.join(format!("{target_id}.md"))
+}
+
+fn infer_install_kind_from_manifest_path(manifest_path: &Path) -> SkillInstallKind {
+    if manifest_path.file_name().and_then(|name| name.to_str()) == Some("SKILL.md") {
+        SkillInstallKind::Directory
+    } else {
+        SkillInstallKind::File
+    }
 }
 
 fn cleanup_skill_directory_if_empty(manifest_path: &Path) -> Result<(), CommandError> {
@@ -550,6 +642,64 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
 
         assert!(error.message.contains("does not exist"));
+    }
+
+    #[test]
+    fn update_skill_overwrites_existing_manifest() {
+        let root = test_root("update");
+        let manifest_path = root.join("python-refactor").join("SKILL.md");
+        let _ = fs::create_dir_all(manifest_path.parent().expect("parent should exist"));
+        fs::write(&manifest_path, "# Python Refactor\n\nOriginal description.\n")
+            .expect("should write manifest");
+
+        let service = SkillMutationService::new();
+        let result = service
+            .mutate(
+                ClientKind::Cursor,
+                MutationAction::Update,
+                "python-refactor",
+                Some(&json!({
+                    "skills_dir": root.display().to_string(),
+                    "manifest": "# Python Refactor\n\nUpdated description.\n",
+                    "install_kind": "directory"
+                })),
+            )
+            .expect("update should succeed");
+
+        let content = fs::read_to_string(&manifest_path).expect("manifest should exist");
+        let _ = fs::remove_dir_all(&root);
+
+        assert!(content.contains("Updated description."));
+        assert!(result.message.contains("Updated skill"));
+    }
+
+    #[test]
+    fn update_with_multiple_installs_requires_cleanup() {
+        let root = test_root("update-duplicate");
+        let directory_manifest = root.join("python-refactor").join("SKILL.md");
+        let _ = fs::create_dir_all(directory_manifest.parent().expect("parent should exist"));
+        fs::write(&directory_manifest, "# Skill\n\nDirectory install.\n")
+            .expect("should write directory manifest");
+
+        let file_manifest = root.join("python-refactor.md");
+        fs::write(&file_manifest, "# Skill\n\nFile install.\n")
+            .expect("should write file manifest");
+
+        let service = SkillMutationService::new();
+        let error = service
+            .mutate(
+                ClientKind::Cursor,
+                MutationAction::Update,
+                "python-refactor",
+                Some(&json!({
+                    "skills_dir": root.display().to_string(),
+                    "manifest": "# Skill\n\nUpdated.\n"
+                })),
+            )
+            .expect_err("update should fail when both install layouts exist");
+
+        let _ = fs::remove_dir_all(&root);
+        assert!(error.message.contains("multiple installed manifests"));
     }
 
     fn test_root(suffix: &str) -> PathBuf {

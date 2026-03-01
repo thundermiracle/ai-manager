@@ -85,19 +85,19 @@ impl ClientConfigParser for JsonClientConfigParser {
                 continue;
             };
 
-            let transport_kind = if server_object
+            let command = server_object
                 .get("command")
                 .and_then(Value::as_str)
-                .is_some()
-            {
-                Some("stdio")
-            } else if server_object.get("url").and_then(Value::as_str).is_some() {
-                Some("sse")
-            } else {
-                None
-            };
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
+            let url = server_object
+                .get("url")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
 
-            let Some(transport_kind) = transport_kind else {
+            let Some(transport_kind) = command.map(|_| "stdio").or_else(|| url.map(|_| "sse"))
+            else {
                 warnings.push(ParseWarning {
                     code: "PARSER_SERVER_TRANSPORT_MISSING",
                     message: format!(
@@ -112,9 +112,27 @@ impl ClientConfigParser for JsonClientConfigParser {
                 .and_then(Value::as_bool)
                 .unwrap_or(true);
 
+            let transport_args = if transport_kind == "stdio" {
+                server_object
+                    .get("args")
+                    .and_then(Value::as_array)
+                    .map(|args| {
+                        args.iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+
             servers.push(ParsedMcpServer {
                 name: server_name.to_string(),
                 transport_kind: transport_kind.to_string(),
+                transport_command: command.map(str::to_string),
+                transport_args,
+                transport_url: url.map(str::to_string),
                 enabled,
             });
         }

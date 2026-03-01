@@ -13,9 +13,9 @@ pub fn resolve_mcp_config_path(
 ) -> Result<PathBuf, CommandError> {
     if let Some(source_path_override) = source_path_override {
         let expanded = expand_user_path(source_path_override);
-        if matches!(action, MutationAction::Remove) && !expanded.exists() {
+        if matches!(action, MutationAction::Remove | MutationAction::Update) && !expanded.exists() {
             return Err(CommandError::validation(format!(
-                "source_path '{}' does not exist for MCP remove mutation.",
+                "source_path '{}' does not exist for MCP remove/update mutation.",
                 expanded.display()
             )));
         }

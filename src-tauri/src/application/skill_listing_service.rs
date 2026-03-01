@@ -116,9 +116,13 @@ fn collect_skills_from_directory(
             display_name: manifest_candidate.name,
             enabled,
             transport_kind: None,
+            transport_command: None,
+            transport_args: None,
+            transport_url: None,
             source_path: Some(manifest_candidate.manifest_path.display().to_string()),
             description: metadata.description,
             install_kind: Some(manifest_candidate.install_kind.to_string()),
+            manifest_content: Some(manifest_source),
         });
     }
 

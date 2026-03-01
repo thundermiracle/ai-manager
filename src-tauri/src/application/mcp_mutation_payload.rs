@@ -22,7 +22,7 @@ pub fn parse_mcp_mutation_payload(
             Ok(McpMutationPayload::default())
         } else {
             Err(CommandError::validation(
-                "payload is required for MCP add mutation.",
+                "payload is required for MCP add/update mutation.",
             ))
         };
     };
@@ -41,9 +41,9 @@ pub fn parse_mcp_mutation_payload(
         None
     };
 
-    if matches!(action, MutationAction::Add) && transport.is_none() {
+    if matches!(action, MutationAction::Add | MutationAction::Update) && transport.is_none() {
         return Err(CommandError::validation(
-            "payload.transport is required for MCP add mutation.",
+            "payload.transport is required for MCP add/update mutation.",
         ));
     }
 
@@ -149,5 +149,12 @@ mod tests {
         let payload = parse_mcp_mutation_payload(MutationAction::Remove, None)
             .expect("remove payload should be optional");
         assert!(payload.transport.is_none());
+    }
+
+    #[test]
+    fn update_payload_requires_transport() {
+        let error = parse_mcp_mutation_payload(MutationAction::Update, Some(&json!({})))
+            .expect_err("transport should be required for update");
+        assert!(error.message.contains("payload.transport"));
     }
 }

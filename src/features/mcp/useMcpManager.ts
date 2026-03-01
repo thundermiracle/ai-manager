@@ -26,6 +26,13 @@ export interface AddMcpInput {
   enabled: boolean;
 }
 
+export interface UpdateMcpInput {
+  targetId: string;
+  transport: McpTransportInput;
+  enabled: boolean;
+  sourcePath: string | null;
+}
+
 interface MutationFeedback {
   kind: "success" | "error";
   message: string;
@@ -41,8 +48,10 @@ interface UseMcpManagerResult {
   operationError: ErrorDiagnostic | null;
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
+  pendingUpdateId: string | null;
   refresh: () => Promise<void>;
   addMcp: (input: AddMcpInput) => Promise<boolean>;
+  updateMcp: (input: UpdateMcpInput) => Promise<boolean>;
   removeMcp: (targetId: string, sourcePath: string | null) => Promise<boolean>;
   clearFeedback: () => void;
 }
@@ -73,6 +82,7 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
   const [operationError, setOperationError] = useState<ErrorDiagnostic | null>(null);
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
+  const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (client === null) {
@@ -231,6 +241,67 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
     [client, refresh],
   );
 
+  const updateMcp = useCallback(
+    async (input: UpdateMcpInput) => {
+      if (client === null) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Select a client before updating an MCP entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      const payloadTransport =
+        input.transport.kind === "stdio"
+          ? { command: input.transport.command, args: input.transport.args }
+          : { url: input.transport.url };
+
+      setPendingUpdateId(input.targetId);
+      try {
+        const envelope = await mutateResource({
+          client,
+          resource_kind: "mcp",
+          action: "update",
+          target_id: input.targetId,
+          payload: {
+            source_path: input.sourcePath,
+            transport: payloadTransport,
+            enabled: input.enabled,
+          },
+        });
+
+        if (!envelope.ok || envelope.data === null) {
+          const diagnostic = envelopeErrorDiagnostic(
+            envelope,
+            "Mutation command failed without an explicit error payload.",
+          );
+          setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
+          return false;
+        }
+
+        setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
+        await refresh();
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown update runtime error.";
+        const diagnostic = runtimeErrorToDiagnostic(message);
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      } finally {
+        setPendingUpdateId(null);
+      }
+    },
+    [client, refresh],
+  );
+
   return {
     phase,
     resources,
@@ -238,8 +309,10 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
     operationError,
     feedback,
     pendingRemovalId,
+    pendingUpdateId,
     refresh,
     addMcp,
+    updateMcp,
     removeMcp,
     clearFeedback: () => setFeedback(null),
   };

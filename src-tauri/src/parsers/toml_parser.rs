@@ -83,23 +83,19 @@ impl ClientConfigParser for TomlClientConfigParser {
                 continue;
             };
 
-            let transport_kind = if server_table
+            let command = server_table
                 .get("command")
                 .and_then(toml::Value::as_str)
-                .is_some()
-            {
-                Some("stdio")
-            } else if server_table
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
+            let url = server_table
                 .get("url")
                 .and_then(toml::Value::as_str)
-                .is_some()
-            {
-                Some("sse")
-            } else {
-                None
-            };
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
 
-            let Some(transport_kind) = transport_kind else {
+            let Some(transport_kind) = command.map(|_| "stdio").or_else(|| url.map(|_| "sse"))
+            else {
                 warnings.push(ParseWarning {
                     code: "PARSER_SERVER_TRANSPORT_MISSING",
                     message: format!(
@@ -114,9 +110,27 @@ impl ClientConfigParser for TomlClientConfigParser {
                 .and_then(toml::Value::as_bool)
                 .unwrap_or(true);
 
+            let transport_args = if transport_kind == "stdio" {
+                server_table
+                    .get("args")
+                    .and_then(toml::Value::as_array)
+                    .map(|args| {
+                        args.iter()
+                            .filter_map(toml::Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+
             servers.push(ParsedMcpServer {
                 name: server_name.to_string(),
                 transport_kind: transport_kind.to_string(),
+                transport_command: command.map(str::to_string),
+                transport_args,
+                transport_url: url.map(str::to_string),
                 enabled,
             });
         }

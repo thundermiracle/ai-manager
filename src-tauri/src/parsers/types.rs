@@ -16,6 +16,9 @@ pub struct ParseError {
 pub struct ParsedMcpServer {
     pub name: String,
     pub transport_kind: String,
+    pub transport_command: Option<String>,
+    pub transport_args: Vec<String>,
+    pub transport_url: Option<String>,
     pub enabled: bool,
 }
 

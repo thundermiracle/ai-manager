@@ -11,9 +11,10 @@ pub fn resolve_skill_root_path(
 ) -> Result<PathBuf, CommandError> {
     if let Some(skills_dir_override) = skills_dir_override {
         let expanded = expand_user_path(skills_dir_override);
-        if matches!(action, MutationAction::Remove) && !expanded.is_dir() {
+        if matches!(action, MutationAction::Remove | MutationAction::Update) && !expanded.is_dir()
+        {
             return Err(CommandError::validation(format!(
-                "skills_dir '{}' does not exist for skill remove mutation.",
+                "skills_dir '{}' does not exist for skill remove/update mutation.",
                 expanded.display()
             )));
         }

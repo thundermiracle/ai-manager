@@ -24,6 +24,7 @@ test("skills manager hook calls list and mutate commands", async () => {
   assert.match(hookSource, /resource_kind: "skill"/);
   assert.match(hookSource, /action: "add"/);
   assert.match(hookSource, /action: "remove"/);
+  assert.match(hookSource, /action: "update"/);
   assert.match(hookSource, /github_repo_url/);
   assert.match(hookSource, /github_skill_path/);
   assert.match(hookSource, /input\.mode === "github"/);
@@ -59,6 +60,8 @@ test("skills manager remove action uses in-app confirmation modal", async () => 
 
   assert.match(panelSource, /ConfirmModal/);
   assert.match(panelSource, /Remove Skill Entry/);
+  assert.match(panelSource, /Edit Skill Entry/);
+  assert.match(panelSource, /SkillEditForm/);
   assert.doesNotMatch(panelSource, /window\.confirm/);
 });
 

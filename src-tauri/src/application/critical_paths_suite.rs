@@ -130,6 +130,26 @@ fn mcp_mutation_round_trip_covers_success_and_failure_paths() {
     assert!(after_add.contains("filesystem"));
     assert!(add_result.message.contains("Added MCP"));
 
+    let update_result = service
+        .mutate(
+            ClientKind::Cursor,
+            MutationAction::Update,
+            "filesystem",
+            Some(&json!({
+                "source_path": config_path.display().to_string(),
+                "transport": {
+                    "url": "https://mcp.example.com/sse"
+                },
+                "enabled": false
+            })),
+        )
+        .expect("MCP update should succeed");
+
+    let after_update =
+        fs::read_to_string(&config_path).expect("config should be readable after MCP update");
+    assert!(after_update.contains("https://mcp.example.com/sse"));
+    assert!(update_result.message.contains("Updated MCP"));
+
     let remove_result = service
         .mutate(
             ClientKind::Cursor,
@@ -184,6 +204,22 @@ fn skill_mutation_round_trip_covers_success_and_failure_paths() {
         manifest_path.exists(),
         "installed skill manifest should exist after add"
     );
+
+    let update_result = service
+        .mutate(
+            ClientKind::Cursor,
+            MutationAction::Update,
+            "python-refactor",
+            Some(&json!({
+                "skills_dir": root.display().to_string(),
+                "manifest": "# Python Refactor\n\nRefactor Python safely (updated).\n"
+            })),
+        )
+        .expect("skill update should succeed");
+    assert!(update_result.message.contains("Updated skill"));
+
+    let after_update = fs::read_to_string(&manifest_path).expect("updated manifest should exist");
+    assert!(after_update.contains("(updated)"));
 
     let remove_result = service
         .mutate(

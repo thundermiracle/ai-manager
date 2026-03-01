@@ -9,6 +9,7 @@ use crate::security::redaction::redact_sensitive_text;
 pub enum MutationAction {
     Add,
     Remove,
+    Update,
 }
 
 impl MutationAction {
@@ -16,6 +17,7 @@ impl MutationAction {
         match self {
             Self::Add => "add",
             Self::Remove => "remove",
+            Self::Update => "update",
         }
     }
 }

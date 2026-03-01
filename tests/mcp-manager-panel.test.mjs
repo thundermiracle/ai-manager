@@ -22,6 +22,7 @@ test("mcp manager hook calls list and mutate commands", async () => {
   assert.match(hookSource, /mutateResource/);
   assert.match(hookSource, /action: "add"/);
   assert.match(hookSource, /action: "remove"/);
+  assert.match(hookSource, /action: "update"/);
 });
 
 test("mcp add form separates registry, presets, and manual modes", async () => {
@@ -85,6 +86,8 @@ test("mcp manager remove action uses in-app confirmation modal", async () => {
 
   assert.match(panelSource, /ConfirmModal/);
   assert.match(panelSource, /Remove MCP Entry/);
+  assert.match(panelSource, /Edit MCP Entry/);
+  assert.match(panelSource, /McpEditForm/);
   assert.doesNotMatch(panelSource, /window\.confirm/);
 });
 

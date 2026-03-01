@@ -12,6 +12,8 @@ import {
 interface McpResourceTableProps {
   resources: ResourceRecord[];
   pendingRemovalId: string | null;
+  pendingUpdateId: string | null;
+  onEdit: (resource: ResourceRecord) => Promise<void>;
   onRemove: (resource: ResourceRecord) => Promise<void>;
   emptyMessage?: string;
 }
@@ -27,6 +29,8 @@ function formatTransportKind(value: string | null): string {
 export function McpResourceTable({
   resources,
   pendingRemovalId,
+  pendingUpdateId,
+  onEdit,
   onRemove,
   emptyMessage,
 }: McpResourceTableProps) {
@@ -49,12 +53,13 @@ export function McpResourceTable({
             <TableHead>Transport</TableHead>
             <TableHead>Enabled</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead aria-label="actions" className="w-24" />
+            <TableHead aria-label="actions" className="w-40" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {resources.map((resource) => {
             const removing = pendingRemovalId === resource.display_name;
+            const updating = pendingUpdateId === resource.display_name;
             return (
               <TableRow key={resource.id} className="hover:bg-slate-50/70">
                 <TableCell className="font-medium text-slate-900">
@@ -63,7 +68,18 @@ export function McpResourceTable({
                 <TableCell>{formatTransportKind(resource.transport_kind)}</TableCell>
                 <TableCell>{resource.enabled ? "yes" : "no"}</TableCell>
                 <TableCell>{formatSourcePath(resource.source_path)}</TableCell>
-                <TableCell>
+                <TableCell className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      void onEdit(resource);
+                    }}
+                    disabled={updating || removing}
+                  >
+                    {updating ? "Updating..." : "Edit"}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -71,7 +87,7 @@ export function McpResourceTable({
                     onClick={() => {
                       void onRemove(resource);
                     }}
-                    disabled={removing}
+                    disabled={removing || updating}
                   >
                     {removing ? "Removing..." : "Remove"}
                   </Button>

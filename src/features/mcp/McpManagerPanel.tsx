@@ -13,8 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
 import { McpAddForm } from "./McpAddForm";
+import { McpEditForm } from "./McpEditForm";
 import { McpResourceTable } from "./McpResourceTable";
 import { useMcpAddForm } from "./useMcpAddForm";
+import { useMcpEditForm } from "./useMcpEditForm";
 import { useMcpManager } from "./useMcpManager";
 
 interface McpManagerPanelProps {
@@ -23,6 +25,7 @@ interface McpManagerPanelProps {
 
 export function McpManagerPanel({ client }: McpManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -33,7 +36,9 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     operationError,
     feedback,
     pendingRemovalId,
+    pendingUpdateId,
     addMcp,
+    updateMcp,
     removeMcp,
     refresh,
     clearFeedback,
@@ -42,6 +47,10 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
   const addForm = useMcpAddForm({
     onSubmit: addMcp,
     onAccepted: () => setComposerOpen(false),
+  });
+  const editForm = useMcpEditForm({
+    onSubmit: updateMcp,
+    onAccepted: () => setEditOpen(false),
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -82,6 +91,12 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
 
   async function handleRemove(resource: ResourceRecord) {
     setRemovalCandidate(resource);
+  }
+
+  async function handleEdit(resource: ResourceRecord) {
+    clearFeedback();
+    editForm.loadResource(resource);
+    setEditOpen(true);
   }
 
   async function handleConfirmRemoval() {
@@ -179,6 +194,8 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
           <McpResourceTable
             resources={filteredResources}
             pendingRemovalId={pendingRemovalId}
+            pendingUpdateId={pendingUpdateId}
+            onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
               normalizedQuery.length > 0
@@ -213,6 +230,32 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
             void openUrl(preset.docsUrl);
           }}
           onSubmit={addForm.submit}
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        />
+      </SlideOverPanel>
+
+      <SlideOverPanel
+        open={isEditOpen}
+        title="Edit MCP Entry"
+        description="Update the selected MCP entry and persist it to the client configuration."
+        panelClassName="max-w-[32rem] max-[920px]:max-w-full"
+        onClose={() => {
+          if (pendingUpdateId !== null) {
+            return;
+          }
+          setEditOpen(false);
+          editForm.reset();
+        }}
+      >
+        <McpEditForm
+          disabled={phase === "loading" || pendingUpdateId !== null}
+          state={editForm.state}
+          onTransportModeChange={editForm.setTransportMode}
+          onCommandChange={editForm.setCommand}
+          onArgsInputChange={editForm.setArgsInput}
+          onUrlChange={editForm.setUrl}
+          onEnabledChange={editForm.setEnabled}
+          onSubmit={editForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>

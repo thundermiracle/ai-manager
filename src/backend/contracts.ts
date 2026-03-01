@@ -86,9 +86,13 @@ export interface ResourceRecord {
   display_name: string;
   enabled: boolean;
   transport_kind: string | null;
+  transport_command: string | null;
+  transport_args: string[] | null;
+  transport_url: string | null;
   source_path: string | null;
   description: string | null;
   install_kind: string | null;
+  manifest_content: string | null;
 }
 
 export interface ListResourcesResponse {
@@ -98,7 +102,7 @@ export interface ListResourcesResponse {
   warning: string | null;
 }
 
-export type MutationAction = "add" | "remove";
+export type MutationAction = "add" | "remove" | "update";
 
 export interface MutateResourceRequest {
   client: ClientKind;

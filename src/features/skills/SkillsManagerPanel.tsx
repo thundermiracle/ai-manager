@@ -12,8 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
 import { SkillAddForm } from "./SkillAddForm";
+import { SkillEditForm } from "./SkillEditForm";
 import { SkillResourceTable } from "./SkillResourceTable";
 import { useSkillAddForm } from "./useSkillAddForm";
+import { useSkillEditForm } from "./useSkillEditForm";
 import { useSkillManager } from "./useSkillManager";
 
 interface SkillsManagerPanelProps {
@@ -22,6 +24,7 @@ interface SkillsManagerPanelProps {
 
 export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -32,7 +35,9 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     operationError,
     feedback,
     pendingRemovalId,
+    pendingUpdateId,
     addSkill,
+    updateSkill,
     discoverGithubSkills,
     removeSkill,
     refresh,
@@ -43,6 +48,10 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     onSubmit: addSkill,
     onDiscoverGithubRepo: discoverGithubSkills,
     onAccepted: () => setComposerOpen(false),
+  });
+  const editForm = useSkillEditForm({
+    onSubmit: updateSkill,
+    onAccepted: () => setEditOpen(false),
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -85,12 +94,18 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     setRemovalCandidate(resource);
   }
 
+  async function handleEdit(resource: ResourceRecord) {
+    clearFeedback();
+    editForm.loadResource(resource);
+    setEditOpen(true);
+  }
+
   async function handleConfirmRemoval() {
     if (removalCandidate === null) {
       return;
     }
 
-    await removeSkill(removalCandidate.display_name, null);
+    await removeSkill(removalCandidate.display_name, removalCandidate.source_path);
     setRemovalCandidate(null);
   }
 
@@ -179,6 +194,8 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
           <SkillResourceTable
             resources={filteredResources}
             pendingRemovalId={pendingRemovalId}
+            pendingUpdateId={pendingUpdateId}
+            onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
               normalizedQuery.length > 0
@@ -208,6 +225,28 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
           onGithubRiskAcknowledgedChange={addForm.setGithubRiskAcknowledged}
           onDiscoverGithubRepo={addForm.discoverGithubRepo}
           onSubmit={addForm.submit}
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        />
+      </SlideOverPanel>
+
+      <SlideOverPanel
+        open={isEditOpen}
+        title="Edit Skill Entry"
+        description="Update the selected skill manifest and write it to the installed path."
+        panelClassName="max-w-[40rem] max-[920px]:max-w-full"
+        onClose={() => {
+          if (pendingUpdateId !== null) {
+            return;
+          }
+          setEditOpen(false);
+          editForm.reset();
+        }}
+      >
+        <SkillEditForm
+          disabled={phase === "loading" || pendingUpdateId !== null}
+          state={editForm.state}
+          onManifestChange={editForm.setManifest}
+          onSubmit={editForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>

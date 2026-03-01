@@ -30,6 +30,12 @@ export type AddSkillInput =
       githubSkillPath: string;
     };
 
+export interface UpdateSkillInput {
+  targetId: string;
+  manifest: string;
+  installKind: SkillInstallInputKind;
+}
+
 export interface GithubSkillDiscoveryResult {
   normalizedRepoUrl: string;
   warning: string;
@@ -51,8 +57,10 @@ interface UseSkillManagerResult {
   operationError: ErrorDiagnostic | null;
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
+  pendingUpdateId: string | null;
   refresh: () => Promise<void>;
   addSkill: (input: AddSkillInput) => Promise<boolean>;
+  updateSkill: (input: UpdateSkillInput) => Promise<boolean>;
   discoverGithubSkills: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
   removeSkill: (targetId: string, sourcePath: string | null) => Promise<boolean>;
   clearFeedback: () => void;
@@ -84,6 +92,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
   const [operationError, setOperationError] = useState<ErrorDiagnostic | null>(null);
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
+  const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (client === null) {
@@ -282,6 +291,61 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
     [client, refresh],
   );
 
+  const updateSkill = useCallback(
+    async (input: UpdateSkillInput) => {
+      if (client === null) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Select a client before updating a skill entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      setPendingUpdateId(input.targetId);
+      try {
+        const envelope = await mutateResource({
+          client,
+          resource_kind: "skill",
+          action: "update",
+          target_id: input.targetId,
+          payload: {
+            manifest: input.manifest,
+            install_kind: input.installKind,
+          },
+        });
+
+        if (!envelope.ok || envelope.data === null) {
+          const diagnostic = envelopeErrorDiagnostic(
+            envelope,
+            "Mutation command failed without an explicit error payload.",
+          );
+          setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
+          return false;
+        }
+
+        setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
+        await refresh();
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown update runtime error.";
+        const diagnostic = runtimeErrorToDiagnostic(message);
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      } finally {
+        setPendingUpdateId(null);
+      }
+    },
+    [client, refresh],
+  );
+
   return {
     phase,
     resources,
@@ -289,8 +353,10 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
     operationError,
     feedback,
     pendingRemovalId,
+    pendingUpdateId,
     refresh,
     addSkill,
+    updateSkill,
     discoverGithubSkills,
     removeSkill,
     clearFeedback: () => setFeedback(null),
