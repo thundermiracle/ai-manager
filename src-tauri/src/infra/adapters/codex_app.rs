@@ -1,8 +1,8 @@
 use crate::{
-    interface::contracts::{common::ResourceKind, mutate::MutationAction},
     domain::{
         AdapterListResult, AdapterMutationResult, CODEX_APP_PROFILE, ClientAdapter, ClientProfile,
     },
+    interface::contracts::{common::ResourceKind, mutate::MutationAction},
 };
 
 use super::placeholder::{list_placeholder, mutate_placeholder};

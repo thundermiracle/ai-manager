@@ -8,12 +8,12 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "generate:tauri-icons": "pnpm tauri icon src-tauri/icons/icon.png -o src-tauri/icons",
+    "generate:tauri-icons": "pnpm tauri icon src-tauri/icons/icon.png -o src-tauri/generated-icons",
     "typecheck": "tsc --noEmit",
     "fmt:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
-    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:rust": "pnpm run generate:tauri-icons && cargo test --manifest-path src-tauri/Cargo.toml",
     "lint:ts": "pnpm run typecheck && biome check .",
-    "lint:rust": "cargo clippy --workspace --all-targets --manifest-path src-tauri/Cargo.toml -- -D warnings",
+    "lint:rust": "pnpm run generate:tauri-icons && cargo clippy --workspace --all-targets --manifest-path src-tauri/Cargo.toml -- -D warnings",
     "lint": "pnpm run lint:ts && pnpm run lint:rust",
     "check": "pnpm run lint && pnpm test",
     "ci:web": "pnpm run lint:ts && pnpm test && pnpm run build",

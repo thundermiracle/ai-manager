@@ -1,12 +1,12 @@
 use std::fs;
 
 use crate::{
+    infra::DetectorRegistry,
+    infra::parsers::{ParseOutcome, ParserRegistry},
     interface::contracts::{
         detect::{ClientDetection, DetectClientsRequest},
         list::{ListResourcesRequest, ResourceRecord},
     },
-    infra::DetectorRegistry,
-    infra::parsers::{ParseOutcome, ParserRegistry},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,12 +153,12 @@ where
 mod tests {
     use std::collections::HashMap;
 
+    use crate::infra::parsers::ParserRegistry;
     use crate::interface::contracts::{
         common::{ClientKind, ResourceKind},
         detect::{ClientDetection, DetectionEvidence, DetectionStatus},
         list::ListResourcesRequest,
     };
-    use crate::infra::parsers::ParserRegistry;
 
     use super::collect_from_detections;
 

@@ -1,9 +1,9 @@
 use std::fs;
 
 use crate::{
-    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
     infra::DetectorRegistry,
     infra::SafeFileMutator,
+    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
 };
 
 use super::{
@@ -357,8 +357,8 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        interface::contracts::{common::ClientKind, mutate::MutationAction},
         infra::DetectorRegistry,
+        interface::contracts::{common::ClientKind, mutate::MutationAction},
     };
 
     use super::McpMutationService;

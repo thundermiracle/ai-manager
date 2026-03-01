@@ -6,6 +6,7 @@ use crate::{
         mcp::{listing_service::McpListingService, mutation_service::McpMutationService},
         skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
     },
+    infra::{AdapterRegistry, DetectorRegistry, MutationTestHooks, SafeFileMutator},
     interface::contracts::{
         command::CommandError,
         common::ResourceKind,
@@ -13,7 +14,6 @@ use crate::{
         list::{ListResourcesRequest, ListResourcesResponse},
         mutate::{MutateResourceRequest, MutateResourceResponse},
     },
-    infra::{AdapterRegistry, DetectorRegistry, MutationTestHooks, SafeFileMutator},
 };
 
 pub struct AdapterService<'a> {
@@ -243,14 +243,14 @@ mod tests {
 
     use super::AdapterService;
     use crate::{
+        infra::AdapterRegistry,
+        infra::DetectorRegistry,
         interface::contracts::{
             common::{ClientKind, ResourceKind},
             detect::{DetectClientsRequest, DetectionStatus},
             list::ListResourcesRequest,
             mutate::{MutateResourceRequest, MutationAction},
         },
-        infra::DetectorRegistry,
-        infra::AdapterRegistry,
     };
     use serde_json::json;
 
