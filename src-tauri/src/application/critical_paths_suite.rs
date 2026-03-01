@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 use super::{
-    mcp_mutation_service::McpMutationService, skill_mutation_service::SkillMutationService,
+    mcp::mutation_service::McpMutationService, skill_mutation_service::SkillMutationService,
 };
 use crate::{
     contracts::{common::ClientKind, mutate::MutationAction},

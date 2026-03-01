@@ -7,8 +7,8 @@ use crate::{
 };
 
 use super::{
-    mcp_config_path_resolver::resolve_mcp_config_path,
-    mcp_mutation_payload::{McpMutationPayload, McpTransportPayload, parse_mcp_mutation_payload},
+    config_path_resolver::resolve_mcp_config_path,
+    mutation_payload::{McpMutationPayload, McpTransportPayload, parse_mcp_mutation_payload},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
