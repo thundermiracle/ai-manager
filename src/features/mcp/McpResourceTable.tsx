@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { ResourceRecord } from "../../backend/contracts";
 import { Button } from "../../components/ui/button";
 import {
@@ -24,6 +26,80 @@ function formatSourcePath(sourcePath: string | null): string {
 
 function formatTransportKind(value: string | null): string {
   return value ?? "unknown";
+}
+
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="M3 14.75V17h2.25l8.8-8.8-2.25-2.25-8.8 8.8Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11.8 5.95 13.9 3.9a1.6 1.6 0 0 1 2.25 0l.05.05a1.6 1.6 0 0 1 0 2.25l-2.1 2.05"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function RemoveIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 6h11m-9.5 0v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6m-7-2h5l.6 1.3H6.4L7 4Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+interface McpActionButtonProps {
+  icon: ReactNode;
+  label: string;
+  busyLabel: string;
+  busy: boolean;
+  disabled: boolean;
+  className: string;
+  onClick: () => void;
+}
+
+function McpActionButton({
+  icon,
+  label,
+  busyLabel,
+  busy,
+  disabled,
+  className,
+  onClick,
+}: McpActionButtonProps) {
+  const tooltip = busy ? busyLabel : label;
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className={`group relative ${className}`}
+      title={tooltip}
+      aria-label={tooltip}
+      aria-busy={busy}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {icon}
+      <span className="pointer-events-none absolute -top-8 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-[0.68rem] font-medium text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+        {tooltip}
+      </span>
+      <span className="sr-only">{tooltip}</span>
+    </Button>
+  );
 }
 
 export function McpResourceTable({
@@ -53,7 +129,7 @@ export function McpResourceTable({
             <TableHead>Transport</TableHead>
             <TableHead>Enabled</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead aria-label="actions" className="w-40" />
+            <TableHead aria-label="actions" className="w-24" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,28 +145,28 @@ export function McpResourceTable({
                 <TableCell>{resource.enabled ? "yes" : "no"}</TableCell>
                 <TableCell>{formatSourcePath(resource.source_path)}</TableCell>
                 <TableCell className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
+                  <McpActionButton
+                    icon={<EditIcon />}
+                    label="Edit"
+                    busyLabel="Updating..."
+                    busy={updating}
+                    disabled={updating || removing}
+                    className="h-8 w-8 rounded-lg border border-amber-200 bg-amber-50 p-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
                     onClick={() => {
                       void onEdit(resource);
                     }}
-                    disabled={updating || removing}
-                  >
-                    {updating ? "Updating..." : "Edit"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
+                  />
+                  <McpActionButton
+                    icon={<RemoveIcon />}
+                    label="Remove"
+                    busyLabel="Removing..."
+                    busy={removing}
+                    disabled={removing || updating}
+                    className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 p-0 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                     onClick={() => {
                       void onRemove(resource);
                     }}
-                    disabled={removing || updating}
-                  >
-                    {removing ? "Removing..." : "Remove"}
-                  </Button>
+                  />
                 </TableCell>
               </TableRow>
             );

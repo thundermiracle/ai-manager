@@ -159,14 +159,9 @@ export function SkillResourceTable({
                 >
                   {resource.display_name}
                 </TableCell>
-                <TableCell>
-                  {formatInstallKind(resource.install_kind)}
-                </TableCell>
+                <TableCell>{formatInstallKind(resource.install_kind)}</TableCell>
                 <TableCell>{resource.enabled ? "yes" : "no"}</TableCell>
-                <TableCell
-                  className="max-w-[18rem] truncate"
-                  title={sourceText}
-                >
+                <TableCell className="max-w-[18rem] truncate" title={sourceText}>
                   {sourceText}
                 </TableCell>
                 <TableCell className="flex items-center justify-end gap-1.5 whitespace-nowrap">
