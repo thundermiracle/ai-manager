@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf};
 
 use crate::{
-    contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
+    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
     infra::DetectorRegistry,
 };
 
@@ -23,7 +23,7 @@ pub fn resolve_mcp_config_path(
         return Ok(expanded);
     }
 
-    let detect_request = crate::contracts::detect::DetectClientsRequest {
+    let detect_request = crate::interface::contracts::detect::DetectClientsRequest {
         include_versions: false,
     };
 

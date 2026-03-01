@@ -1,4 +1,4 @@
-use crate::contracts::{
+use crate::interface::contracts::{
     common::ClientKind,
     detect::{ClientDetection, DetectClientsRequest},
 };

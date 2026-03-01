@@ -2,11 +2,11 @@ use tauri::State;
 
 use crate::{
     application::SkillRepositoryDiscoveryService,
-    contracts::{
+    interface::contracts::{
         command::{CommandEnvelope, CommandError, CommandMeta},
         skill_discovery::{DiscoverSkillRepositoryRequest, DiscoverSkillRepositoryResponse},
     },
-    state::AppState,
+    interface::state::AppState,
 };
 
 #[tauri::command]

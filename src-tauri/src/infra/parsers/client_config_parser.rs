@@ -1,4 +1,4 @@
-use crate::contracts::common::ClientKind;
+use crate::interface::contracts::common::ClientKind;
 
 use super::{ParseOutcome, ParsedClientConfig};
 

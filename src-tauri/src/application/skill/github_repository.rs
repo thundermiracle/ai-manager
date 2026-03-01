@@ -7,7 +7,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::contracts::command::CommandError;
+use crate::interface::contracts::command::CommandError;
 
 use super::metadata_parser::parse_skill_metadata;
 

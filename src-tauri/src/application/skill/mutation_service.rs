@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
+    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
     infra::{MutationTestHooks, SafeFileMutator},
 };
 
@@ -484,7 +484,7 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::contracts::{common::ClientKind, mutate::MutationAction};
+    use crate::interface::contracts::{common::ClientKind, mutate::MutationAction};
 
     use super::SkillMutationService;
 

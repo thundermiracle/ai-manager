@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{
-    contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
+    interface::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
     infra::DetectorRegistry,
     infra::SafeFileMutator,
 };
@@ -357,7 +357,7 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        contracts::{common::ClientKind, mutate::MutationAction},
+        interface::contracts::{common::ClientKind, mutate::MutationAction},
         infra::DetectorRegistry,
     };
 

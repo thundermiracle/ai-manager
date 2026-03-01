@@ -2,11 +2,11 @@ use tauri::State;
 
 use crate::{
     application::AdapterService,
-    contracts::{
+    interface::contracts::{
         command::{CommandEnvelope, CommandError, CommandMeta},
         list::{ListResourcesRequest, ListResourcesResponse},
     },
-    state::AppState,
+    interface::state::AppState,
 };
 
 #[tauri::command]

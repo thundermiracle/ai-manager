@@ -1,5 +1,5 @@
 use crate::{
-    contracts::{common::ResourceKind, mutate::MutationAction},
+    interface::contracts::{common::ResourceKind, mutate::MutationAction},
     domain::{
         AdapterListResult, AdapterMutationResult, CODEX_CLI_PROFILE, ClientAdapter, ClientProfile,
     },

@@ -11,7 +11,7 @@ use super::{
     mcp::mutation_service::McpMutationService, skill::mutation_service::SkillMutationService,
 };
 use crate::{
-    contracts::{common::ClientKind, mutate::MutationAction},
+    interface::contracts::{common::ClientKind, mutate::MutationAction},
     infra::DetectorRegistry,
     infra::parsers::{ParseOutcome, ParserRegistry},
 };
