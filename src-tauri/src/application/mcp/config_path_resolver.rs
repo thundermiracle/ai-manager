@@ -52,19 +52,22 @@ fn default_mcp_config_path(client: ClientKind) -> PathBuf {
             &env::var("AI_MANAGER_CLAUDE_CODE_MCP_CONFIG")
                 .unwrap_or_else(|_| "~/.claude/claude_code_config.json".to_string()),
         ),
-        ClientKind::CodexCli => expand_user_path(
-            &env::var("AI_MANAGER_CODEX_CLI_MCP_CONFIG")
-                .unwrap_or_else(|_| "~/.codex/config.toml".to_string()),
+        ClientKind::Codex => expand_user_path(
+            &read_first_env(&["AI_MANAGER_CODEX_MCP_CONFIG"])
+                .unwrap_or_else(|| "~/.codex/config.toml".to_string()),
         ),
         ClientKind::Cursor => expand_user_path(
             &env::var("AI_MANAGER_CURSOR_MCP_CONFIG")
                 .unwrap_or_else(|_| "~/.cursor/mcp.json".to_string()),
         ),
-        ClientKind::CodexApp => expand_user_path(
-            &env::var("AI_MANAGER_CODEX_APP_MCP_CONFIG")
-                .unwrap_or_else(|_| "~/Library/Application Support/Codex/mcp.json".to_string()),
-        ),
     }
+}
+
+fn read_first_env(names: &[&str]) -> Option<String> {
+    names
+        .iter()
+        .find_map(|name| env::var(name).ok().map(|value| value.trim().to_string()))
+        .filter(|value| !value.is_empty())
 }
 
 fn expand_user_path(value: &str) -> PathBuf {

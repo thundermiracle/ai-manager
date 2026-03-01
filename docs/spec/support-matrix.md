@@ -6,9 +6,8 @@ This document freezes the detection input matrix for MVP issue `#10`.
 
 - Target clients:
   - `claude_code`
-  - `codex_cli`
+  - `codex`
   - `cursor`
-  - `codex_app`
 - Required matrix artifacts:
   - Binary candidate order (for CLI-first clients)
   - Config and skills path candidate order

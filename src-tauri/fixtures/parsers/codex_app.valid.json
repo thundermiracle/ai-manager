@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "notion": {
-      "url": "https://codex-app.example.com/sse",
-      "enabled": true
-    }
-  }
-}

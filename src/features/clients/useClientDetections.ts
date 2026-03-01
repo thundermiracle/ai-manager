@@ -8,7 +8,7 @@ import {
   runtimeErrorToDiagnostic,
 } from "../common/errorDiagnostics";
 
-const CLIENT_ORDER: ClientKind[] = ["claude_code", "codex_cli", "cursor", "codex_app"];
+const CLIENT_ORDER: ClientKind[] = ["claude_code", "codex", "cursor"];
 
 export type DetectionLoadPhase = "loading" | "ready" | "error";
 

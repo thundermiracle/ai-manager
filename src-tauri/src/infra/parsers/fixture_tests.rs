@@ -133,17 +133,16 @@ fn load_fixture_cases(fixtures_root: &Path) -> Vec<FixtureCase> {
 fn parse_client_kind(value: &str) -> ClientKind {
     match value {
         "claude_code" => ClientKind::ClaudeCode,
-        "codex_cli" => ClientKind::CodexCli,
+        "codex" => ClientKind::Codex,
         "cursor" => ClientKind::Cursor,
-        "codex_app" => ClientKind::CodexApp,
         other => panic!("unsupported client kind in fixture index: {other}"),
     }
 }
 
 fn expected_format(client: ClientKind) -> &'static str {
     match client {
-        ClientKind::CodexCli => "toml",
-        ClientKind::ClaudeCode | ClientKind::Cursor | ClientKind::CodexApp => "json",
+        ClientKind::Codex => "toml",
+        ClientKind::ClaudeCode | ClientKind::Cursor => "json",
     }
 }
 

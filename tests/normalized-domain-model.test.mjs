@@ -5,7 +5,7 @@ import test from "node:test";
 const modelPath = new URL("../docs/spec/normalized-domain-model.v1.json", import.meta.url);
 const model = JSON.parse(readFileSync(modelPath, "utf8"));
 
-const clientTypeSet = new Set(["claude_code", "codex_cli", "cursor", "codex_app"]);
+const clientTypeSet = new Set(["claude_code", "codex", "cursor"]);
 const transportKindSet = new Set(["stdio", "http", "sse", "streamable_http"]);
 const skillInstallKindSet = new Set(["file", "directory", "reference"]);
 

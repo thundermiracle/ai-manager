@@ -1,6 +1,6 @@
 use crate::{
     domain::{ClientAdapter, ClientKind},
-    infra::adapters::{ClaudeCodeAdapter, CodexAppAdapter, CodexCliAdapter, CursorAdapter},
+    infra::adapters::{ClaudeCodeAdapter, CodexAdapter, CursorAdapter},
 };
 
 pub struct AdapterRegistry {
@@ -12,9 +12,8 @@ impl AdapterRegistry {
         Self {
             adapters: vec![
                 Box::new(ClaudeCodeAdapter::new()),
-                Box::new(CodexCliAdapter::new()),
+                Box::new(CodexAdapter::new()),
                 Box::new(CursorAdapter::new()),
-                Box::new(CodexAppAdapter::new()),
             ],
         }
     }
@@ -50,9 +49,8 @@ mod tests {
             ordered_client_kinds,
             vec![
                 ClientKind::ClaudeCode,
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 ClientKind::Cursor,
-                ClientKind::CodexApp,
             ]
         );
     }
@@ -62,8 +60,7 @@ mod tests {
         let registry = AdapterRegistry::with_default_adapters();
 
         assert!(registry.find(ClientKind::ClaudeCode).is_some());
-        assert!(registry.find(ClientKind::CodexCli).is_some());
+        assert!(registry.find(ClientKind::Codex).is_some());
         assert!(registry.find(ClientKind::Cursor).is_some());
-        assert!(registry.find(ClientKind::CodexApp).is_some());
     }
 }

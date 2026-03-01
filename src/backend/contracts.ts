@@ -1,4 +1,4 @@
-export type ClientKind = "claude_code" | "codex_cli" | "cursor" | "codex_app";
+export type ClientKind = "claude_code" | "codex" | "cursor";
 
 export type ResourceKind = "mcp" | "skill";
 

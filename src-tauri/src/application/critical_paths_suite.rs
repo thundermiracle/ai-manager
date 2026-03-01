@@ -33,7 +33,7 @@ fn parser_fixtures_cover_supported_clients_and_expected_outcomes() {
     let parser_registry = ParserRegistry::new();
 
     let expected_clients: HashSet<String> = HashSet::from_iter(
-        ["claude_code", "codex_cli", "cursor", "codex_app"]
+        ["claude_code", "codex", "cursor"]
             .into_iter()
             .map(str::to_string),
     );
@@ -263,9 +263,8 @@ fn skill_mutation_round_trip_covers_success_and_failure_paths() {
 fn parse_client_kind(value: &str) -> ClientKind {
     match value {
         "claude_code" => ClientKind::ClaudeCode,
-        "codex_cli" => ClientKind::CodexCli,
+        "codex" => ClientKind::Codex,
         "cursor" => ClientKind::Cursor,
-        "codex_app" => ClientKind::CodexApp,
         other => panic!("unsupported client kind in fixture index: {other}"),
     }
 }

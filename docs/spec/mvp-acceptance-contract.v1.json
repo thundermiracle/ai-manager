@@ -22,8 +22,8 @@
     {
       "id": "CHK_DETECTION_001",
       "flow": "detection",
-      "title": "Detect all four target clients with deterministic status",
-      "description": "Detection returns deterministic detected/partial/absent/error status for Claude Code, Codex CLI, Cursor, and Codex App.",
+      "title": "Detect all three target clients with deterministic status",
+      "description": "Detection returns deterministic detected/partial/absent/error status for Claude Code, Codex, and Cursor.",
       "verification": "automated_test",
       "evidence": "Fixture-based detector tests with stable expected outputs.",
       "blocking": true

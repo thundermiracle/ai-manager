@@ -40,7 +40,7 @@
     },
     "clients": {
       "type": "array",
-      "minItems": 4,
+      "minItems": 3,
       "items": {
         "type": "object",
         "required": [

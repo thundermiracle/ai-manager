@@ -53,7 +53,7 @@ impl<'a> McpMutationService<'a> {
             }
         };
 
-        let next_content = if matches!(client, ClientKind::CodexCli) {
+        let next_content = if matches!(client, ClientKind::Codex) {
             mutate_toml_content(&current_content, target_id, action, &payload)?
         } else {
             mutate_json_content(&current_content, target_id, action, &payload)?
@@ -516,7 +516,7 @@ enabled = true
         let service = McpMutationService::new(&detector_registry);
         service
             .mutate(
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 MutationAction::Remove,
                 "filesystem",
                 Some(&json!({
@@ -537,7 +537,7 @@ enabled = true
         let service = McpMutationService::new(&detector_registry);
         let error = service
             .mutate(
-                ClientKind::CodexApp,
+                ClientKind::Codex,
                 MutationAction::Add,
                 "remote",
                 Some(&json!({

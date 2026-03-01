@@ -13,7 +13,7 @@ const CONFIG: PathBasedDetectorConfig = PathBasedDetectorConfig {
     display_name: "Cursor",
     kind: DetectorKind::Desktop,
     binary_candidates: &["cursor", "Cursor"],
-    config_override_env_var: "AI_MANAGER_CURSOR_MCP_CONFIG",
+    config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
     config_fallback_paths: &[
         "~/.cursor/mcp.json",
         "~/Library/Application Support/Cursor/User/mcp.json",

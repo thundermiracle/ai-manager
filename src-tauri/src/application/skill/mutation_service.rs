@@ -548,7 +548,7 @@ mod tests {
         let service = SkillMutationService::new();
         let error = service
             .mutate(
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 MutationAction::Add,
                 "python-refactor",
                 Some(&json!({
@@ -572,7 +572,7 @@ mod tests {
         let service = SkillMutationService::new();
         let error = service
             .mutate(
-                ClientKind::CodexApp,
+                ClientKind::Codex,
                 MutationAction::Add,
                 "python-refactor",
                 Some(&json!({

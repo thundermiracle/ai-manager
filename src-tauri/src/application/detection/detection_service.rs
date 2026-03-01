@@ -50,9 +50,8 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![
                 ClientKind::ClaudeCode,
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 ClientKind::Cursor,
-                ClientKind::CodexApp,
             ]
         );
     }

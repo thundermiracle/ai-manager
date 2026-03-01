@@ -9,23 +9,23 @@ use super::super::{
 };
 
 const CONFIG: PathBasedDetectorConfig = PathBasedDetectorConfig {
-    client: ClientKind::CodexCli,
-    display_name: "Codex CLI",
+    client: ClientKind::Codex,
+    display_name: "Codex",
     kind: DetectorKind::Cli,
     binary_candidates: &["codex", "codex-cli"],
-    config_override_env_var: "AI_MANAGER_CODEX_CLI_MCP_CONFIG",
+    config_override_env_vars: &["AI_MANAGER_CODEX_MCP_CONFIG"],
     config_fallback_paths: &["~/.codex/config.toml"],
 };
 
-pub struct CodexCliDetector;
+pub struct CodexDetector;
 
-impl CodexCliDetector {
+impl CodexDetector {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl ClientDetector for CodexCliDetector {
+impl ClientDetector for CodexDetector {
     fn detect(&self, request: &DetectClientsRequest) -> ClientDetection {
         evaluate_path_based_detector(&CONFIG, request)
     }

@@ -239,7 +239,7 @@ mod tests {
         fs::write(temp_root.join("broken.md"), [0xff, 0xfe, 0x00])
             .expect("should create malformed skill");
 
-        let outcome = collect_skills_from_directory(ClientKind::CodexCli, &temp_root, None);
+        let outcome = collect_skills_from_directory(ClientKind::Codex, &temp_root, None);
 
         let _ = fs::remove_dir_all(&temp_root);
 
@@ -259,7 +259,7 @@ mod tests {
         fs::write(valid_skill.join("SKILL.md"), "# Safe Skill\n\nWorks.\n")
             .expect("should create valid skill");
 
-        let outcome = collect_skills_from_directory(ClientKind::CodexApp, &temp_root, Some(false));
+        let outcome = collect_skills_from_directory(ClientKind::Codex, &temp_root, Some(false));
 
         let _ = fs::remove_dir_all(&temp_root);
 
