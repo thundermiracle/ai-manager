@@ -13,7 +13,7 @@ use super::{
 use crate::{
     contracts::{common::ClientKind, mutate::MutationAction},
     detection::DetectorRegistry,
-    parsers::{ParseOutcome, ParserRegistry},
+    infra::parsers::{ParseOutcome, ParserRegistry},
 };
 
 #[derive(Debug, Deserialize)]

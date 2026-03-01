@@ -6,7 +6,7 @@ use crate::{
         list::{ListResourcesRequest, ResourceRecord},
     },
     detection::DetectorRegistry,
-    parsers::{ParseOutcome, ParserRegistry},
+    infra::parsers::{ParseOutcome, ParserRegistry},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,20 +82,18 @@ where
             }
         };
 
-        match parser_registry.parse_client_config(client, &source) {
-            ParseOutcome::Success {
-                data,
-                warnings: parse_warnings,
-            } => {
-                for warning in parse_warnings {
-                    warnings.push(format!(
-                        "[{}:{}] {}",
-                        client.as_str(),
-                        warning.code,
-                        warning.message
-                    ));
-                }
+        let parse_outcome = parser_registry.parse_client_config(client, &source);
+        for warning in parse_outcome.warnings() {
+            warnings.push(format!(
+                "[{}:{}] {}",
+                client.as_str(),
+                warning.code,
+                warning.message
+            ));
+        }
 
+        match parse_outcome {
+            ParseOutcome::Success { data, .. } => {
                 for server in data.mcp_servers {
                     if let Some(enabled_filter) = request.enabled
                         && server.enabled != enabled_filter
@@ -119,19 +117,7 @@ where
                     });
                 }
             }
-            ParseOutcome::Failure {
-                warnings: parse_warnings,
-                errors,
-            } => {
-                for warning in parse_warnings {
-                    warnings.push(format!(
-                        "[{}:{}] {}",
-                        client.as_str(),
-                        warning.code,
-                        warning.message
-                    ));
-                }
-
+            ParseOutcome::Failure { errors, .. } => {
                 for error in errors {
                     warnings.push(format!(
                         "[{}:{}] {}",
@@ -172,7 +158,7 @@ mod tests {
         detect::{ClientDetection, DetectionEvidence, DetectionStatus},
         list::ListResourcesRequest,
     };
-    use crate::parsers::ParserRegistry;
+    use crate::infra::parsers::ParserRegistry;
 
     use super::collect_from_detections;
 
