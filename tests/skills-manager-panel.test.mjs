@@ -45,6 +45,8 @@ test("skills add form separates manual and GitHub modes", async () => {
   assert.match(formSource, /onDiscoverGithubRepo/);
   assert.match(formSource, /onSelectedGithubManifestPathChange/);
   assert.match(formSource, /onGithubRiskAcknowledgedChange/);
+  assert.match(formSource, /state.mode === "github" && !state.githubRiskAcknowledged/);
+  assert.match(formSource, /disabled=\{submitDisabled\}/);
   assert.match(stateSource, /export type SkillAddMode = "manual" \| "github"/);
   assert.match(stateSource, /githubRepoUrl/);
   assert.match(stateSource, /discoverGithubRepo/);

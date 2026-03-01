@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useMemo, useState } from "react";
 
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
@@ -44,11 +45,21 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const transientFeedback =
-    feedback !== null &&
-    (feedback.kind === "success" || (feedback.kind === "error" && !feedback.diagnostic))
-      ? feedback
-      : null;
+  const snackbarFeedback = useMemo(() => {
+    if (feedback === null) {
+      return null;
+    }
+    if (feedback.kind === "error" && feedback.diagnostic) {
+      return {
+        tone: "error" as const,
+        message: `CODE: ${feedback.diagnostic.code} | ${feedback.message}`,
+      };
+    }
+    return {
+      tone: feedback.kind === "error" ? ("error" as const) : ("success" as const),
+      message: feedback.message,
+    };
+  }, [feedback]);
   const filteredResources = useMemo(() => {
     if (normalizedQuery.length === 0) {
       return resources;
@@ -164,9 +175,6 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
               }}
             />
           ) : null}
-          {feedback?.kind === "error" && feedback.diagnostic ? (
-            <ErrorRecoveryCallout title="MCP mutation failed" diagnostic={feedback.diagnostic} />
-          ) : null}
 
           <McpResourceTable
             resources={filteredResources}
@@ -185,17 +193,25 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
         open={isComposerOpen}
         title="Add MCP Entry"
         description="Use compact input fields to register a new MCP source without leaving the list."
+        panelClassName="max-w-[42rem] max-[920px]:max-w-full"
         onClose={() => setComposerOpen(false)}
       >
         <McpAddForm
           disabled={phase === "loading"}
           state={addForm.state}
+          onModeChange={addForm.setMode}
           onTargetIdChange={addForm.setTargetId}
           onTransportModeChange={addForm.setTransportMode}
           onCommandChange={addForm.setCommand}
           onArgsInputChange={addForm.setArgsInput}
           onUrlChange={addForm.setUrl}
           onEnabledChange={addForm.setEnabled}
+          onRegistryQueryChange={addForm.setRegistryQuery}
+          onReloadRegistry={addForm.reloadRegistry}
+          onApplyPreset={addForm.applyPreset}
+          onOpenPresetDocs={(preset) => {
+            void openUrl(preset.docsUrl);
+          }}
           onSubmit={addForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
@@ -223,9 +239,9 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
       />
 
       <Snackbar
-        open={transientFeedback !== null}
-        tone={transientFeedback?.kind === "error" ? "error" : "success"}
-        message={transientFeedback?.message ?? ""}
+        open={snackbarFeedback !== null}
+        tone={snackbarFeedback?.tone ?? "info"}
+        message={snackbarFeedback?.message ?? ""}
         durationMs={5000}
         onClose={clearFeedback}
       />

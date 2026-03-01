@@ -52,7 +52,7 @@ export function SlideOverPanel({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "absolute inset-y-0 right-0 z-10 w-full max-w-[28.5rem] border-l border-slate-200 bg-white/95 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.24)] backdrop-blur",
+          "absolute inset-y-0 right-0 z-10 flex h-full min-h-0 w-full max-w-[28.5rem] flex-col border-l border-slate-200 bg-white/95 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.24)] backdrop-blur",
           "max-[640px]:max-w-full max-[640px]:p-4",
           panelClassName,
         )}
@@ -69,7 +69,9 @@ export function SlideOverPanel({
           </Button>
         </header>
 
-        <div className="mt-4 min-w-0 overflow-x-hidden overflow-y-auto pb-8">{children}</div>
+        <div className="mt-4 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-8">
+          {children}
+        </div>
       </section>
     </div>
   );

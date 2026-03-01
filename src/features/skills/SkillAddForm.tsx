@@ -42,6 +42,7 @@ export function SkillAddForm({
     state.githubCandidates.find(
       (item) => item.manifest_path === state.selectedGithubManifestPath,
     ) ?? null;
+  const submitDisabled = disabled || (state.mode === "github" && !state.githubRiskAcknowledged);
 
   const form = (
     <form
@@ -190,7 +191,7 @@ export function SkillAddForm({
         </>
       )}
 
-      <Button type="submit" disabled={disabled}>
+      <Button type="submit" disabled={submitDisabled}>
         {state.mode === "manual" ? "Add Skill" : "Import Selected Skill"}
       </Button>
     </form>

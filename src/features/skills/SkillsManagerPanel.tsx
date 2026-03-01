@@ -46,11 +46,21 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const transientFeedback =
-    feedback !== null &&
-    (feedback.kind === "success" || (feedback.kind === "error" && !feedback.diagnostic))
-      ? feedback
-      : null;
+  const snackbarFeedback = useMemo(() => {
+    if (feedback === null) {
+      return null;
+    }
+    if (feedback.kind === "error" && feedback.diagnostic) {
+      return {
+        tone: "error" as const,
+        message: `CODE: ${feedback.diagnostic.code} | ${feedback.message}`,
+      };
+    }
+    return {
+      tone: feedback.kind === "error" ? ("error" as const) : ("success" as const),
+      message: feedback.message,
+    };
+  }, [feedback]);
   const filteredResources = useMemo(() => {
     if (normalizedQuery.length === 0) {
       return resources;
@@ -165,9 +175,6 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
               }}
             />
           ) : null}
-          {feedback?.kind === "error" && feedback.diagnostic ? (
-            <ErrorRecoveryCallout title="Skill mutation failed" diagnostic={feedback.diagnostic} />
-          ) : null}
 
           <SkillResourceTable
             resources={filteredResources}
@@ -227,9 +234,9 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
       />
 
       <Snackbar
-        open={transientFeedback !== null}
-        tone={transientFeedback?.kind === "error" ? "error" : "success"}
-        message={transientFeedback?.message ?? ""}
+        open={snackbarFeedback !== null}
+        tone={snackbarFeedback?.tone ?? "info"}
+        message={snackbarFeedback?.message ?? ""}
         durationMs={5000}
         onClose={clearFeedback}
       />

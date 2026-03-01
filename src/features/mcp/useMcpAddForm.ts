@@ -1,16 +1,29 @@
-import { type FormEvent, useCallback, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 
+import { searchRegistryPresets } from "./mcp-registry";
+import { MCP_FALLBACK_PRESETS, type McpOfficialPreset } from "./official-presets";
 import type { AddMcpInput, McpTransportInput } from "./useMcpManager";
 
 export type TransportMode = "stdio" | "sse";
+export type McpAddMode = "registry" | "preset" | "manual";
+
+export type McpPresetSource = "registry" | "preset";
 
 export interface McpAddFormState {
+  mode: McpAddMode;
   targetId: string;
   transportMode: TransportMode;
   command: string;
   argsInput: string;
   url: string;
   enabled: boolean;
+  selectedRegistryPresetId: string;
+  selectedPresetId: string;
+  registryQuery: string;
+  registryLoading: boolean;
+  registryError: string | null;
+  registryResults: McpOfficialPreset[];
+  presets: McpOfficialPreset[];
   localError: string | null;
 }
 
@@ -21,22 +34,34 @@ interface UseMcpAddFormParams {
 
 interface UseMcpAddFormResult {
   state: McpAddFormState;
+  setMode: (value: McpAddMode) => void;
   setTargetId: (value: string) => void;
   setTransportMode: (value: TransportMode) => void;
   setCommand: (value: string) => void;
   setArgsInput: (value: string) => void;
   setUrl: (value: string) => void;
   setEnabled: (value: boolean) => void;
+  setRegistryQuery: (value: string) => void;
+  reloadRegistry: () => Promise<void>;
+  applyPreset: (preset: McpOfficialPreset, source: McpPresetSource) => void;
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
 const DEFAULT_STATE: McpAddFormState = {
+  mode: "registry",
   targetId: "example.server",
   transportMode: "stdio",
   command: "npx",
   argsInput: "-y, @modelcontextprotocol/server-filesystem",
   url: "https://example.com/sse",
   enabled: true,
+  selectedRegistryPresetId: "",
+  selectedPresetId: "",
+  registryQuery: "figma",
+  registryLoading: false,
+  registryError: null,
+  registryResults: [],
+  presets: MCP_FALLBACK_PRESETS,
   localError: null,
 };
 
@@ -84,6 +109,10 @@ function createTransportPayload(
 export function useMcpAddForm({ onSubmit, onAccepted }: UseMcpAddFormParams): UseMcpAddFormResult {
   const [state, setState] = useState<McpAddFormState>(DEFAULT_STATE);
 
+  const setMode = useCallback((value: McpAddMode) => {
+    setState((current) => ({ ...current, mode: value, localError: null }));
+  }, []);
+
   const setTargetId = useCallback((value: string) => {
     setState((current) => ({ ...current, targetId: value }));
   }, []);
@@ -108,6 +137,96 @@ export function useMcpAddForm({ onSubmit, onAccepted }: UseMcpAddFormParams): Us
     setState((current) => ({ ...current, enabled: value }));
   }, []);
 
+  const setRegistryQuery = useCallback((value: string) => {
+    setState((current) => ({ ...current, registryQuery: value }));
+  }, []);
+
+  const reloadRegistry = useCallback(async () => {
+    const query = state.registryQuery.trim();
+    if (query.length === 0) {
+      setState((current) => ({
+        ...current,
+        registryError: "Enter a registry search query.",
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      registryLoading: true,
+      registryError: null,
+    }));
+
+    try {
+      const discovered = await searchRegistryPresets(query, 30);
+      setState((current) => ({
+        ...current,
+        registryLoading: false,
+        registryResults: discovered,
+        registryError:
+          discovered.length > 0 ? null : "No official MCP registry results found for this query.",
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown registry error.";
+      setState((current) => ({
+        ...current,
+        registryLoading: false,
+        registryResults: [],
+        registryError: `Registry request failed (${message}).`,
+      }));
+    }
+  }, [state.registryQuery]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const discovered = await searchRegistryPresets(DEFAULT_STATE.registryQuery, 30);
+        setState((current) => ({
+          ...current,
+          registryResults: discovered,
+          registryError:
+            discovered.length > 0 ? null : "No official MCP registry results found for this query.",
+        }));
+      } catch {
+        setState((current) => ({
+          ...current,
+          registryResults: [],
+          registryError: "Registry request failed.",
+        }));
+      }
+    })();
+  }, []);
+
+  const applyPreset = useCallback((preset: McpOfficialPreset, source: McpPresetSource) => {
+    const sourceState =
+      source === "registry"
+        ? { selectedRegistryPresetId: preset.id }
+        : { selectedPresetId: preset.id };
+
+    setState((current) => {
+      if (preset.transport.mode === "stdio") {
+        return {
+          ...current,
+          ...sourceState,
+          targetId: preset.targetId,
+          transportMode: "stdio",
+          command: preset.transport.command,
+          argsInput: preset.transport.args.join(", "),
+          localError: null,
+        };
+      }
+
+      return {
+        ...current,
+        ...sourceState,
+        targetId: preset.targetId,
+        transportMode: "sse",
+        url: preset.transport.url,
+        localError: null,
+      };
+    });
+  }, []);
+
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -117,6 +236,22 @@ export function useMcpAddForm({ onSubmit, onAccepted }: UseMcpAddFormParams): Us
       const normalizedTargetId = state.targetId.trim();
       if (normalizedTargetId.length === 0) {
         setState((current) => ({ ...current, localError: "Target ID is required." }));
+        return;
+      }
+
+      if (state.mode === "registry" && state.selectedRegistryPresetId.trim().length === 0) {
+        setState((current) => ({
+          ...current,
+          localError: "Select an official registry entry and click 'Use Entry' before adding.",
+        }));
+        return;
+      }
+
+      if (state.mode === "preset" && state.selectedPresetId.trim().length === 0) {
+        setState((current) => ({
+          ...current,
+          localError: "Select a preset and click 'Use Preset' before adding.",
+        }));
         return;
       }
 
@@ -143,7 +278,7 @@ export function useMcpAddForm({ onSubmit, onAccepted }: UseMcpAddFormParams): Us
       if (accepted) {
         setState((current) => ({
           ...current,
-          targetId: "",
+          targetId: resolveTargetIdForMode(current),
           url: current.transportMode === "sse" ? DEFAULT_STATE.url : current.url,
         }));
         onAccepted?.();
@@ -154,12 +289,29 @@ export function useMcpAddForm({ onSubmit, onAccepted }: UseMcpAddFormParams): Us
 
   return {
     state,
+    setMode,
     setTargetId,
     setTransportMode,
     setCommand,
     setArgsInput,
     setUrl,
     setEnabled,
+    setRegistryQuery,
+    reloadRegistry,
+    applyPreset,
     submit,
   };
+}
+
+function resolveTargetIdForMode(state: McpAddFormState): string {
+  if (state.mode === "registry") {
+    const matchedRegistry = state.registryResults.find(
+      (item) => item.id === state.selectedRegistryPresetId,
+    );
+    return matchedRegistry?.targetId ?? "";
+  }
+  if (state.mode === "preset") {
+    return state.presets.find((item) => item.id === state.selectedPresetId)?.targetId ?? "";
+  }
+  return "";
 }
