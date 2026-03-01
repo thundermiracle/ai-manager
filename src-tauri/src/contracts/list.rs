@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::common::{ClientKind, ResourceKind};
-use crate::security::redaction::redact_sensitive_text;
+use crate::infra::security::redaction::redact_sensitive_text;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ListResourcesRequest {

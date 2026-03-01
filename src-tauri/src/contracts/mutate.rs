@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::common::{ClientKind, ResourceKind};
-use crate::security::redaction::redact_sensitive_text;
+use crate::infra::security::redaction::redact_sensitive_text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

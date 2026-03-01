@@ -1,7 +1,7 @@
 use crate::{
-    adapters::{ClaudeCodeAdapter, CodexAppAdapter, CodexCliAdapter, CursorAdapter},
     contracts::common::ClientKind,
     domain::ClientAdapter,
+    infra::adapters::{ClaudeCodeAdapter, CodexAppAdapter, CodexCliAdapter, CursorAdapter},
 };
 
 pub struct AdapterRegistry {

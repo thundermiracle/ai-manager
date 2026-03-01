@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::common::LifecycleSnapshot;
-use crate::security::redaction::redact_sensitive_text;
+use crate::infra::security::redaction::redact_sensitive_text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

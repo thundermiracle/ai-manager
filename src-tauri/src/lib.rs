@@ -1,12 +1,9 @@
-mod adapters;
 mod application;
 mod commands;
 mod contracts;
 mod detection;
 mod domain;
 mod infra;
-pub mod parsers;
-mod security;
 mod state;
 
 use commands::{detect_clients, discover_skill_repository, list_resources, mutate_resource};
