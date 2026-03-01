@@ -10,10 +10,10 @@ use crate::{
 };
 
 use super::{
-    skill_github_repository::read_github_skill_manifest,
-    skill_metadata_parser::parse_skill_metadata,
-    skill_mutation_path_resolver::resolve_skill_root_path,
-    skill_mutation_payload::{
+    github_repository::read_github_skill_manifest,
+    metadata_parser::parse_skill_metadata,
+    mutation_path_resolver::resolve_skill_root_path,
+    mutation_payload::{
         SkillInstallKind, SkillMutationPayload, parse_skill_mutation_payload,
     },
 };

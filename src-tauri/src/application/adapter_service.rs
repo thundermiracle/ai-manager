@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     application::{
         mcp::{listing_service::McpListingService, mutation_service::McpMutationService},
-        skill_listing_service::SkillListingService, skill_mutation_service::SkillMutationService,
+        skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
     },
     contracts::{
         command::CommandError,

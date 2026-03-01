@@ -2,7 +2,7 @@ use std::{env, path::PathBuf};
 
 use crate::contracts::{command::CommandError, common::ClientKind, mutate::MutationAction};
 
-use super::skill_path_resolver::{preferred_skill_dir, resolve_skill_dir};
+use super::path_resolver::{preferred_skill_dir, resolve_skill_dir};
 
 pub fn resolve_skill_root_path(
     client: ClientKind,
