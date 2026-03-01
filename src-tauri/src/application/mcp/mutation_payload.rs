@@ -112,7 +112,7 @@ fn parse_transport_payload(
 
 #[cfg(test)]
 mod tests {
-    use crate::interface::contracts::mutate::MutationAction;
+    use crate::domain::MutationAction;
     use serde_json::json;
 
     use super::{McpTransportPayload, parse_mcp_mutation_payload};

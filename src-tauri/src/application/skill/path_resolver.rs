@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::interface::contracts::common::ClientKind;
+use crate::domain::ClientKind;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SkillDirResolution {
@@ -139,7 +139,7 @@ fn is_readable_dir(path: &Path) -> bool {
 mod tests {
     use std::fs;
 
-    use crate::interface::contracts::common::ClientKind;
+    use crate::domain::ClientKind;
 
     use super::resolve_skill_dir_with_override;
 

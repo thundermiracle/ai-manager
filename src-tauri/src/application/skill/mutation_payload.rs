@@ -125,7 +125,7 @@ fn parse_install_kind(value: &str) -> Result<SkillInstallKind, CommandError> {
 mod tests {
     use serde_json::json;
 
-    use crate::interface::contracts::mutate::MutationAction;
+    use crate::domain::MutationAction;
 
     use super::{SkillInstallKind, parse_skill_mutation_payload};
 

@@ -1,4 +1,4 @@
-use crate::interface::contracts::common::ClientKind;
+use crate::domain::ClientKind;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseWarning {

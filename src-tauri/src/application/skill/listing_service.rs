@@ -177,7 +177,7 @@ fn resolve_manifest_candidate(path: &Path) -> Option<SkillManifestCandidate> {
 mod tests {
     use std::fs;
 
-    use crate::interface::contracts::common::ClientKind;
+    use crate::domain::ClientKind;
 
     use super::collect_skills_from_directory;
 
