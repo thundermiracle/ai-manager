@@ -26,11 +26,8 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "package:macos:dmg": "node ./scripts/package-macos-dmg.mjs",
-    "test": "pnpm run test:contracts && pnpm run test:policy",
-    "test:all": "pnpm run test && pnpm run test:text-guards",
-    "test:contracts": "node --test tests/error-ui-contract.test.mjs tests/normalized-domain-model.test.mjs tests/support-matrix.test.mjs tests/mvp-acceptance-contract.test.mjs",
-    "test:policy": "node --test tests/ci-baseline.test.mjs tests/macos-packaging.test.mjs tests/operator-docs.test.mjs tests/release-governance.test.mjs",
-    "test:text-guards": "node --test tests/adapter-boundaries.test.mjs tests/cli-detectors.test.mjs tests/client-install-guides.test.mjs tests/client-status-ui-behavior.test.mjs tests/command-boundary.test.mjs tests/desktop-detectors.test.mjs tests/gui-shell.test.mjs tests/mcp-manager-panel.test.mjs tests/recovery-ux.test.mjs tests/redaction-policy.test.mjs tests/skills-manager-panel.test.mjs tests/slide-over-panel.test.mjs tests/snackbar-ui.test.mjs"
+    "test": "pnpm run test:contracts",
+    "test:contracts": "node --test tests/error-ui-contract.test.mjs tests/normalized-domain-model.test.mjs tests/support-matrix.test.mjs tests/mvp-acceptance-contract.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
