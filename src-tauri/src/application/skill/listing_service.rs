@@ -6,8 +6,8 @@ use std::{
 use crate::contracts::{common::ClientKind, list::ResourceRecord};
 
 use super::{
-    skill_metadata_parser::parse_skill_metadata,
-    skill_path_resolver::{SkillDirResolution, resolve_skill_dir},
+    metadata_parser::parse_skill_metadata,
+    path_resolver::{SkillDirResolution, resolve_skill_dir},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

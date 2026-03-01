@@ -9,7 +9,7 @@ use std::{
 
 use crate::contracts::command::CommandError;
 
-use super::skill_metadata_parser::parse_skill_metadata;
+use super::metadata_parser::parse_skill_metadata;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitHubSkillCandidate {
