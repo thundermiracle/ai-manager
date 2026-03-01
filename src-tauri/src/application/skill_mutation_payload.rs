@@ -52,10 +52,14 @@ pub fn parse_skill_mutation_payload(
         None
     };
 
-    let source_option_count = [source_path.is_some(), github_repo_url.is_some(), manifest.is_some()]
-        .into_iter()
-        .filter(|is_some| *is_some)
-        .count();
+    let source_option_count = [
+        source_path.is_some(),
+        github_repo_url.is_some(),
+        manifest.is_some(),
+    ]
+    .into_iter()
+    .filter(|is_some| *is_some)
+    .count();
 
     if source_option_count > 1 {
         return Err(CommandError::validation(

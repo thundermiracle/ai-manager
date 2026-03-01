@@ -649,8 +649,11 @@ mod tests {
         let root = test_root("update");
         let manifest_path = root.join("python-refactor").join("SKILL.md");
         let _ = fs::create_dir_all(manifest_path.parent().expect("parent should exist"));
-        fs::write(&manifest_path, "# Python Refactor\n\nOriginal description.\n")
-            .expect("should write manifest");
+        fs::write(
+            &manifest_path,
+            "# Python Refactor\n\nOriginal description.\n",
+        )
+        .expect("should write manifest");
 
         let service = SkillMutationService::new();
         let result = service

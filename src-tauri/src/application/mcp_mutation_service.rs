@@ -180,10 +180,7 @@ fn mutate_json_content(
 
             section_object.insert(
                 target_id.to_string(),
-                build_json_transport_payload(
-                    transport,
-                    payload.enabled.unwrap_or(current_enabled),
-                ),
+                build_json_transport_payload(transport, payload.enabled.unwrap_or(current_enabled)),
             );
         }
     }
@@ -284,10 +281,7 @@ fn mutate_toml_content(
 
             section_table.insert(
                 target_id.to_string(),
-                build_toml_transport_payload(
-                    transport,
-                    payload.enabled.unwrap_or(current_enabled),
-                ),
+                build_toml_transport_payload(transport, payload.enabled.unwrap_or(current_enabled)),
             );
         }
     }
@@ -438,10 +432,8 @@ mod tests {
 
     #[test]
     fn update_mcp_in_json_config_succeeds() {
-        let temp_dir = std::env::temp_dir().join(format!(
-            "ai-manager-mcp-update-json-{}",
-            std::process::id()
-        ));
+        let temp_dir =
+            std::env::temp_dir().join(format!("ai-manager-mcp-update-json-{}", std::process::id()));
         let _ = fs::create_dir_all(&temp_dir);
         let source = temp_dir.join("cursor.json");
         fs::write(
