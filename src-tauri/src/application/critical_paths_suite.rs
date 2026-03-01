@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     contracts::{common::ClientKind, mutate::MutationAction},
-    detection::DetectorRegistry,
+    infra::DetectorRegistry,
     infra::parsers::{ParseOutcome, ParserRegistry},
 };
 

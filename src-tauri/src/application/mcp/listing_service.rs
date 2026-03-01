@@ -5,7 +5,7 @@ use crate::{
         detect::{ClientDetection, DetectClientsRequest},
         list::{ListResourcesRequest, ResourceRecord},
     },
-    detection::DetectorRegistry,
+    infra::DetectorRegistry,
     infra::parsers::{ParseOutcome, ParserRegistry},
 };
 

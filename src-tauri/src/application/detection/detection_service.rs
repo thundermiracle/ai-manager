@@ -1,6 +1,6 @@
 use crate::{
     contracts::detect::{DetectClientsRequest, DetectClientsResponse},
-    detection::DetectorRegistry,
+    infra::DetectorRegistry,
 };
 
 pub struct DetectionService<'a> {
@@ -27,7 +27,7 @@ impl<'a> DetectionService<'a> {
 mod tests {
     use crate::{
         contracts::{common::ClientKind, detect::DetectClientsRequest},
-        detection::DetectorRegistry,
+        infra::DetectorRegistry,
     };
 
     use super::DetectionService;

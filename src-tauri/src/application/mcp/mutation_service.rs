@@ -2,7 +2,7 @@ use std::fs;
 
 use crate::{
     contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
-    detection::DetectorRegistry,
+    infra::DetectorRegistry,
     infra::SafeFileMutator,
 };
 
@@ -358,7 +358,7 @@ mod tests {
 
     use crate::{
         contracts::{common::ClientKind, mutate::MutationAction},
-        detection::DetectorRegistry,
+        infra::DetectorRegistry,
     };
 
     use super::McpMutationService;
