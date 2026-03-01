@@ -5,7 +5,7 @@ import test from "node:test";
 const matrixPath = new URL("../docs/spec/support-matrix.v1.json", import.meta.url);
 const matrix = JSON.parse(readFileSync(matrixPath, "utf8"));
 
-const expectedClientIds = ["claude_code", "codex_cli", "cursor", "codex_app"];
+const expectedClientIds = ["claude_code", "codex", "cursor"];
 
 function assertContiguousPriorities(candidates, fieldName) {
   const priorities = candidates.map((candidate) => candidate.priority).sort((a, b) => a - b);
@@ -17,7 +17,7 @@ function assertContiguousPriorities(candidates, fieldName) {
   );
 }
 
-test("matrix includes exactly four target clients", () => {
+test("matrix includes exactly three target clients", () => {
   assert.equal(matrix.version, "1.0.0");
   assert.equal(matrix.clients.length, expectedClientIds.length);
   assert.deepEqual(matrix.clients.map((client) => client.id).sort(), [...expectedClientIds].sort());

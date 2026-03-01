@@ -1,6 +1,6 @@
 use super::{
     ClientDetector,
-    clients::{ClaudeCodeDetector, CodexAppDetector, CodexCliDetector, CursorDetector},
+    clients::{ClaudeCodeDetector, CodexDetector, CursorDetector},
 };
 
 pub struct DetectorRegistry {
@@ -12,9 +12,8 @@ impl DetectorRegistry {
         Self {
             detectors: vec![
                 Box::new(ClaudeCodeDetector::new()),
-                Box::new(CodexCliDetector::new()),
+                Box::new(CodexDetector::new()),
                 Box::new(CursorDetector::new()),
-                Box::new(CodexAppDetector::new()),
             ],
         }
     }
@@ -52,9 +51,8 @@ mod tests {
             clients,
             vec![
                 ClientKind::ClaudeCode,
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 ClientKind::Cursor,
-                ClientKind::CodexApp,
             ]
         );
     }
@@ -79,9 +77,8 @@ mod tests {
             assert!(matches!(
                 detection.client,
                 ClientKind::ClaudeCode
-                    | ClientKind::CodexCli
+                    | ClientKind::Codex
                     | ClientKind::Cursor
-                    | ClientKind::CodexApp
             ));
         }
     }

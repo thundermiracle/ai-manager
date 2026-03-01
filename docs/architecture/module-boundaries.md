@@ -12,7 +12,7 @@ This project uses explicit backend layers to keep client-specific behavior isola
   - Defines detector registry and per-client detector implementations that emit one schema.
 - `adapters/`
   - Contains concrete adapter implementations for each supported client.
-  - Current scaffold adapters: Claude Code, Codex CLI, Cursor, Codex App.
+  - Current scaffold adapters: Claude Code, Codex, Cursor.
 - `infra/`
   - Provides infrastructure wiring (`AdapterRegistry`) that composes adapters.
   - Exposes registry lookup/iteration used by application services.

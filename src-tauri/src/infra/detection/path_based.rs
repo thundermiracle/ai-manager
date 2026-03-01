@@ -17,7 +17,7 @@ pub struct PathBasedDetectorConfig {
     pub display_name: &'static str,
     pub kind: DetectorKind,
     pub binary_candidates: &'static [&'static str],
-    pub config_override_env_var: &'static str,
+    pub config_override_env_vars: &'static [&'static str],
     pub config_fallback_paths: &'static [&'static str],
 }
 
@@ -26,8 +26,10 @@ pub fn evaluate_path_based_detector(
     request: &DetectClientsRequest,
 ) -> ClientDetection {
     let binary_path = probe_binary_path(config.binary_candidates);
-    let config_probe =
-        probe_config_path(config.config_override_env_var, config.config_fallback_paths);
+    let config_probe = probe_config_path(
+        config.config_override_env_vars,
+        config.config_fallback_paths,
+    );
 
     let (config_path, probe_issue) = match config_probe {
         ConfigProbe::Resolved(path) => (Some(path), None),
@@ -85,7 +87,7 @@ fn resolve_status_and_note(
                 20,
                 format!(
                     "[config_override_missing] {} override '{}' points to missing config: {}",
-                    config.display_name, config.config_override_env_var, path
+                    config.display_name, config.config_override_env_vars[0], path
                 ),
             ),
             ProbeIssue::OverridePermissionDenied(path) => (
@@ -93,7 +95,7 @@ fn resolve_status_and_note(
                 0,
                 format!(
                     "[config_permission_denied] {} override '{}' is not readable: {}",
-                    config.display_name, config.config_override_env_var, path
+                    config.display_name, config.config_override_env_vars[0], path
                 ),
             ),
             ProbeIssue::PermissionDenied(path) => (
@@ -184,11 +186,11 @@ mod tests {
     #[test]
     fn missing_override_resolves_to_partial_state() {
         let config = PathBasedDetectorConfig {
-            client: ClientKind::CodexCli,
+            client: ClientKind::Codex,
             display_name: "Test CLI",
             kind: DetectorKind::Cli,
             binary_candidates: &[],
-            config_override_env_var: "AI_MANAGER_TEST_INVALID_OVERRIDE",
+            config_override_env_vars: &["AI_MANAGER_TEST_INVALID_OVERRIDE"],
             config_fallback_paths: &[],
         };
 
@@ -214,7 +216,7 @@ mod tests {
             display_name: "Claude Code",
             kind: DetectorKind::Cli,
             binary_candidates: &[],
-            config_override_env_var: "AI_MANAGER_CLAUDE_CODE_MCP_CONFIG",
+            config_override_env_vars: &["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"],
             config_fallback_paths: &[],
         };
 
@@ -245,7 +247,7 @@ mod tests {
             display_name: "Cursor",
             kind: DetectorKind::Desktop,
             binary_candidates: &[],
-            config_override_env_var: "AI_MANAGER_CURSOR_MCP_CONFIG",
+            config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
             config_fallback_paths: &[],
         };
 

@@ -18,18 +18,9 @@
     "error_codes": []
   },
   {
-    "name": "codex_app_valid_json",
-    "client": "codex_app",
-    "fixture": "codex_app.valid.json",
-    "expected": "success",
-    "min_servers": 1,
-    "warning_codes": [],
-    "error_codes": []
-  },
-  {
-    "name": "codex_cli_valid_toml",
-    "client": "codex_cli",
-    "fixture": "codex_cli.valid.toml",
+    "name": "codex_valid_toml",
+    "client": "codex",
+    "fixture": "codex.valid.toml",
     "expected": "success",
     "min_servers": 2,
     "warning_codes": [],
@@ -46,7 +37,7 @@
   },
   {
     "name": "toml_missing_section",
-    "client": "codex_cli",
+    "client": "codex",
     "fixture": "missing_section.toml",
     "expected": "success",
     "min_servers": 0,
@@ -64,7 +55,7 @@
   },
   {
     "name": "malformed_toml",
-    "client": "codex_cli",
+    "client": "codex",
     "fixture": "malformed.toml",
     "expected": "failure",
     "min_servers": 0,

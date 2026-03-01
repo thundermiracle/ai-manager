@@ -264,7 +264,7 @@ mod tests {
             include_versions: true,
         });
 
-        assert_eq!(response.clients.len(), 4);
+        assert_eq!(response.clients.len(), 3);
         assert!(response.clients.iter().all(|entry| entry.confidence <= 100));
         assert!(response.clients.iter().all(|entry| {
             matches!(

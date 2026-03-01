@@ -102,9 +102,8 @@
           "type": "string",
           "enum": [
             "claude_code",
-            "codex_cli",
-            "cursor",
-            "codex_app"
+            "codex",
+            "cursor"
           ]
         },
         "displayName": {

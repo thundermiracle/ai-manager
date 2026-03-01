@@ -13,7 +13,7 @@ const CONFIG: PathBasedDetectorConfig = PathBasedDetectorConfig {
     display_name: "Claude Code",
     kind: DetectorKind::Cli,
     binary_candidates: &["claude", "claude-code"],
-    config_override_env_var: "AI_MANAGER_CLAUDE_CODE_MCP_CONFIG",
+    config_override_env_vars: &["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"],
     config_fallback_paths: &["~/.claude/claude_code_config.json"],
 };
 

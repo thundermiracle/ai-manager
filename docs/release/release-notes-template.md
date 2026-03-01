@@ -21,9 +21,8 @@ Use this template for every `vX.Y.Z` release.
 
 - Supported clients:
   - Claude Code
-  - Codex CLI
+  - Codex
   - Cursor
-  - Codex App
 - Platform support:
   - macOS
 

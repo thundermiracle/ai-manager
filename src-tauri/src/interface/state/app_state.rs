@@ -134,9 +134,8 @@ mod tests {
             adapters,
             vec![
                 ClientKind::ClaudeCode,
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 ClientKind::Cursor,
-                ClientKind::CodexApp,
             ]
         );
     }
@@ -161,9 +160,8 @@ mod tests {
             detectors,
             vec![
                 ClientKind::ClaudeCode,
-                ClientKind::CodexCli,
+                ClientKind::Codex,
                 ClientKind::Cursor,
-                ClientKind::CodexApp,
             ]
         );
     }

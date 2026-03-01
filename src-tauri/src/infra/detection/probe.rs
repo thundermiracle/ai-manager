@@ -19,8 +19,8 @@ pub fn probe_binary_path(candidates: &[&str]) -> Option<String> {
     None
 }
 
-pub fn probe_config_path(env_var: &str, fallbacks: &[&str]) -> ConfigProbe {
-    let override_value = read_env_value(env_var);
+pub fn probe_config_path(env_vars: &[&str], fallbacks: &[&str]) -> ConfigProbe {
+    let override_value = read_env_value(env_vars);
     probe_config_path_with_override(override_value.as_deref(), fallbacks)
 }
 
@@ -67,10 +67,10 @@ pub fn probe_config_path_with_override(
     ConfigProbe::Missing
 }
 
-fn read_env_value(name: &str) -> Option<String> {
-    env::var(name)
-        .ok()
-        .map(|value| value.trim().to_string())
+fn read_env_value(names: &[&str]) -> Option<String> {
+    names
+        .iter()
+        .find_map(|name| env::var(name).ok().map(|value| value.trim().to_string()))
         .filter(|value| !value.is_empty())
 }
 

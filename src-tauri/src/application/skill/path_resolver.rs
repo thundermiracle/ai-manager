@@ -13,7 +13,7 @@ pub struct SkillDirResolution {
 
 pub fn resolve_skill_dir(client: ClientKind) -> SkillDirResolution {
     let profile = profile_for_client(client);
-    let override_value = read_env_value(profile.override_env_var);
+    let override_value = read_env_value(profile.override_env_vars);
 
     resolve_skill_dir_with_override(client, override_value.as_deref())
 }
@@ -21,7 +21,7 @@ pub fn resolve_skill_dir(client: ClientKind) -> SkillDirResolution {
 pub fn preferred_skill_dir(client: ClientKind) -> PathBuf {
     let profile = profile_for_client(client);
 
-    if let Some(override_value) = read_env_value(profile.override_env_var) {
+    if let Some(override_value) = read_env_value(profile.override_env_vars) {
         return expand_user_path(&override_value);
     }
 
@@ -50,7 +50,7 @@ pub fn resolve_skill_dir_with_override(
             warnings.push(format!(
                 "[{}:SKILLS_DIR_OVERRIDE_INVALID] override '{}' is not a readable directory: {}",
                 client.as_str(),
-                profile.override_env_var,
+                profile.override_env_vars[0],
                 expanded.display()
             ));
             SkillDirResolution {
@@ -83,41 +83,34 @@ pub fn resolve_skill_dir_with_override(
 
 #[derive(Debug, Clone, Copy)]
 struct SkillPathProfile {
-    override_env_var: &'static str,
+    override_env_vars: &'static [&'static str],
     fallback_paths: &'static [&'static str],
 }
 
 fn profile_for_client(client: ClientKind) -> SkillPathProfile {
     match client {
         ClientKind::ClaudeCode => SkillPathProfile {
-            override_env_var: "AI_MANAGER_CLAUDE_CODE_SKILLS_DIR",
+            override_env_vars: &["AI_MANAGER_CLAUDE_CODE_SKILLS_DIR"],
             fallback_paths: &["~/.claude/skills"],
         },
-        ClientKind::CodexCli => SkillPathProfile {
-            override_env_var: "AI_MANAGER_CODEX_CLI_SKILLS_DIR",
+        ClientKind::Codex => SkillPathProfile {
+            override_env_vars: &["AI_MANAGER_CODEX_SKILLS_DIR"],
             fallback_paths: &["~/.codex/skills"],
         },
         ClientKind::Cursor => SkillPathProfile {
-            override_env_var: "AI_MANAGER_CURSOR_SKILLS_DIR",
+            override_env_vars: &["AI_MANAGER_CURSOR_SKILLS_DIR"],
             fallback_paths: &[
                 "~/.cursor/skills",
                 "~/Library/Application Support/Cursor/User/skills",
             ],
         },
-        ClientKind::CodexApp => SkillPathProfile {
-            override_env_var: "AI_MANAGER_CODEX_APP_SKILLS_DIR",
-            fallback_paths: &[
-                "~/Library/Application Support/Codex/skills",
-                "~/.config/Codex/skills",
-            ],
-        },
     }
 }
 
-fn read_env_value(name: &str) -> Option<String> {
-    env::var(name)
-        .ok()
-        .map(|value| value.trim().to_string())
+fn read_env_value(names: &[&str]) -> Option<String> {
+    names
+        .iter()
+        .find_map(|name| env::var(name).ok().map(|value| value.trim().to_string()))
         .filter(|value| !value.is_empty())
 }
 
@@ -166,14 +159,14 @@ mod tests {
     #[test]
     fn invalid_override_returns_actionable_warning() {
         let resolution = resolve_skill_dir_with_override(
-            ClientKind::CodexCli,
+            ClientKind::Codex,
             Some("/definitely/missing/skills"),
         );
 
         assert!(resolution.path.is_none());
         assert!(resolution.warnings.iter().any(|warning| {
             warning.contains("SKILLS_DIR_OVERRIDE_INVALID")
-                && warning.contains("AI_MANAGER_CODEX_CLI_SKILLS_DIR")
+                && warning.contains("AI_MANAGER_CODEX_SKILLS_DIR")
         }));
     }
 }

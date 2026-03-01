@@ -1,23 +1,23 @@
 use crate::{
     domain::{
-        AdapterListResult, AdapterMutationResult, CODEX_APP_PROFILE, ClientAdapter, ClientProfile,
+        AdapterListResult, AdapterMutationResult, CODEX_PROFILE, ClientAdapter, ClientProfile,
     },
     interface::contracts::{common::ResourceKind, mutate::MutationAction},
 };
 
 use super::placeholder::{list_placeholder, mutate_placeholder};
 
-pub struct CodexAppAdapter;
+pub struct CodexAdapter;
 
-impl CodexAppAdapter {
+impl CodexAdapter {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl ClientAdapter for CodexAppAdapter {
+impl ClientAdapter for CodexAdapter {
     fn profile(&self) -> &'static ClientProfile {
-        &CODEX_APP_PROFILE
+        &CODEX_PROFILE
     }
 
     fn list_resources(&self, resource_kind: ResourceKind) -> AdapterListResult {

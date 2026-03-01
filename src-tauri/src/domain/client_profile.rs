@@ -24,10 +24,10 @@ pub const CLAUDE_CODE_PROFILE: ClientProfile = ClientProfile {
     },
 };
 
-pub const CODEX_CLI_PROFILE: ClientProfile = ClientProfile {
-    kind: ClientKind::CodexCli,
-    key: "codex_cli",
-    display_name: "Codex CLI",
+pub const CODEX_PROFILE: ClientProfile = ClientProfile {
+    kind: ClientKind::Codex,
+    key: "codex",
+    display_name: "Codex",
     capabilities: ClientCapabilities {
         supports_mcp: true,
         supports_skills: true,
@@ -38,16 +38,6 @@ pub const CURSOR_PROFILE: ClientProfile = ClientProfile {
     kind: ClientKind::Cursor,
     key: "cursor",
     display_name: "Cursor",
-    capabilities: ClientCapabilities {
-        supports_mcp: true,
-        supports_skills: true,
-    },
-};
-
-pub const CODEX_APP_PROFILE: ClientProfile = ClientProfile {
-    kind: ClientKind::CodexApp,
-    key: "codex_app",
-    display_name: "Codex App",
     capabilities: ClientCapabilities {
         supports_mcp: true,
         supports_skills: true,

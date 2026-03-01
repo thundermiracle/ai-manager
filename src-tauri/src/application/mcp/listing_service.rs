@@ -166,9 +166,8 @@ mod tests {
     fn unified_mcp_listing_normalizes_entries_from_multiple_clients() {
         let detections = vec![
             detection(ClientKind::ClaudeCode, Some("/fixtures/claude.json")),
-            detection(ClientKind::CodexCli, Some("/fixtures/codex.toml")),
+            detection(ClientKind::Codex, Some("/fixtures/codex.toml")),
             detection(ClientKind::Cursor, Some("/fixtures/cursor.json")),
-            detection(ClientKind::CodexApp, Some("/fixtures/codex-app.json")),
         ];
 
         let fixtures: HashMap<&str, &str> = HashMap::from([
@@ -200,14 +199,6 @@ enabled = false
   }
 }"#,
             ),
-            (
-                "/fixtures/codex-app.json",
-                r#"{
-  "mcpServers": {
-    "notion": { "url": "https://codex-app.example.com/sse", "enabled": true }
-  }
-}"#,
-            ),
         ]);
 
         let request = ListResourcesRequest {
@@ -224,7 +215,7 @@ enabled = false
                 }
             });
 
-        assert_eq!(result.items.len(), 6);
+        assert_eq!(result.items.len(), 5);
         assert!(result.warning.is_none());
         assert!(
             result
@@ -242,14 +233,14 @@ enabled = false
             result
                 .items
                 .iter()
-                .any(|entry| entry.id == "codex_cli::github")
+                .any(|entry| entry.id == "codex::github")
         );
     }
 
     #[test]
     fn listing_filters_by_client_and_enabled_state() {
         let detections = vec![
-            detection(ClientKind::CodexCli, Some("/fixtures/codex.toml")),
+            detection(ClientKind::Codex, Some("/fixtures/codex.toml")),
             detection(ClientKind::Cursor, Some("/fixtures/cursor.json")),
         ];
 
@@ -276,7 +267,7 @@ enabled = false
         ]);
 
         let request = ListResourcesRequest {
-            client: Some(ClientKind::CodexCli),
+            client: Some(ClientKind::Codex),
             resource_kind: ResourceKind::Mcp,
             enabled: Some(false),
         };
@@ -290,7 +281,7 @@ enabled = false
             });
 
         assert_eq!(result.items.len(), 1);
-        assert_eq!(result.items[0].client, ClientKind::CodexCli);
+        assert_eq!(result.items[0].client, ClientKind::Codex);
         assert_eq!(result.items[0].display_name, "github");
         assert!(!result.items[0].enabled);
     }
@@ -299,7 +290,7 @@ enabled = false
     fn parse_errors_do_not_fail_whole_listing() {
         let detections = vec![
             detection(ClientKind::Cursor, Some("/fixtures/broken-cursor.json")),
-            detection(ClientKind::CodexApp, Some("/fixtures/codex-app.json")),
+            detection(ClientKind::Codex, Some("/fixtures/codex.toml")),
         ];
 
         let fixtures: HashMap<&str, &str> = HashMap::from([
@@ -313,12 +304,11 @@ enabled = false
 "#,
             ),
             (
-                "/fixtures/codex-app.json",
-                r#"{
-  "mcpServers": {
-    "notion": { "url": "https://codex-app.example.com/sse", "enabled": true }
-  }
-}"#,
+                "/fixtures/codex.toml",
+                r#"[mcp_servers.github]
+url = "https://mcp.example.com/sse"
+enabled = true
+"#,
             ),
         ]);
 
@@ -337,7 +327,7 @@ enabled = false
             });
 
         assert_eq!(result.items.len(), 1);
-        assert_eq!(result.items[0].client, ClientKind::CodexApp);
+        assert_eq!(result.items[0].client, ClientKind::Codex);
         assert!(
             result
                 .warning

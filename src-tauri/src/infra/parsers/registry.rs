@@ -38,8 +38,8 @@ impl ParserRegistry {
 
     fn parser_for_client(&self, client_kind: ClientKind) -> Box<dyn ClientConfigParser> {
         match client_kind {
-            ClientKind::CodexCli => Box::new(TomlClientConfigParser::new(client_kind)),
-            ClientKind::ClaudeCode | ClientKind::Cursor | ClientKind::CodexApp => {
+            ClientKind::Codex => Box::new(TomlClientConfigParser::new(client_kind)),
+            ClientKind::ClaudeCode | ClientKind::Cursor => {
                 Box::new(JsonClientConfigParser::new(client_kind))
             }
         }

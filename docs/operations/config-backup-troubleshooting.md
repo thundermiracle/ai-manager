@@ -9,39 +9,27 @@ This guide documents real application behavior for issue `#35`.
 - Claude Code:
   - Override: `AI_MANAGER_CLAUDE_CODE_MCP_CONFIG`
   - Fallback: `~/.claude/claude_code_config.json`
-- Codex CLI:
-  - Override: `AI_MANAGER_CODEX_CLI_MCP_CONFIG`
+- Codex:
+  - Override: `AI_MANAGER_CODEX_MCP_CONFIG`
   - Fallback: `~/.codex/config.toml`
 - Cursor:
   - Override: `AI_MANAGER_CURSOR_MCP_CONFIG`
   - Fallback order:
     - `~/.cursor/mcp.json`
     - `~/Library/Application Support/Cursor/User/mcp.json`
-- Codex App:
-  - Override: `AI_MANAGER_CODEX_APP_MCP_CONFIG`
-  - Fallback order:
-    - `~/Library/Application Support/Codex/mcp.json`
-    - `~/.config/Codex/mcp.json`
-
 ### Skills directory paths
 
 - Claude Code:
   - Override: `AI_MANAGER_CLAUDE_CODE_SKILLS_DIR`
   - Fallback: `~/.claude/skills`
-- Codex CLI:
-  - Override: `AI_MANAGER_CODEX_CLI_SKILLS_DIR`
+- Codex:
+  - Override: `AI_MANAGER_CODEX_SKILLS_DIR`
   - Fallback: `~/.codex/skills`
 - Cursor:
   - Override: `AI_MANAGER_CURSOR_SKILLS_DIR`
   - Fallback order:
     - `~/.cursor/skills`
     - `~/Library/Application Support/Cursor/User/skills`
-- Codex App:
-  - Override: `AI_MANAGER_CODEX_APP_SKILLS_DIR`
-  - Fallback order:
-    - `~/Library/Application Support/Codex/skills`
-    - `~/.config/Codex/skills`
-
 ## Backup and Restore Procedure
 
 Before file mutation, the app creates backup artifacts for existing targets.
