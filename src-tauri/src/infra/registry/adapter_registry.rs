@@ -1,6 +1,5 @@
 use crate::{
-    interface::contracts::common::ClientKind,
-    domain::ClientAdapter,
+    domain::{ClientAdapter, ClientKind},
     infra::adapters::{ClaudeCodeAdapter, CodexAppAdapter, CodexCliAdapter, CursorAdapter},
 };
 
@@ -36,7 +35,7 @@ impl AdapterRegistry {
 #[cfg(test)]
 mod tests {
     use super::AdapterRegistry;
-    use crate::interface::contracts::common::ClientKind;
+    use crate::domain::ClientKind;
 
     #[test]
     fn default_registry_exposes_all_supported_clients_in_stable_order() {

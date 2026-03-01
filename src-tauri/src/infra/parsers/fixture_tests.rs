@@ -5,7 +5,7 @@ use std::{
 
 use serde::Deserialize;
 
-use crate::interface::contracts::common::ClientKind;
+use crate::domain::ClientKind;
 
 use super::{ParseOutcome, ParserRegistry};
 

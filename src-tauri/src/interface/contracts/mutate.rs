@@ -2,25 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::common::{ClientKind, ResourceKind};
+pub use crate::domain::MutationAction;
 use crate::infra::security::redaction::redact_sensitive_text;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MutationAction {
-    Add,
-    Remove,
-    Update,
-}
-
-impl MutationAction {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Add => "add",
-            Self::Remove => "remove",
-            Self::Update => "update",
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MutateResourceRequest {

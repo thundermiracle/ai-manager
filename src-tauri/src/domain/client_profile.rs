@@ -1,4 +1,4 @@
-use crate::interface::contracts::common::ClientKind;
+use super::ClientKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClientCapabilities {

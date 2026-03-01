@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::interface::contracts::common::ClientKind;
+use crate::domain::ClientKind;
 
 use super::{
     ClientConfigParser, ParseError, ParseOutcome, ParseWarning, ParsedClientConfig, ParsedMcpServer,

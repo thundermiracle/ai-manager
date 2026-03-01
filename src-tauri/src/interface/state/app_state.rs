@@ -88,7 +88,7 @@ impl Default for AppState {
 #[cfg(test)]
 mod tests {
     use super::AppState;
-    use crate::interface::contracts::common::ClientKind;
+    use crate::domain::ClientKind;
 
     #[test]
     fn operation_id_counter_increments_per_command_prefix() {

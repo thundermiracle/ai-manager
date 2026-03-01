@@ -52,7 +52,7 @@ impl DetectClientsResponse {
 #[cfg(test)]
 mod tests {
     use super::{ClientDetection, DetectClientsResponse, DetectionEvidence, DetectionStatus};
-    use crate::interface::contracts::common::ClientKind;
+    use crate::domain::ClientKind;
 
     #[test]
     fn detect_response_redacts_notes() {
