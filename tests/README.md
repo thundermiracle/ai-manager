@@ -39,9 +39,11 @@ Most `*.mjs` tests are text guards (`assert.match` / `assert.doesNotMatch`) inst
 
 Use dedicated scripts to make intent explicit:
 
+- `pnpm test`: Default CI/local Node gate. Runs `test:contracts` + `test:policy`.
 - `pnpm run test:contracts`: High-signal schema/contract tests (recommended baseline).
 - `pnpm run test:policy`: Docs/CI/release policy linkage tests.
-- `pnpm run test:text-guards`: Brittle source-text guards slated for replacement.
+- `pnpm run test:text-guards`: Brittle source-text guards slated for replacement (optional, non-default).
+- `pnpm run test:all`: Runs default gate plus `test:text-guards`.
 
 ## Suggested Migration Order
 
