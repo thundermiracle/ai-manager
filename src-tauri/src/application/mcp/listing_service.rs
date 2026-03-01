@@ -1,7 +1,7 @@
 use std::fs;
 
 use crate::{
-    contracts::{
+    interface::contracts::{
         detect::{ClientDetection, DetectClientsRequest},
         list::{ListResourcesRequest, ResourceRecord},
     },
@@ -153,7 +153,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::contracts::{
+    use crate::interface::contracts::{
         common::{ClientKind, ResourceKind},
         detect::{ClientDetection, DetectionEvidence, DetectionStatus},
         list::ListResourcesRequest,

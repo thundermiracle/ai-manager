@@ -1,4 +1,4 @@
-use crate::contracts::{common::ResourceKind, list::ResourceRecord, mutate::MutationAction};
+use crate::interface::contracts::{common::ResourceKind, list::ResourceRecord, mutate::MutationAction};
 
 use super::ClientProfile;
 

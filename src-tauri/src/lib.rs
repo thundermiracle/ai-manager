@@ -1,12 +1,12 @@
 mod application;
-mod commands;
-mod contracts;
 mod domain;
 mod infra;
-mod state;
+mod interface;
 
-use commands::{detect_clients, discover_skill_repository, list_resources, mutate_resource};
-use state::AppState;
+use interface::{
+    commands::{detect_clients, discover_skill_repository, list_resources, mutate_resource},
+    state::AppState,
+};
 use tauri::Manager;
 
 pub fn run() {

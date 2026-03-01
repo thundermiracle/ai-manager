@@ -46,7 +46,7 @@ impl ListResourcesResponse {
 #[cfg(test)]
 mod tests {
     use super::ListResourcesResponse;
-    use crate::contracts::common::ResourceKind;
+    use crate::interface::contracts::common::ResourceKind;
 
     #[test]
     fn list_response_redacts_warning() {

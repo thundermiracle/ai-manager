@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::contracts::{common::ClientKind, list::ResourceRecord};
+use crate::interface::contracts::{common::ClientKind, list::ResourceRecord};
 
 use super::{
     metadata_parser::parse_skill_metadata,
@@ -177,7 +177,7 @@ fn resolve_manifest_candidate(path: &Path) -> Option<SkillManifestCandidate> {
 mod tests {
     use std::fs;
 
-    use crate::contracts::common::ClientKind;
+    use crate::interface::contracts::common::ClientKind;
 
     use super::collect_skills_from_directory;
 

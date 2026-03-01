@@ -6,7 +6,7 @@ use crate::{
         mcp::{listing_service::McpListingService, mutation_service::McpMutationService},
         skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
     },
-    contracts::{
+    interface::contracts::{
         command::CommandError,
         common::ResourceKind,
         detect::{DetectClientsRequest, DetectClientsResponse},
@@ -243,7 +243,7 @@ mod tests {
 
     use super::AdapterService;
     use crate::{
-        contracts::{
+        interface::contracts::{
             common::{ClientKind, ResourceKind},
             detect::{DetectClientsRequest, DetectionStatus},
             list::ListResourcesRequest,

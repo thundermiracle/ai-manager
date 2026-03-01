@@ -1,4 +1,4 @@
-use crate::contracts::{command::CommandError, mutate::MutationAction};
+use crate::interface::contracts::{command::CommandError, mutate::MutationAction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkillInstallKind {
@@ -125,7 +125,7 @@ fn parse_install_kind(value: &str) -> Result<SkillInstallKind, CommandError> {
 mod tests {
     use serde_json::json;
 
-    use crate::contracts::mutate::MutationAction;
+    use crate::interface::contracts::mutate::MutationAction;
 
     use super::{SkillInstallKind, parse_skill_mutation_payload};
 

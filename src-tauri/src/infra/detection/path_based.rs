@@ -1,4 +1,4 @@
-use crate::contracts::{
+use crate::interface::contracts::{
     common::ClientKind,
     detect::{ClientDetection, DetectClientsRequest, DetectionEvidence, DetectionStatus},
 };
@@ -177,7 +177,7 @@ fn resolve_status_and_note(
 
 #[cfg(test)]
 mod tests {
-    use crate::contracts::{common::ClientKind, detect::DetectionStatus};
+    use crate::interface::contracts::{common::ClientKind, detect::DetectionStatus};
 
     use super::{DetectorKind, PathBasedDetectorConfig, ProbeIssue, resolve_status_and_note};
 

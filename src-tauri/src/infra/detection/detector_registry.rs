@@ -26,7 +26,7 @@ impl DetectorRegistry {
 
 #[cfg(test)]
 mod tests {
-    use crate::contracts::{
+    use crate::interface::contracts::{
         common::ClientKind,
         detect::{DetectClientsRequest, DetectionStatus},
     };

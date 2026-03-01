@@ -1,4 +1,4 @@
-use crate::contracts::{command::CommandError, mutate::MutationAction};
+use crate::interface::contracts::{command::CommandError, mutate::MutationAction};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum McpTransportPayload {
@@ -112,7 +112,7 @@ fn parse_transport_payload(
 
 #[cfg(test)]
 mod tests {
-    use crate::contracts::mutate::MutationAction;
+    use crate::interface::contracts::mutate::MutationAction;
     use serde_json::json;
 
     use super::{McpTransportPayload, parse_mcp_mutation_payload};

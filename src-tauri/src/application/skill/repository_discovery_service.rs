@@ -1,4 +1,4 @@
-use crate::contracts::{
+use crate::interface::contracts::{
     command::CommandError,
     skill_discovery::{DiscoverSkillRepositoryResponse, DiscoveredSkillCandidate},
 };

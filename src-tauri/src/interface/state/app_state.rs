@@ -3,7 +3,7 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
 };
 
-use crate::contracts::common::{LifecyclePhase, LifecycleSnapshot};
+use crate::interface::contracts::common::{LifecyclePhase, LifecycleSnapshot};
 use crate::infra::DetectorRegistry;
 use crate::infra::AdapterRegistry;
 
@@ -88,7 +88,7 @@ impl Default for AppState {
 #[cfg(test)]
 mod tests {
     use super::AppState;
-    use crate::contracts::common::ClientKind;
+    use crate::interface::contracts::common::ClientKind;
 
     #[test]
     fn operation_id_counter_increments_per_command_prefix() {
@@ -111,7 +111,7 @@ mod tests {
 
         assert!(matches!(
             first.phase,
-            crate::contracts::common::LifecyclePhase::ShuttingDown
+            crate::interface::contracts::common::LifecyclePhase::ShuttingDown
         ));
         assert_eq!(
             first.shutdown_requested_at_epoch_ms,
@@ -150,7 +150,7 @@ mod tests {
             .all()
             .map(|detector| {
                 detector
-                    .detect(&crate::contracts::detect::DetectClientsRequest {
+                    .detect(&crate::interface::contracts::detect::DetectClientsRequest {
                         include_versions: false,
                     })
                     .client

@@ -102,7 +102,7 @@ impl<T> CommandEnvelope<T> {
 #[cfg(test)]
 mod tests {
     use super::{CommandEnvelope, CommandError, CommandErrorCode, CommandMeta};
-    use crate::contracts::common::{LifecyclePhase, LifecycleSnapshot};
+    use crate::interface::contracts::common::{LifecyclePhase, LifecycleSnapshot};
 
     fn meta(operation_id: &str) -> CommandMeta {
         CommandMeta::new(
