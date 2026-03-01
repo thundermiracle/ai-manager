@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crate::contracts::common::{LifecyclePhase, LifecycleSnapshot};
-use crate::detection::DetectorRegistry;
+use crate::infra::DetectorRegistry;
 use crate::infra::AdapterRegistry;
 
 use super::clock::now_epoch_ms;

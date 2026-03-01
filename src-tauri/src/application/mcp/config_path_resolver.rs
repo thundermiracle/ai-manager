@@ -2,7 +2,7 @@ use std::{env, path::PathBuf};
 
 use crate::{
     contracts::{command::CommandError, common::ClientKind, mutate::MutationAction},
-    detection::DetectorRegistry,
+    infra::DetectorRegistry,
 };
 
 pub fn resolve_mcp_config_path(

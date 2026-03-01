@@ -13,8 +13,7 @@ use crate::{
         list::{ListResourcesRequest, ListResourcesResponse},
         mutate::{MutateResourceRequest, MutateResourceResponse},
     },
-    detection::DetectorRegistry,
-    infra::{AdapterRegistry, MutationTestHooks, SafeFileMutator},
+    infra::{AdapterRegistry, DetectorRegistry, MutationTestHooks, SafeFileMutator},
 };
 
 pub struct AdapterService<'a> {
@@ -250,7 +249,7 @@ mod tests {
             list::ListResourcesRequest,
             mutate::{MutateResourceRequest, MutationAction},
         },
-        detection::DetectorRegistry,
+        infra::DetectorRegistry,
         infra::AdapterRegistry,
     };
     use serde_json::json;
