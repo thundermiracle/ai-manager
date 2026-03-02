@@ -47,4 +47,5 @@ The workflow [`.github/workflows/macos-dmg.yml`](../../.github/workflows/macos-d
 
 - executes `pnpm run package:macos:dmg`
 - validates DMG and manifest outputs exist
-- uploads DMG and manifest as build artifacts
+- uploads DMG and manifest as workflow artifacts
+- attaches DMG and manifest to the GitHub Release when triggered by `release.published`
