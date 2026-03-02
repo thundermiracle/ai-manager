@@ -15,6 +15,12 @@ AI Manager is a desktop app that helps you manage MCP servers and Skills across 
 3. Open the DMG and drag `AI Manager.app` into `/Applications`.
 4. Launch `AI Manager` from Applications.
 
+If macOS blocks launch for a trusted test build, run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/AI Manager.app"
+```
+
 ### What You Can Do
 
 - Detect supported AI clients on your machine.
