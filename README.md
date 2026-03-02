@@ -1,7 +1,7 @@
 # AI Manager
 
 <p align="center">
-  <img src="src-tauri/icons/128x128.png" alt="AI Manager app icon" width="96" height="96" />
+  <img src="src-tauri/icons/icon.png" alt="AI Manager app icon" width="96" height="96" />
 </p>
 
 AI Manager is a desktop app that helps you manage MCP servers and Skills across supported AI clients from one place.
