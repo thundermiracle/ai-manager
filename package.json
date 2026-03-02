@@ -1,7 +1,7 @@
 {
   "name": "ai-manager",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.30.3",
   "engines": {

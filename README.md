@@ -1,65 +1,44 @@
 # AI Manager
 
-Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across supported AI clients.
+<p align="center">
+  <img src="src-tauri/icons/128x128.png" alt="AI Manager app icon" width="96" height="96" />
+</p>
 
-## Prerequisites
+AI Manager is a desktop app that helps you manage MCP servers and Skills across supported AI clients from one place.
+
+## For Users
+
+### Download and Install (macOS)
+
+1. Open the latest release: <https://github.com/thundermiracle/ai-manager/releases/latest>
+2. Download the `.dmg` file from **Assets**.
+3. Open the DMG and drag `AI Manager.app` into `/Applications`.
+4. Launch `AI Manager` from Applications.
+
+### What You Can Do
+
+- Detect supported AI clients on your machine.
+- Inspect registered MCP and Skill resources.
+- Apply safe resource mutations through a unified interface.
+
+## Developer Setup
+
+### Prerequisites
 
 - Node.js `v24+`
 - pnpm `10.x`
 - Rust stable toolchain (`edition = 2024`)
 
-## Commands
+### Install and Run
 
-- Install dependencies: `pnpm install`
-- Frontend dev server: `pnpm dev`
-- Desktop dev mode: `pnpm tauri:dev`
-- Frontend production build: `pnpm build`
-- Desktop production build: `pnpm tauri:build`
-- TypeScript lint + typecheck: `pnpm run lint:ts`
-- Rust lint: `pnpm run lint:rust`
-- Rust format check: `pnpm run fmt:rust`
-- Rust unit tests: `pnpm run test:rust`
-- Full lint checks: `pnpm run lint`
-- Pre-commit verification (lint + unit tests): `pnpm check`
+1. Install dependencies: `pnpm install`
+2. Start desktop app in dev mode: `pnpm tauri:dev`
+
+### Quality Checks
+
+- Lint: `pnpm run lint`
 - Unit tests: `pnpm test`
-- CI-equivalent web gate: `pnpm run ci:web`
-- CI-equivalent rust gate: `pnpm run ci:rust`
-- Full CI-equivalent gate: `pnpm run ci`
 
-## Release Management
+## License
 
-- Add a repository secret named `RELEASE_PLEASE_TOKEN` (fine-grained PAT or GitHub App token) with permissions to create PRs and releases.
-- `release-please` creates and updates a Release PR from commits merged into `main`.
-- `release-please` uses `RELEASE_PLEASE_TOKEN` so bot-created Release PRs can trigger `pull_request` CI checks.
-- Merge the Release PR when you want to cut a release.
-- Merging the Release PR creates a new tag and GitHub Release automatically.
-- Publishing the release triggers [`.github/workflows/macos-dmg.yml`](.github/workflows/macos-dmg.yml) to build and attach:
-  - `*.dmg`
-  - `dist/macos/dmg-manifest.json`
-- You can still run the DMG packaging workflow manually via `workflow_dispatch` for pre-release validation.
-
-## Project Structure
-
-- `src/`: React frontend application.
-- `src/backend/`: Typed frontend contracts and Tauri invoke client.
-- `src-tauri/`: Rust backend and Tauri application shell.
-- `src-tauri/src/domain/`: Domain layer (adapter interfaces, client profiles, capabilities).
-- `src-tauri/src/detection/`: Shared detector framework and per-client detectors.
-- `src-tauri/src/adapters/`: Client-specific adapter implementations.
-- `src-tauri/src/infra/`: Infrastructure composition (adapter registry).
-- `src-tauri/src/application/`: Use-case service layer consumed by commands.
-- `docs/spec/`: MVP requirements and contracts.
-- `docs/architecture/`: Module boundary and design documentation.
-- `docs/release/`: Packaging, release checklist, and versioning policy.
-- `docs/operations/`: Config path, backup, and troubleshooting playbooks.
-- `schemas/`: JSON schema contracts for specs.
-- `tests/`: Node.js unit tests for spec and project contracts.
-
-## Notes
-
-- The frontend command runner calls typed placeholder backend commands: `detect_clients`, `list_resources`, and `mutate_resource`.
-- Command responses use a shared envelope (`ok`, `data`, `error`, `meta`) with lifecycle and operation metadata.
-- Backend commands are thin boundaries and delegate to `AdapterService` through `AdapterRegistry`.
-- CI runs separate `web-quality` and `rust-quality` jobs on pull requests and pushes to `main`.
-- `src-tauri/tauri.conf.json` is configured to use `pnpm` for both dev and build hooks.
-- `src-tauri/icons/icon.png` is the single source asset; platform icons are generated via `pnpm run generate:tauri-icons`.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
