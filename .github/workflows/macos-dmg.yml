@@ -2,16 +2,21 @@ name: macOS DMG Packaging
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
 
 jobs:
   package-macos-dmg:
     runs-on: macos-14
     steps:
-      - name: Checkout
+      - name: Checkout release ref
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -51,3 +56,13 @@ jobs:
           name: ai-manager-macos-dmg-manifest
           path: dist/macos/dmg-manifest.json
           if-no-files-found: error
+
+      - name: Attach DMG and manifest to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          fail_on_unmatched_files: true
+          files: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            dist/macos/dmg-manifest.json

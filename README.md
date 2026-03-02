@@ -26,6 +26,16 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 - CI-equivalent rust gate: `pnpm run ci:rust`
 - Full CI-equivalent gate: `pnpm run ci`
 
+## Release Management
+
+- `release-please` creates and updates a Release PR from commits merged into `main`.
+- Merge the Release PR when you want to cut a release.
+- Merging the Release PR creates a new tag and GitHub Release automatically.
+- Publishing the release triggers [`.github/workflows/macos-dmg.yml`](.github/workflows/macos-dmg.yml) to build and attach:
+  - `*.dmg`
+  - `dist/macos/dmg-manifest.json`
+- You can still run the DMG packaging workflow manually via `workflow_dispatch` for pre-release validation.
+
 ## Project Structure
 
 - `src/`: React frontend application.
