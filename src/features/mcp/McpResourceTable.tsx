@@ -15,6 +15,8 @@ interface McpResourceTableProps {
   resources: ResourceRecord[];
   pendingRemovalId: string | null;
   pendingUpdateId: string | null;
+  pendingCopyId: string | null;
+  onCopy: (resource: ResourceRecord) => Promise<void>;
   onEdit: (resource: ResourceRecord) => Promise<void>;
   onRemove: (resource: ResourceRecord) => Promise<void>;
   emptyMessage?: string;
@@ -57,6 +59,15 @@ function RemoveIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <rect x="7" y="3" width="10" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3" y="7" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -106,6 +117,8 @@ export function McpResourceTable({
   resources,
   pendingRemovalId,
   pendingUpdateId,
+  pendingCopyId,
+  onCopy,
   onEdit,
   onRemove,
   emptyMessage,
@@ -129,13 +142,14 @@ export function McpResourceTable({
             <TableHead>Transport</TableHead>
             <TableHead>Enabled</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead aria-label="actions" className="w-24" />
+            <TableHead aria-label="actions" className="w-36" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {resources.map((resource) => {
             const removing = pendingRemovalId === resource.display_name;
             const updating = pendingUpdateId === resource.display_name;
+            const copying = pendingCopyId === resource.id;
             return (
               <TableRow key={resource.id} className="hover:bg-slate-50/70">
                 <TableCell className="font-medium text-slate-900">
@@ -144,29 +158,42 @@ export function McpResourceTable({
                 <TableCell>{formatTransportKind(resource.transport_kind)}</TableCell>
                 <TableCell>{resource.enabled ? "yes" : "no"}</TableCell>
                 <TableCell>{formatSourcePath(resource.source_path)}</TableCell>
-                <TableCell className="flex items-center gap-2">
-                  <McpActionButton
-                    icon={<EditIcon />}
-                    label="Edit"
-                    busyLabel="Updating..."
-                    busy={updating}
-                    disabled={updating || removing}
-                    className="h-8 w-8 rounded-lg border border-amber-200 bg-amber-50 p-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
-                    onClick={() => {
-                      void onEdit(resource);
-                    }}
-                  />
-                  <McpActionButton
-                    icon={<RemoveIcon />}
-                    label="Remove"
-                    busyLabel="Removing..."
-                    busy={removing}
-                    disabled={removing || updating}
-                    className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 p-0 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
-                    onClick={() => {
-                      void onRemove(resource);
-                    }}
-                  />
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <McpActionButton
+                      icon={<CopyIcon />}
+                      label="Copy"
+                      busyLabel="Copying..."
+                      busy={copying}
+                      disabled={copying || updating || removing}
+                      className="h-8 w-8 rounded-lg border border-sky-200 bg-sky-50 p-0 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
+                      onClick={() => {
+                        void onCopy(resource);
+                      }}
+                    />
+                    <McpActionButton
+                      icon={<EditIcon />}
+                      label="Edit"
+                      busyLabel="Updating..."
+                      busy={updating}
+                      disabled={updating || removing || copying}
+                      className="h-8 w-8 rounded-lg border border-amber-200 bg-amber-50 p-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                      onClick={() => {
+                        void onEdit(resource);
+                      }}
+                    />
+                    <McpActionButton
+                      icon={<RemoveIcon />}
+                      label="Remove"
+                      busyLabel="Removing..."
+                      busy={removing}
+                      disabled={removing || updating || copying}
+                      className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 p-0 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+                      onClick={() => {
+                        void onRemove(resource);
+                      }}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             );

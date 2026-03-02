@@ -33,6 +33,15 @@ export interface UpdateMcpInput {
   sourcePath: string | null;
 }
 
+export interface CopyMcpInput {
+  sourceClient: ClientKind;
+  sourceResourceId: string;
+  destinationClient: ClientKind;
+  targetId: string;
+  transport: McpTransportInput;
+  enabled: boolean;
+}
+
 interface MutationFeedback {
   kind: "success" | "error";
   message: string;
@@ -49,9 +58,11 @@ interface UseMcpManagerResult {
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
   pendingUpdateId: string | null;
+  pendingCopyId: string | null;
   refresh: () => Promise<void>;
   addMcp: (input: AddMcpInput) => Promise<boolean>;
   updateMcp: (input: UpdateMcpInput) => Promise<boolean>;
+  copyMcp: (input: CopyMcpInput) => Promise<boolean>;
   removeMcp: (targetId: string, sourcePath: string | null) => Promise<boolean>;
   clearFeedback: () => void;
 }
@@ -83,6 +94,7 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
+  const [pendingCopyId, setPendingCopyId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (client === null) {
@@ -302,6 +314,100 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
     [client, refresh],
   );
 
+  const copyMcp = useCallback(
+    async (input: CopyMcpInput) => {
+      if (client === null) {
+        const diagnostic = runtimeErrorToDiagnostic("Select a client before copying an MCP entry.");
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      if (input.sourceClient !== client) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Selected source client is stale. Reload the MCP list and retry the copy operation.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      if (input.destinationClient === input.sourceClient) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Choose a different destination client when copying an MCP entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      const normalizedTargetId = input.targetId.trim();
+      if (normalizedTargetId.length === 0) {
+        const diagnostic = runtimeErrorToDiagnostic(
+          "Target ID is required before copying an MCP entry.",
+        );
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      }
+
+      const payloadTransport =
+        input.transport.kind === "stdio"
+          ? { command: input.transport.command, args: input.transport.args }
+          : { url: input.transport.url };
+
+      setPendingCopyId(input.sourceResourceId);
+      try {
+        const envelope = await mutateResource({
+          client: input.destinationClient,
+          resource_kind: "mcp",
+          action: "add",
+          target_id: normalizedTargetId,
+          payload: {
+            transport: payloadTransport,
+            enabled: input.enabled,
+          },
+        });
+
+        if (!envelope.ok || envelope.data === null) {
+          const diagnostic = envelopeErrorDiagnostic(
+            envelope,
+            "Mutation command failed without an explicit error payload.",
+          );
+          setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
+          return false;
+        }
+
+        setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown copy runtime error.";
+        const diagnostic = runtimeErrorToDiagnostic(message);
+        setFeedback({
+          kind: "error",
+          message: diagnostic.message,
+          diagnostic,
+        });
+        return false;
+      } finally {
+        setPendingCopyId(null);
+      }
+    },
+    [client],
+  );
+
   return {
     phase,
     resources,
@@ -310,9 +416,11 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
     feedback,
     pendingRemovalId,
     pendingUpdateId,
+    pendingCopyId,
     refresh,
     addMcp,
     updateMcp,
+    copyMcp,
     removeMcp,
     clearFeedback: () => setFeedback(null),
   };

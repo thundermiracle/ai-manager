@@ -13,9 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
 import { McpAddForm } from "./McpAddForm";
+import { McpCopyForm } from "./McpCopyForm";
 import { McpEditForm } from "./McpEditForm";
 import { McpResourceTable } from "./McpResourceTable";
 import { useMcpAddForm } from "./useMcpAddForm";
+import { useMcpCopyForm } from "./useMcpCopyForm";
 import { useMcpEditForm } from "./useMcpEditForm";
 import { useMcpManager } from "./useMcpManager";
 
@@ -25,6 +27,7 @@ interface McpManagerPanelProps {
 
 export function McpManagerPanel({ client }: McpManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [isCopyOpen, setCopyOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,7 +40,9 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     feedback,
     pendingRemovalId,
     pendingUpdateId,
+    pendingCopyId,
     addMcp,
+    copyMcp,
     updateMcp,
     removeMcp,
     refresh,
@@ -51,6 +56,10 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
   const editForm = useMcpEditForm({
     onSubmit: updateMcp,
     onAccepted: () => setEditOpen(false),
+  });
+  const copyForm = useMcpCopyForm({
+    onSubmit: copyMcp,
+    onAccepted: () => setCopyOpen(false),
   });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -97,6 +106,12 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     clearFeedback();
     editForm.loadResource(resource);
     setEditOpen(true);
+  }
+
+  async function handleCopy(resource: ResourceRecord) {
+    clearFeedback();
+    copyForm.loadResource(resource);
+    setCopyOpen(true);
   }
 
   async function handleConfirmRemoval() {
@@ -195,6 +210,8 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
             resources={filteredResources}
             pendingRemovalId={pendingRemovalId}
             pendingUpdateId={pendingUpdateId}
+            pendingCopyId={pendingCopyId}
+            onCopy={handleCopy}
             onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
@@ -230,6 +247,30 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
             void openUrl(preset.docsUrl);
           }}
           onSubmit={addForm.submit}
+          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        />
+      </SlideOverPanel>
+
+      <SlideOverPanel
+        open={isCopyOpen}
+        title="Copy MCP Entry"
+        description="Copy the selected MCP entry to a different AI client."
+        panelClassName="max-w-[40rem] max-[920px]:max-w-full"
+        onClose={() => {
+          if (pendingCopyId !== null) {
+            return;
+          }
+          setCopyOpen(false);
+          copyForm.reset();
+        }}
+      >
+        <McpCopyForm
+          disabled={phase === "loading" || pendingCopyId !== null}
+          state={copyForm.state}
+          onDestinationClientChange={copyForm.setDestinationClient}
+          onTargetIdChange={copyForm.setTargetId}
+          onEnabledChange={copyForm.setEnabled}
+          onSubmit={copyForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
       </SlideOverPanel>
