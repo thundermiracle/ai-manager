@@ -28,7 +28,9 @@ Tauri 2 + React/TypeScript desktop foundation for managing MCP and Skills across
 
 ## Release Management
 
+- Add a repository secret named `RELEASE_PLEASE_TOKEN` (fine-grained PAT or GitHub App token) with permissions to create PRs and releases.
 - `release-please` creates and updates a Release PR from commits merged into `main`.
+- `release-please` uses `RELEASE_PLEASE_TOKEN` so bot-created Release PRs can trigger `pull_request` CI checks.
 - Merge the Release PR when you want to cut a release.
 - Merging the Release PR creates a new tag and GitHub Release automatically.
 - Publishing the release triggers [`.github/workflows/macos-dmg.yml`](.github/workflows/macos-dmg.yml) to build and attach:
