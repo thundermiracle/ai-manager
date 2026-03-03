@@ -12,6 +12,7 @@ const CONFIG: PathBasedDetectorConfig = PathBasedDetectorConfig {
     client: ClientKind::Cursor,
     display_name: "Cursor",
     kind: DetectorKind::Desktop,
+    startup_probe_command: Some("cursor"),
     binary_candidates: &["cursor", "Cursor"],
     config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
     config_fallback_paths: &[

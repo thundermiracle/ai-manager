@@ -49,8 +49,8 @@ pub fn resolve_mcp_config_path(
 fn default_mcp_config_path(client: ClientKind) -> PathBuf {
     match client {
         ClientKind::ClaudeCode => expand_user_path(
-            &env::var("AI_MANAGER_CLAUDE_CODE_MCP_CONFIG")
-                .unwrap_or_else(|_| "~/.claude/claude_code_config.json".to_string()),
+            &read_first_env(&["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"])
+                .unwrap_or_else(|| "~/.claude.json".to_string()),
         ),
         ClientKind::Codex => expand_user_path(
             &read_first_env(&["AI_MANAGER_CODEX_MCP_CONFIG"])
@@ -78,4 +78,19 @@ fn expand_user_path(value: &str) -> PathBuf {
     }
 
     PathBuf::from(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ClientKind, default_mcp_config_path};
+
+    #[test]
+    fn claude_default_mcp_config_prefers_dot_claude_json() {
+        let path = default_mcp_config_path(ClientKind::ClaudeCode);
+
+        assert_eq!(
+            path.file_name().and_then(|name| name.to_str()),
+            Some(".claude.json")
+        );
+    }
 }

@@ -8,7 +8,9 @@ This guide documents real application behavior for issue `#35`.
 
 - Claude Code:
   - Override: `AI_MANAGER_CLAUDE_CODE_MCP_CONFIG`
-  - Fallback: `~/.claude/claude_code_config.json`
+  - Fallback order:
+    - `~/.claude.json`
+    - `~/.claude/claude_code_config.json` (legacy)
 - Codex:
   - Override: `AI_MANAGER_CODEX_MCP_CONFIG`
   - Fallback: `~/.codex/config.toml`
@@ -59,8 +61,10 @@ If only `Backup: ...` is visible, use the client path mapping above to determine
   - Check env var value and file existence
 - `[config_permission_denied]`: config exists but is unreadable
   - Fix read permissions for the current user
-- `[binary_missing]`: CLI binary not found in `PATH`
-  - Install client or update `PATH`
+- `[binary_missing]`: CLI executable probe failed (`--version` did not run successfully in the login shell environment)
+  - Install client CLI or fix `PATH`
+- `[binary_detected_config_missing]`: CLI is executable, but config is missing
+  - Create MCP config or set the override env var
 - `[binary_and_config_missing]`: neither executable nor config was resolved
   - Verify installation and default config locations
 

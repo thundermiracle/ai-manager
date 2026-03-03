@@ -1,7 +1,7 @@
 {
   "$schema": "../../schemas/support-matrix.schema.json",
   "version": "1.0.0",
-  "updatedAt": "2026-03-01",
+  "updatedAt": "2026-03-03",
   "resolutionPolicy": {
     "precedence": "ascending_priority_per_kind",
     "tieBreaker": "more_specific_os_match_then_lexicographic_path",
@@ -43,7 +43,7 @@
             "darwin",
             "linux"
           ],
-          "path": "~/.claude/claude_code_config.json",
+          "path": "~/.claude.json",
           "role": "fallback"
         },
         {
@@ -52,7 +52,18 @@
           "os": [
             "win32"
           ],
-          "path": "%USERPROFILE%/.claude/claude_code_config.json",
+          "path": "%USERPROFILE%/.claude.json",
+          "role": "fallback"
+        },
+        {
+          "kind": "mcp_config",
+          "priority": 4,
+          "os": [
+            "darwin",
+            "linux",
+            "win32"
+          ],
+          "path": "~/.claude/claude_code_config.json",
           "role": "fallback"
         },
         {
@@ -93,7 +104,7 @@
       ],
       "assumptions": [
         "Environment override paths take precedence over default paths.",
-        "At least one CLI command candidate must resolve for detected status."
+        "Detected status requires a successful CLI startup probe (`--version` exits with status 0) in the login-shell environment."
       ]
     },
     {

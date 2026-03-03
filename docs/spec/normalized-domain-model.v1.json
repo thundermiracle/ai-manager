@@ -1,7 +1,7 @@
 {
   "$schema": "../../schemas/normalized-domain-model.schema.json",
   "version": "1.0.0",
-  "updatedAt": "2026-02-26",
+  "updatedAt": "2026-03-03",
   "entities": {
     "clients": [
       {
@@ -16,7 +16,7 @@
         },
         "source": {
           "origin": "detector",
-          "path": "~/.claude/claude_code_config.json",
+          "path": "~/.claude.json",
           "warnings": []
         },
         "raw": {
@@ -75,7 +75,7 @@
         ],
         "source": {
           "origin": "mcp_config",
-          "path": "~/.claude/claude_code_config.json",
+          "path": "~/.claude.json",
           "line": 18,
           "column": 9,
           "warnings": []

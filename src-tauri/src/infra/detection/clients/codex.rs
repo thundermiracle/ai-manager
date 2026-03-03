@@ -12,6 +12,7 @@ const CONFIG: PathBasedDetectorConfig = PathBasedDetectorConfig {
     client: ClientKind::Codex,
     display_name: "Codex",
     kind: DetectorKind::Cli,
+    startup_probe_command: Some("codex"),
     binary_candidates: &["codex", "codex-cli"],
     config_override_env_vars: &["AI_MANAGER_CODEX_MCP_CONFIG"],
     config_fallback_paths: &["~/.codex/config.toml"],

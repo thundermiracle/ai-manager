@@ -3,7 +3,7 @@ use crate::interface::contracts::{
     detect::{ClientDetection, DetectClientsRequest, DetectionEvidence, DetectionStatus},
 };
 
-use super::probe::{ConfigProbe, probe_binary_path, probe_config_path};
+use super::probe::{ConfigProbe, probe_binary_path, probe_cli_binary, probe_config_path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectorKind {
@@ -16,6 +16,7 @@ pub struct PathBasedDetectorConfig {
     pub client: ClientKind,
     pub display_name: &'static str,
     pub kind: DetectorKind,
+    pub startup_probe_command: Option<&'static str>,
     pub binary_candidates: &'static [&'static str],
     pub config_override_env_vars: &'static [&'static str],
     pub config_fallback_paths: &'static [&'static str],
@@ -25,7 +26,20 @@ pub fn evaluate_path_based_detector(
     config: &PathBasedDetectorConfig,
     request: &DetectClientsRequest,
 ) -> ClientDetection {
-    let binary_path = probe_binary_path(config.binary_candidates);
+    let startup_probe_candidates: Vec<&str> = match config.startup_probe_command {
+        Some(command) => vec![command],
+        None => config.binary_candidates.to_vec(),
+    };
+
+    let (binary_found, binary_path, version) = match config.kind {
+        DetectorKind::Cli | DetectorKind::Desktop => {
+            let probe = probe_cli_binary(&startup_probe_candidates, request.include_versions);
+            let binary_path = probe
+                .binary_path
+                .or_else(|| probe_binary_path(config.binary_candidates));
+            (probe.found, binary_path, probe.version)
+        }
+    };
     let config_probe = probe_config_path(
         config.config_override_env_vars,
         config.config_fallback_paths,
@@ -43,7 +57,7 @@ pub fn evaluate_path_based_detector(
 
     let (status, confidence, note) = resolve_status_and_note(
         config,
-        binary_path.is_some(),
+        binary_found,
         config_path.is_some(),
         probe_issue.as_ref(),
     );
@@ -51,11 +65,7 @@ pub fn evaluate_path_based_detector(
     let evidence = DetectionEvidence {
         binary_path,
         config_path,
-        version: if request.include_versions {
-            Some("not_collected".to_string())
-        } else {
-            None
-        },
+        version,
     };
 
     ClientDetection {
@@ -120,16 +130,16 @@ fn resolve_status_and_note(
                 ),
             ),
             (true, false) => (
-                DetectionStatus::Partial,
-                60,
+                DetectionStatus::Detected,
+                85,
                 format!(
-                    "[config_missing] {} binary resolved but config was not found.",
+                    "[binary_detected_config_missing] {} binary is executable (`--version`), config was not found.",
                     config.display_name
                 ),
             ),
             (false, true) => (
                 DetectionStatus::Partial,
-                60,
+                50,
                 format!(
                     "[binary_missing] {} config resolved but binary was not found.",
                     config.display_name
@@ -145,21 +155,30 @@ fn resolve_status_and_note(
             ),
         },
         DetectorKind::Desktop => {
-            if config_found {
+            if binary_found && config_found {
                 (
                     DetectionStatus::Detected,
-                    90,
+                    95,
                     format!(
-                        "[config_detected] {} detector resolved configuration evidence.",
+                        "[detected] {} detector resolved both executable and config evidence.",
                         config.display_name
                     ),
                 )
             } else if binary_found {
                 (
-                    DetectionStatus::Partial,
-                    45,
+                    DetectionStatus::Detected,
+                    80,
                     format!(
-                        "[binary_only] {} detector resolved binary evidence only.",
+                        "[binary_detected_config_missing] {} executable resolved, config was not found.",
+                        config.display_name
+                    ),
+                )
+            } else if config_found {
+                (
+                    DetectionStatus::Partial,
+                    50,
+                    format!(
+                        "[binary_missing] {} config resolved but executable was not found.",
                         config.display_name
                     ),
                 )
@@ -168,7 +187,7 @@ fn resolve_status_and_note(
                     DetectionStatus::Absent,
                     0,
                     format!(
-                        "[evidence_missing] {} detector did not resolve any evidence.",
+                        "[binary_and_config_missing] {} detector did not resolve executable or config evidence.",
                         config.display_name
                     ),
                 )
@@ -181,7 +200,11 @@ fn resolve_status_and_note(
 mod tests {
     use crate::interface::contracts::{common::ClientKind, detect::DetectionStatus};
 
-    use super::{DetectorKind, PathBasedDetectorConfig, ProbeIssue, resolve_status_and_note};
+    use super::{
+        DetectorKind, PathBasedDetectorConfig, ProbeIssue, evaluate_path_based_detector,
+        resolve_status_and_note,
+    };
+    use crate::interface::contracts::detect::DetectClientsRequest;
 
     #[test]
     fn missing_override_resolves_to_partial_state() {
@@ -189,6 +212,7 @@ mod tests {
             client: ClientKind::Codex,
             display_name: "Test CLI",
             kind: DetectorKind::Cli,
+            startup_probe_command: None,
             binary_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_TEST_INVALID_OVERRIDE"],
             config_fallback_paths: &[],
@@ -210,11 +234,12 @@ mod tests {
     }
 
     #[test]
-    fn cli_detection_fixtures_distinguish_binary_and_config_failures() {
+    fn cli_detection_fixtures_distinguish_binary_and_config_states() {
         let config = PathBasedDetectorConfig {
             client: ClientKind::ClaudeCode,
             display_name: "Claude Code",
             kind: DetectorKind::Cli,
+            startup_probe_command: None,
             binary_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"],
             config_fallback_paths: &[],
@@ -222,7 +247,12 @@ mod tests {
 
         let fixtures = vec![
             (true, true, DetectionStatus::Detected, "[detected]"),
-            (true, false, DetectionStatus::Partial, "[config_missing]"),
+            (
+                true,
+                false,
+                DetectionStatus::Detected,
+                "[binary_detected_config_missing]",
+            ),
             (false, true, DetectionStatus::Partial, "[binary_missing]"),
             (
                 false,
@@ -246,6 +276,7 @@ mod tests {
             client: ClientKind::Cursor,
             display_name: "Cursor",
             kind: DetectorKind::Desktop,
+            startup_probe_command: None,
             binary_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
             config_fallback_paths: &[],
@@ -263,5 +294,67 @@ mod tests {
         assert!(matches!(status, DetectionStatus::Error));
         assert_eq!(confidence, 0);
         assert!(note.contains("[config_permission_denied]"));
+    }
+
+    #[test]
+    fn desktop_detection_requires_executable_for_detected_state() {
+        let config = PathBasedDetectorConfig {
+            client: ClientKind::Cursor,
+            display_name: "Cursor",
+            kind: DetectorKind::Desktop,
+            startup_probe_command: None,
+            binary_candidates: &[],
+            config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
+            config_fallback_paths: &[],
+        };
+
+        let fixtures = vec![
+            (true, true, DetectionStatus::Detected, "[detected]"),
+            (
+                true,
+                false,
+                DetectionStatus::Detected,
+                "[binary_detected_config_missing]",
+            ),
+            (false, true, DetectionStatus::Partial, "[binary_missing]"),
+            (
+                false,
+                false,
+                DetectionStatus::Absent,
+                "[binary_and_config_missing]",
+            ),
+        ];
+
+        for (binary_found, config_found, expected_status, reason_code) in fixtures {
+            let (status, _, note) =
+                resolve_status_and_note(&config, binary_found, config_found, None);
+            assert_eq!(status, expected_status);
+            assert!(note.contains(reason_code));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn startup_probe_command_is_required_for_cli_detected_state() {
+        let config = PathBasedDetectorConfig {
+            client: ClientKind::ClaudeCode,
+            display_name: "Claude Code",
+            kind: DetectorKind::Cli,
+            startup_probe_command: Some("/definitely/missing/primary-cli"),
+            binary_candidates: &["sh"],
+            config_override_env_vars: &[],
+            config_fallback_paths: &[],
+        };
+
+        let detection = evaluate_path_based_detector(
+            &config,
+            &DetectClientsRequest {
+                include_versions: true,
+            },
+        );
+
+        assert!(matches!(detection.status, DetectionStatus::Absent));
+        assert!(detection.evidence.binary_path.is_some());
+        assert_eq!(detection.evidence.version, None);
     }
 }
