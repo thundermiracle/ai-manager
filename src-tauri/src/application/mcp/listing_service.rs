@@ -32,10 +32,18 @@ impl<'a> McpListingService<'a> {
         let detect_request = DetectClientsRequest {
             include_versions: false,
         };
-        let detections = self
-            .detector_registry
-            .all()
-            .map(|detector| detector.detect(&detect_request));
+        let detections: Vec<ClientDetection> = match request.client {
+            Some(client) => self
+                .detector_registry
+                .find(client)
+                .map(|detector| vec![detector.detect(&detect_request)])
+                .unwrap_or_default(),
+            None => self
+                .detector_registry
+                .all()
+                .map(|detector| detector.detect(&detect_request))
+                .collect(),
+        };
 
         collect_from_detections(&self.parser_registry, detections, request, |path| {
             fs::read_to_string(path).map_err(|error| error.to_string())

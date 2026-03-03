@@ -27,6 +27,10 @@ impl ClaudeCodeDetector {
 }
 
 impl ClientDetector for ClaudeCodeDetector {
+    fn client_kind(&self) -> ClientKind {
+        CONFIG.client
+    }
+
     fn detect(&self, request: &DetectClientsRequest) -> ClientDetection {
         evaluate_path_based_detector(&CONFIG, request)
     }

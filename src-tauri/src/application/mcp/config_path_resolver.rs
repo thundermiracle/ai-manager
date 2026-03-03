@@ -28,9 +28,8 @@ pub fn resolve_mcp_config_path(
     };
 
     if let Some(config_path) = detector_registry
-        .all()
+        .find(client)
         .map(|detector| detector.detect(&detect_request))
-        .find(|detection| detection.client == client)
         .and_then(|detection| detection.evidence.config_path)
     {
         return Ok(PathBuf::from(config_path));
