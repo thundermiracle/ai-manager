@@ -255,7 +255,9 @@ mod tests {
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
 
-    use super::{ConfigProbe, probe_binary_path, probe_cli_binary, probe_config_path_with_override};
+    use super::{
+        ConfigProbe, probe_binary_path, probe_cli_binary, probe_config_path_with_override,
+    };
 
     #[test]
     fn override_path_precedence_blocks_fallback_resolution_when_invalid() {
