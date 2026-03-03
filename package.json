@@ -27,7 +27,12 @@
     "tauri:build": "tauri build",
     "package:macos:dmg": "node ./scripts/package-macos-dmg.mjs",
     "test": "pnpm run test:contracts",
-    "test:contracts": "node --test tests/error-ui-contract.test.mjs tests/normalized-domain-model.test.mjs tests/support-matrix.test.mjs tests/mvp-acceptance-contract.test.mjs"
+    "test:contracts": "node --test tests/error-ui-contract.test.mjs tests/normalized-domain-model.test.mjs tests/support-matrix.test.mjs tests/mvp-acceptance-contract.test.mjs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs,json,css,md,yml,yaml}": "biome check --write --no-errors-on-unmatched",
+    "*.rs": "cargo fmt --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -47,6 +52,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
