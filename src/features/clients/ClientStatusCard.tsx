@@ -2,6 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useState } from "react";
 import type { ClientDetection } from "../../backend/contracts";
 import { Alert } from "../../components/ui/alert";
+import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { getClientInstallGuideUrl } from "./client-install-guides";
@@ -16,6 +17,33 @@ interface ClientStatusCardProps {
 
 function formatEvidence(value: string | null): string {
   return value ?? "Not available";
+}
+
+function isCliDetected(detection: ClientDetection): boolean {
+  if (detection.evidence.version !== null) {
+    return true;
+  }
+
+  return detection.status === "detected" && detection.evidence.binary_path !== null;
+}
+
+function isConfigDetected(detection: ClientDetection): boolean {
+  return detection.evidence.config_path !== null;
+}
+
+interface SignalBadgeProps {
+  label: string;
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+}
+
+function SignalBadge({ label, active, activeLabel, inactiveLabel }: SignalBadgeProps) {
+  return (
+    <Badge variant={active ? "success" : "secondary"} className="whitespace-nowrap">
+      {label}: {active ? activeLabel : inactiveLabel}
+    </Badge>
+  );
 }
 
 function DocsIcon() {
@@ -42,6 +70,8 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
   const [installGuideError, setInstallGuideError] = useState<string | null>(null);
   const clientLabel = formatClientLabel(detection.client);
   const installGuideUrl = getClientInstallGuideUrl(detection.client);
+  const cliDetected = isCliDetected(detection);
+  const configDetected = isConfigDetected(detection);
 
   async function handleOpenInstallGuide() {
     setInstallGuideError(null);
@@ -70,7 +100,7 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
           </p>
           <h3 className="text-[1.06rem] leading-tight">{formatClientLabel(detection.client)}</h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             type="button"
             variant="outline"
@@ -89,6 +119,21 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
       </CardHeader>
 
       <CardContent className="grid min-w-0 gap-3 p-4 pt-0">
+        <div className="flex min-w-0 flex-wrap gap-1">
+          <SignalBadge
+            label="CLI"
+            active={cliDetected}
+            activeLabel="Detected"
+            inactiveLabel="Missing"
+          />
+          <SignalBadge
+            label="MCP Config"
+            active={configDetected}
+            activeLabel="Configured"
+            inactiveLabel="Missing"
+          />
+        </div>
+
         <details className="min-w-0 rounded-lg border border-slate-200 bg-sky-50/40 px-3 py-2 open:bg-sky-50">
           <summary className="cursor-pointer list-none text-sm font-semibold text-sky-900 marker:hidden">
             Show tool details
