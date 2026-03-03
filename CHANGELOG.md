@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.0...ai-manager-v0.2.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* claude detection ([975f2f3](https://github.com/thundermiracle/ai-manager/commit/975f2f3b3a44f33b316c74d5b239cf7a1e230f91))
+
+
+### Performance Improvements
+
+* improve mcp tab performance ([f0af6b6](https://github.com/thundermiracle/ai-manager/commit/f0af6b6e6385564d527c8663f99655ae0d10f133))
+
 ## [0.2.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.1.0...ai-manager-v0.2.0) (2026-03-02)
 
 
