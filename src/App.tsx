@@ -136,7 +136,7 @@ function App() {
         {phase === "loading" ? (
           <ViewStatePanel
             title="Detecting Installed Clients"
-            message="Inspecting binaries and config paths for the supported clients."
+            message="Inspecting CLI binaries, app installs, and config paths for the supported clients."
           />
         ) : null}
 

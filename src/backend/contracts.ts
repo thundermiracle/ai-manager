@@ -42,6 +42,7 @@ export type DetectionStatus = "absent" | "partial" | "detected" | "error";
 
 export interface DetectionEvidence {
   binary_path: string | null;
+  app_path: string | null;
   config_path: string | null;
   version: string | null;
 }

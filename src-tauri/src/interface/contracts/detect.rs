@@ -21,6 +21,7 @@ pub enum DetectionStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DetectionEvidence {
     pub binary_path: Option<String>,
+    pub app_path: Option<String>,
     pub config_path: Option<String>,
     pub version: Option<String>,
 }
@@ -63,6 +64,7 @@ mod tests {
                 confidence: 100,
                 evidence: DetectionEvidence {
                     binary_path: None,
+                    app_path: None,
                     config_path: None,
                     version: None,
                 },

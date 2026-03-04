@@ -19,6 +19,6 @@
     }
   },
   "files": {
-    "includes": ["**", "!src-tauri", "!docs/spec/*.json", "!schemas/*.json"]
+    "includes": ["**", "!dist", "!src-tauri", "!docs/spec/*.json", "!schemas/*.json"]
   }
 }

@@ -346,6 +346,7 @@ enabled = true
             confidence: 100,
             evidence: DetectionEvidence {
                 binary_path: None,
+                app_path: None,
                 config_path: config_path.map(str::to_string),
                 version: None,
             },

@@ -5,15 +5,19 @@ use crate::interface::contracts::{
 
 use super::super::{
     client_detector::ClientDetector,
-    path_based::{DetectorKind, PathBasedDetectorConfig, evaluate_path_based_detector},
+    path_based::{
+        DetectionGate, DetectorKind, PathBasedDetectorConfig, evaluate_path_based_detector,
+    },
 };
 
 const CONFIG: PathBasedDetectorConfig = PathBasedDetectorConfig {
     client: ClientKind::ClaudeCode,
     display_name: "Claude Code",
     kind: DetectorKind::Cli,
+    detection_gate: DetectionGate::CliVersion,
     startup_probe_command: Some("claude"),
     binary_candidates: &["claude", "claude-code"],
+    app_candidates: &[],
     config_override_env_vars: &["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"],
     config_fallback_paths: &["~/.claude.json", "~/.claude/claude_code_config.json"],
 };

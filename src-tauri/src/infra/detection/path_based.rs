@@ -3,7 +3,9 @@ use crate::interface::contracts::{
     detect::{ClientDetection, DetectClientsRequest, DetectionEvidence, DetectionStatus},
 };
 
-use super::probe::{ConfigProbe, probe_binary_path, probe_cli_binary, probe_config_path};
+use super::probe::{
+    ConfigProbe, probe_app_path, probe_binary_path, probe_cli_binary, probe_config_path,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectorKind {
@@ -11,13 +13,21 @@ pub enum DetectorKind {
     Desktop,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetectionGate {
+    CliVersion,
+    AppInstall,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct PathBasedDetectorConfig {
     pub client: ClientKind,
     pub display_name: &'static str,
     pub kind: DetectorKind,
+    pub detection_gate: DetectionGate,
     pub startup_probe_command: Option<&'static str>,
     pub binary_candidates: &'static [&'static str],
+    pub app_candidates: &'static [&'static str],
     pub config_override_env_vars: &'static [&'static str],
     pub config_fallback_paths: &'static [&'static str],
 }
@@ -31,7 +41,7 @@ pub fn evaluate_path_based_detector(
         None => config.binary_candidates.to_vec(),
     };
 
-    let (binary_found, binary_path, version) = match config.kind {
+    let (cli_found, binary_path, version) = match config.kind {
         DetectorKind::Cli | DetectorKind::Desktop => {
             let probe = probe_cli_binary(&startup_probe_candidates, request.include_versions);
             let binary_path = probe
@@ -39,6 +49,12 @@ pub fn evaluate_path_based_detector(
                 .or_else(|| probe_binary_path(config.binary_candidates));
             (probe.found, binary_path, probe.version)
         }
+    };
+    let app_path = probe_app_path(config.app_candidates);
+    let app_found = app_path.is_some();
+    let gate_satisfied = match config.detection_gate {
+        DetectionGate::CliVersion => cli_found,
+        DetectionGate::AppInstall => app_found,
     };
     let config_probe = probe_config_path(
         config.config_override_env_vars,
@@ -57,13 +73,14 @@ pub fn evaluate_path_based_detector(
 
     let (status, confidence, note) = resolve_status_and_note(
         config,
-        binary_found,
+        gate_satisfied,
         config_path.is_some(),
         probe_issue.as_ref(),
     );
 
     let evidence = DetectionEvidence {
         binary_path,
+        app_path,
         config_path,
         version,
     };
@@ -86,7 +103,7 @@ enum ProbeIssue {
 
 fn resolve_status_and_note(
     config: &PathBasedDetectorConfig,
-    binary_found: bool,
+    gate_satisfied: bool,
     config_found: bool,
     probe_issue: Option<&ProbeIssue>,
 ) -> (DetectionStatus, u8, String) {
@@ -119,8 +136,8 @@ fn resolve_status_and_note(
         };
     }
 
-    match config.kind {
-        DetectorKind::Cli => match (binary_found, config_found) {
+    match config.detection_gate {
+        DetectionGate::CliVersion => match (gate_satisfied, config_found) {
             (true, true) => (
                 DetectionStatus::Detected,
                 100,
@@ -154,22 +171,22 @@ fn resolve_status_and_note(
                 ),
             ),
         },
-        DetectorKind::Desktop => {
-            if binary_found && config_found {
+        DetectionGate::AppInstall => {
+            if gate_satisfied && config_found {
                 (
                     DetectionStatus::Detected,
-                    95,
+                    100,
                     format!(
-                        "[detected] {} detector resolved both executable and config evidence.",
+                        "[detected] {} detector resolved both app installation and config evidence.",
                         config.display_name
                     ),
                 )
-            } else if binary_found {
+            } else if gate_satisfied {
                 (
                     DetectionStatus::Detected,
-                    80,
+                    85,
                     format!(
-                        "[binary_detected_config_missing] {} executable resolved, config was not found.",
+                        "[app_detected_config_missing] {} app installation is present, config was not found.",
                         config.display_name
                     ),
                 )
@@ -178,7 +195,7 @@ fn resolve_status_and_note(
                     DetectionStatus::Partial,
                     50,
                     format!(
-                        "[binary_missing] {} config resolved but executable was not found.",
+                        "[app_missing] {} config resolved but app installation was not found.",
                         config.display_name
                     ),
                 )
@@ -187,7 +204,7 @@ fn resolve_status_and_note(
                     DetectionStatus::Absent,
                     0,
                     format!(
-                        "[binary_and_config_missing] {} detector did not resolve executable or config evidence.",
+                        "[app_and_config_missing] {} detector did not resolve app installation or config evidence.",
                         config.display_name
                     ),
                 )
@@ -201,8 +218,8 @@ mod tests {
     use crate::interface::contracts::{common::ClientKind, detect::DetectionStatus};
 
     use super::{
-        DetectorKind, PathBasedDetectorConfig, ProbeIssue, evaluate_path_based_detector,
-        resolve_status_and_note,
+        DetectionGate, DetectorKind, PathBasedDetectorConfig, ProbeIssue,
+        evaluate_path_based_detector, resolve_status_and_note,
     };
     use crate::interface::contracts::detect::DetectClientsRequest;
 
@@ -212,8 +229,10 @@ mod tests {
             client: ClientKind::Codex,
             display_name: "Test CLI",
             kind: DetectorKind::Cli,
+            detection_gate: DetectionGate::CliVersion,
             startup_probe_command: None,
             binary_candidates: &[],
+            app_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_TEST_INVALID_OVERRIDE"],
             config_fallback_paths: &[],
         };
@@ -239,8 +258,10 @@ mod tests {
             client: ClientKind::ClaudeCode,
             display_name: "Claude Code",
             kind: DetectorKind::Cli,
+            detection_gate: DetectionGate::CliVersion,
             startup_probe_command: None,
             binary_candidates: &[],
+            app_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"],
             config_fallback_paths: &[],
         };
@@ -276,8 +297,10 @@ mod tests {
             client: ClientKind::Cursor,
             display_name: "Cursor",
             kind: DetectorKind::Desktop,
+            detection_gate: DetectionGate::AppInstall,
             startup_probe_command: None,
             binary_candidates: &[],
+            app_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
             config_fallback_paths: &[],
         };
@@ -297,13 +320,15 @@ mod tests {
     }
 
     #[test]
-    fn desktop_detection_requires_executable_for_detected_state() {
+    fn desktop_detection_requires_app_install_for_detected_state() {
         let config = PathBasedDetectorConfig {
             client: ClientKind::Cursor,
             display_name: "Cursor",
             kind: DetectorKind::Desktop,
+            detection_gate: DetectionGate::AppInstall,
             startup_probe_command: None,
             binary_candidates: &[],
+            app_candidates: &[],
             config_override_env_vars: &["AI_MANAGER_CURSOR_MCP_CONFIG"],
             config_fallback_paths: &[],
         };
@@ -314,14 +339,14 @@ mod tests {
                 true,
                 false,
                 DetectionStatus::Detected,
-                "[binary_detected_config_missing]",
+                "[app_detected_config_missing]",
             ),
-            (false, true, DetectionStatus::Partial, "[binary_missing]"),
+            (false, true, DetectionStatus::Partial, "[app_missing]"),
             (
                 false,
                 false,
                 DetectionStatus::Absent,
-                "[binary_and_config_missing]",
+                "[app_and_config_missing]",
             ),
         ];
 
@@ -340,8 +365,10 @@ mod tests {
             client: ClientKind::ClaudeCode,
             display_name: "Claude Code",
             kind: DetectorKind::Cli,
+            detection_gate: DetectionGate::CliVersion,
             startup_probe_command: Some("/definitely/missing/primary-cli"),
             binary_candidates: &["sh"],
+            app_candidates: &[],
             config_override_env_vars: &[],
             config_fallback_paths: &[],
         };

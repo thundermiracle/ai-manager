@@ -15,16 +15,18 @@ interface ClientStatusCardProps {
   onSelect: (client: ClientDetection["client"]) => void;
 }
 
+const APP_PRIMARY_CLIENTS = new Set<ClientDetection["client"]>(["codex", "cursor"]);
+
 function formatEvidence(value: string | null): string {
   return value ?? "Not available";
 }
 
 function isCliDetected(detection: ClientDetection): boolean {
-  if (detection.evidence.version !== null) {
-    return true;
-  }
+  return detection.evidence.version !== null || detection.evidence.binary_path !== null;
+}
 
-  return detection.status === "detected" && detection.evidence.binary_path !== null;
+function isAppInstalled(detection: ClientDetection): boolean {
+  return detection.evidence.app_path !== null;
 }
 
 function isConfigDetected(detection: ClientDetection): boolean {
@@ -71,7 +73,9 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
   const clientLabel = formatClientLabel(detection.client);
   const installGuideUrl = getClientInstallGuideUrl(detection.client);
   const cliDetected = isCliDetected(detection);
+  const appInstalled = isAppInstalled(detection);
   const configDetected = isConfigDetected(detection);
+  const appPrimary = APP_PRIMARY_CLIENTS.has(detection.client);
 
   async function handleOpenInstallGuide() {
     setInstallGuideError(null);
@@ -120,6 +124,14 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
 
       <CardContent className="grid min-w-0 gap-3 p-4 pt-0">
         <div className="flex min-w-0 flex-wrap gap-1">
+          {appPrimary ? (
+            <SignalBadge
+              label="App"
+              active={appInstalled}
+              activeLabel="Installed"
+              inactiveLabel="Missing"
+            />
+          ) : null}
           <SignalBadge
             label="CLI"
             active={cliDetected}
@@ -147,6 +159,12 @@ export function ClientStatusCard({ detection, selected, onSelect }: ClientStatus
               <dt className="text-xs uppercase tracking-[0.08em] text-slate-500">Binary</dt>
               <dd className="min-w-0 break-all text-sm leading-snug text-slate-800">
                 {formatEvidence(detection.evidence.binary_path)}
+              </dd>
+            </div>
+            <div className="grid gap-0.5">
+              <dt className="text-xs uppercase tracking-[0.08em] text-slate-500">App</dt>
+              <dd className="min-w-0 break-all text-sm leading-snug text-slate-800">
+                {formatEvidence(detection.evidence.app_path)}
               </dd>
             </div>
             <div className="grid gap-0.5">

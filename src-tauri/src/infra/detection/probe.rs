@@ -47,6 +47,17 @@ pub fn probe_binary_path(candidates: &[&str]) -> Option<String> {
     None
 }
 
+pub fn probe_app_path(candidates: &[&str]) -> Option<String> {
+    for candidate in candidates {
+        let expanded = expand_user_path(candidate);
+        if app_path_exists(&expanded) {
+            return Some(expanded.to_string_lossy().to_string());
+        }
+    }
+
+    None
+}
+
 pub fn probe_config_path(env_vars: &[&str], fallbacks: &[&str]) -> ConfigProbe {
     let override_value = read_env_value(env_vars);
     probe_config_path_with_override(override_value.as_deref(), fallbacks)
@@ -131,6 +142,12 @@ fn file_access_outcome(path: &Path) -> FileAccessOutcome {
         }
         Err(_) => FileAccessOutcome::NotFoundOrNotFile,
     }
+}
+
+fn app_path_exists(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .map(|metadata| metadata.is_dir() || metadata.is_file())
+        .unwrap_or(false)
 }
 
 fn is_executable_file(path: &Path) -> bool {
@@ -256,7 +273,8 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
 
     use super::{
-        ConfigProbe, probe_binary_path, probe_cli_binary, probe_config_path_with_override,
+        ConfigProbe, probe_app_path, probe_binary_path, probe_cli_binary,
+        probe_config_path_with_override,
     };
 
     #[test]
@@ -413,5 +431,26 @@ mod tests {
         let _ = fs::remove_dir(&temp_dir);
 
         assert!(outcome.is_none());
+    }
+
+    #[test]
+    fn app_path_probe_resolves_existing_bundle_directory() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("ai-manager-app-path-probe-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+
+        let app_bundle_path = temp_dir.join("Cursor.app");
+        let _ = fs::create_dir_all(&app_bundle_path);
+
+        let app_bundle_value = app_bundle_path
+            .to_str()
+            .expect("bundle path should be valid utf-8")
+            .to_string();
+        let outcome =
+            probe_app_path(&["/definitely/missing/Cursor.app", app_bundle_value.as_str()]);
+
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert_eq!(outcome.as_deref(), Some(app_bundle_value.as_str()));
     }
 }

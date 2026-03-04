@@ -67,6 +67,12 @@ If only `Backup: ...` is visible, use the client path mapping above to determine
   - Create MCP config or set the override env var
 - `[binary_and_config_missing]`: neither executable nor config was resolved
   - Verify installation and default config locations
+- `[app_missing]`: config resolved but desktop app installation evidence was not found
+  - Install app into `/Applications` or `~/Applications`
+- `[app_detected_config_missing]`: app installation was found, but config is missing
+  - Create MCP config or set the override env var
+- `[app_and_config_missing]`: neither app installation nor config was resolved
+  - Verify app installation path and default config locations
 
 ### Parse and list failures
 

@@ -1,7 +1,7 @@
 {
   "$schema": "../../schemas/support-matrix.schema.json",
   "version": "1.0.0",
-  "updatedAt": "2026-03-03",
+  "updatedAt": "2026-03-04",
   "resolutionPolicy": {
     "precedence": "ascending_priority_per_kind",
     "tieBreaker": "more_specific_os_match_then_lexicographic_path",
@@ -110,7 +110,7 @@
     {
       "id": "codex",
       "displayName": "Codex",
-      "category": "cli",
+      "category": "desktop",
       "binaryCandidates": [
         {
           "priority": 1,
@@ -186,13 +186,13 @@
         }
       ],
       "detectionEvidenceRequirements": [
-        "binary_resolves",
+        "app_install_present",
         "mcp_config_readable",
         "skills_dir_accessible"
       ],
       "assumptions": [
         "TOML config path should be preferred when both JSON and TOML exist.",
-        "Detection remains partial if binary resolves but config is missing."
+        "Detected status requires Codex app installation evidence; CLI detection is secondary diagnostics only."
       ]
     },
     {
@@ -297,7 +297,7 @@
         "app_data_root_exists"
       ],
       "assumptions": [
-        "Desktop detection does not require command resolution if config path is valid.",
+        "Detected status requires Cursor app installation evidence; CLI detection is secondary diagnostics only.",
         "AppData style path is treated as fallback where home-directory path is present."
       ]
     }
