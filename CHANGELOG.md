@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.1...ai-manager-v0.2.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* App detection ([057452b](https://github.com/thundermiracle/ai-manager/commit/057452b252bbc42473ce17a4c26ef873c624905d))
+
 ## [0.2.1](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.0...ai-manager-v0.2.1) (2026-03-03)
 
 
