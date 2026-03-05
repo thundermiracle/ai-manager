@@ -38,9 +38,7 @@ impl ClientConfigParser for JsonClientConfigParser {
         let mut warnings: Vec<ParseWarning> = Vec::new();
         let mut servers: Vec<ParsedMcpServer> = Vec::new();
 
-        let mcp_servers = parsed_value
-            .get("mcpServers")
-            .or_else(|| parsed_value.get("mcp_servers"));
+        let mcp_servers = resolve_mcp_servers_section(self.client_kind, &parsed_value);
 
         let Some(mcp_servers) = mcp_servers else {
             warnings.push(ParseWarning {
@@ -145,5 +143,59 @@ impl ClientConfigParser for JsonClientConfigParser {
             },
             warnings,
         }
+    }
+}
+
+fn resolve_mcp_servers_section<'a>(
+    _client_kind: ClientKind,
+    parsed_value: &'a Value,
+) -> Option<&'a Value> {
+    resolve_root_mcp_servers(parsed_value)
+}
+
+fn resolve_root_mcp_servers(parsed_value: &Value) -> Option<&Value> {
+    parsed_value
+        .get("mcpServers")
+        .or_else(|| parsed_value.get("mcp_servers"))
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use crate::domain::ClientKind;
+
+    use super::{JsonClientConfigParser, ParseOutcome};
+    use crate::infra::parsers::ClientConfigParser;
+
+    #[test]
+    fn claude_parser_ignores_project_scoped_mcp_servers_without_root_section() {
+        let cwd = std::env::current_dir()
+            .expect("current directory should be available")
+            .to_string_lossy()
+            .to_string();
+        let source = json!({
+            "projects": {
+                cwd: {
+                    "mcpServers": {
+                        "filesystem": {
+                            "command": "npx",
+                            "args": ["-y", "server"],
+                            "enabled": true
+                        }
+                    }
+                }
+            }
+        })
+        .to_string();
+
+        let parser = JsonClientConfigParser::new(ClientKind::ClaudeCode);
+        let ParseOutcome::Success { data, warnings } = parser.parse(&source) else {
+            panic!("Claude config without root section should parse as empty result");
+        };
+
+        assert!(data.mcp_servers.is_empty());
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].code, "PARSER_MCP_SECTION_MISSING");
     }
 }

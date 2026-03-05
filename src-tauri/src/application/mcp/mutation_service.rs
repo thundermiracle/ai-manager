@@ -56,7 +56,7 @@ impl<'a> McpMutationService<'a> {
         let next_content = if matches!(client, ClientKind::Codex) {
             mutate_toml_content(&current_content, target_id, action, &payload)?
         } else {
-            mutate_json_content(&current_content, target_id, action, &payload)?
+            mutate_json_content(client, &current_content, target_id, action, &payload)?
         };
 
         let write_result = SafeFileMutator::new()
@@ -89,6 +89,7 @@ impl<'a> McpMutationService<'a> {
 }
 
 fn mutate_json_content(
+    client: ClientKind,
     current_content: &str,
     target_id: &str,
     action: MutationAction,
@@ -107,20 +108,32 @@ fn mutate_json_content(
             "JSON MCP config root must be an object.",
         ));
     };
+    let section_object = resolve_mcp_section_map(root_object)?;
+    apply_json_mcp_mutation(client, section_object, target_id, action, payload)?;
 
-    let section_key = if root_object.contains_key("mcpServers") {
+    let mut serialized = serde_json::to_string_pretty(&root).map_err(|error| {
+        CommandError::internal(format!("Failed to serialize JSON MCP config: {}", error))
+    })?;
+    serialized.push('\n');
+    Ok(serialized)
+}
+
+fn resolve_mcp_section_map<'a>(
+    object: &'a mut serde_json::Map<String, serde_json::Value>,
+) -> Result<&'a mut serde_json::Map<String, serde_json::Value>, CommandError> {
+    let section_key = if object.contains_key("mcpServers") {
         "mcpServers"
-    } else if root_object.contains_key("mcp_servers") {
+    } else if object.contains_key("mcp_servers") {
         "mcp_servers"
     } else {
         "mcpServers"
     };
 
-    if !root_object.contains_key(section_key) {
-        root_object.insert(section_key.to_string(), serde_json::json!({}));
+    if !object.contains_key(section_key) {
+        object.insert(section_key.to_string(), serde_json::json!({}));
     }
 
-    let Some(section) = root_object.get_mut(section_key) else {
+    let Some(section) = object.get_mut(section_key) else {
         return Err(CommandError::validation(
             "JSON MCP section could not be resolved.",
         ));
@@ -130,6 +143,22 @@ fn mutate_json_content(
             "JSON MCP section must be an object map.",
         ));
     };
+
+    Ok(section_object)
+}
+
+fn apply_json_mcp_mutation(
+    client: ClientKind,
+    section_object: &mut serde_json::Map<String, serde_json::Value>,
+    target_id: &str,
+    action: MutationAction,
+    payload: &McpMutationPayload,
+) -> Result<(), CommandError> {
+    if matches!(client, ClientKind::ClaudeCode) && payload.enabled == Some(false) {
+        return Err(CommandError::validation(
+            "Claude Code user MCP schema does not support `enabled=false`; remove the server entry to disable it.",
+        ));
+    }
 
     match action {
         MutationAction::Add => {
@@ -148,7 +177,7 @@ fn mutate_json_content(
 
             section_object.insert(
                 target_id.to_string(),
-                build_json_transport_payload(transport, payload.enabled.unwrap_or(true)),
+                build_json_transport_payload(client, transport, payload.enabled.unwrap_or(true)),
             );
         }
         MutationAction::Remove => {
@@ -180,16 +209,16 @@ fn mutate_json_content(
 
             section_object.insert(
                 target_id.to_string(),
-                build_json_transport_payload(transport, payload.enabled.unwrap_or(current_enabled)),
+                build_json_transport_payload(
+                    client,
+                    transport,
+                    payload.enabled.unwrap_or(current_enabled),
+                ),
             );
         }
     }
 
-    let mut serialized = serde_json::to_string_pretty(&root).map_err(|error| {
-        CommandError::internal(format!("Failed to serialize JSON MCP config: {}", error))
-    })?;
-    serialized.push('\n');
-    Ok(serialized)
+    Ok(())
 }
 
 fn mutate_toml_content(
@@ -294,9 +323,25 @@ fn mutate_toml_content(
 }
 
 fn build_json_transport_payload(
+    client: ClientKind,
     transport: &McpTransportPayload,
     enabled: bool,
 ) -> serde_json::Value {
+    if matches!(client, ClientKind::ClaudeCode) {
+        return match transport {
+            McpTransportPayload::Stdio { command, args } => serde_json::json!({
+                "type": "stdio",
+                "command": command,
+                "args": args,
+                "env": {}
+            }),
+            McpTransportPayload::Sse { url } => serde_json::json!({
+                "type": "sse",
+                "url": url
+            }),
+        };
+    }
+
     match transport {
         McpTransportPayload::Stdio { command, args } => {
             let mut object = serde_json::Map::new();
@@ -354,7 +399,7 @@ fn build_toml_transport_payload(transport: &McpTransportPayload, enabled: bool) 
 mod tests {
     use std::fs;
 
-    use serde_json::json;
+    use serde_json::{Value, json};
 
     use crate::{
         infra::DetectorRegistry,
@@ -387,11 +432,147 @@ mod tests {
             .expect("json add should succeed");
 
         let content = fs::read_to_string(&source).expect("should read updated json config");
+        let value: Value =
+            serde_json::from_str(&content).expect("updated Claude config should be valid JSON");
         let _ = fs::remove_dir_all(&temp_dir);
 
         assert!(content.contains("filesystem"));
         assert!(content.contains("\"command\": \"npx\""));
+        let entry = value
+            .get("mcpServers")
+            .and_then(Value::as_object)
+            .and_then(|servers| servers.get("filesystem"))
+            .and_then(Value::as_object)
+            .expect("filesystem entry should be created");
+        assert_eq!(entry.get("type").and_then(Value::as_str), Some("stdio"));
+        assert!(entry.get("enabled").is_none());
         assert_eq!(result.source_path, source.display().to_string());
+    }
+
+    #[test]
+    fn claude_add_prefers_root_mcp_section_for_global_scope() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-mcp-claude-root-priority-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+        let source = temp_dir.join("claude.json");
+        let cwd = std::env::current_dir()
+            .expect("current directory should resolve for test")
+            .to_string_lossy()
+            .to_string();
+        let fixture = json!({
+            "mcpServers": {},
+            "projects": {
+                cwd.clone(): {
+                    "mcpServers": {
+                        "existing": { "command": "npx", "enabled": true }
+                    }
+                }
+            }
+        });
+        fs::write(
+            &source,
+            serde_json::to_string_pretty(&fixture).expect("fixture should serialize"),
+        )
+        .expect("should create claude json config");
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        service
+            .mutate(
+                ClientKind::ClaudeCode,
+                MutationAction::Add,
+                "filesystem",
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "command": "npx", "args": ["-y", "server"] },
+                    "enabled": true
+                })),
+            )
+            .expect("claude add should succeed");
+
+        let content = fs::read_to_string(&source).expect("should read updated config");
+        let value: Value = serde_json::from_str(&content).expect("output should remain valid json");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let root_servers = value
+            .get("mcpServers")
+            .and_then(Value::as_object)
+            .expect("root mcpServers should remain object");
+        assert!(root_servers.contains_key("filesystem"));
+
+        let project_servers = value
+            .get("projects")
+            .and_then(Value::as_object)
+            .and_then(|projects| projects.get(cwd.as_str()))
+            .and_then(Value::as_object)
+            .and_then(|project| project.get("mcpServers"))
+            .and_then(Value::as_object)
+            .expect("project mcpServers should remain object");
+        assert!(project_servers.contains_key("existing"));
+        assert!(!project_servers.contains_key("filesystem"));
+    }
+
+    #[test]
+    fn claude_add_creates_root_section_when_only_project_section_exists() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-mcp-claude-root-create-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+        let source = temp_dir.join("claude.json");
+        let cwd = std::env::current_dir()
+            .expect("current directory should resolve for test")
+            .to_string_lossy()
+            .to_string();
+        let fixture = json!({
+            "projects": {
+                cwd.clone(): {
+                    "mcpServers": {}
+                }
+            }
+        });
+        fs::write(
+            &source,
+            serde_json::to_string_pretty(&fixture).expect("fixture should serialize"),
+        )
+        .expect("should create claude json config");
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        service
+            .mutate(
+                ClientKind::ClaudeCode,
+                MutationAction::Add,
+                "filesystem",
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "command": "npx", "args": ["-y", "server"] },
+                    "enabled": true
+                })),
+            )
+            .expect("claude add should succeed");
+
+        let content = fs::read_to_string(&source).expect("should read updated config");
+        let value: Value = serde_json::from_str(&content).expect("output should remain valid json");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let root_servers = value
+            .get("mcpServers")
+            .and_then(Value::as_object)
+            .expect("root mcpServers should be created");
+        assert!(root_servers.contains_key("filesystem"));
+
+        let project_servers = value
+            .get("projects")
+            .and_then(Value::as_object)
+            .and_then(|projects| projects.get(cwd.as_str()))
+            .and_then(Value::as_object)
+            .and_then(|project| project.get("mcpServers"))
+            .and_then(Value::as_object)
+            .expect("current project mcpServers should exist");
+        assert!(!project_servers.contains_key("filesystem"));
     }
 
     #[test]
@@ -547,5 +728,34 @@ enabled = true
             .expect_err("invalid transport should fail");
 
         assert!(error.message.contains("http:// or https://"));
+    }
+
+    #[test]
+    fn claude_rejects_enabled_false_for_schema_compatibility() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-mcp-claude-enabled-false-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+        let source = temp_dir.join("claude.json");
+        fs::write(&source, "{}").expect("should create json config");
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        let error = service
+            .mutate(
+                ClientKind::ClaudeCode,
+                MutationAction::Add,
+                "filesystem",
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "command": "npx", "args": ["-y", "server"] },
+                    "enabled": false
+                })),
+            )
+            .expect_err("enabled=false should be rejected for Claude");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(error.message.contains("does not support `enabled=false`"));
     }
 }
