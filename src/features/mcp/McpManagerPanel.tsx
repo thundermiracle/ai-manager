@@ -16,6 +16,7 @@ import { McpAddForm } from "./McpAddForm";
 import { McpCopyForm } from "./McpCopyForm";
 import { McpEditForm } from "./McpEditForm";
 import { McpResourceTable } from "./McpResourceTable";
+import { buildResourceTransportChecksum } from "./mcp-checksum";
 import { useMcpAddForm } from "./useMcpAddForm";
 import { useMcpCopyForm } from "./useMcpCopyForm";
 import { useMcpEditForm } from "./useMcpEditForm";
@@ -49,9 +50,29 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     clearFeedback,
   } = useMcpManager(client);
 
+  const existingTargetIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const resource of resources) {
+      ids.add(resource.display_name.trim().toLowerCase());
+    }
+    return ids;
+  }, [resources]);
+  const existingTransportChecksums = useMemo(() => {
+    const checksums = new Set<string>();
+    for (const resource of resources) {
+      const checksum = buildResourceTransportChecksum(resource);
+      if (checksum) {
+        checksums.add(checksum);
+      }
+    }
+    return checksums;
+  }, [resources]);
+
   const addForm = useMcpAddForm({
     onSubmit: addMcp,
     onAccepted: () => setComposerOpen(false),
+    existingTargetIds,
+    existingTransportChecksums,
   });
   const editForm = useMcpEditForm({
     onSubmit: updateMcp,
@@ -233,6 +254,8 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
         <McpAddForm
           disabled={phase === "loading"}
           state={addForm.state}
+          existingTargetIds={existingTargetIds}
+          existingTransportChecksums={existingTransportChecksums}
           onModeChange={addForm.setMode}
           onTargetIdChange={addForm.setTargetId}
           onTransportModeChange={addForm.setTransportMode}

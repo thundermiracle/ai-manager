@@ -5,12 +5,15 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { cn } from "../../lib/utils";
+import { buildPresetTransportChecksum } from "./mcp-checksum";
 import type { McpOfficialPreset } from "./official-presets";
 import type { McpAddFormState, McpAddMode, McpPresetSource, TransportMode } from "./useMcpAddForm";
 
 interface McpAddFormProps {
   disabled: boolean;
   state: McpAddFormState;
+  existingTargetIds: ReadonlySet<string>;
+  existingTransportChecksums: ReadonlySet<string>;
   onModeChange: (value: McpAddMode) => void;
   onTargetIdChange: (value: string) => void;
   onTransportModeChange: (value: TransportMode) => void;
@@ -29,6 +32,8 @@ interface McpAddFormProps {
 export function McpAddForm({
   disabled,
   state,
+  existingTargetIds,
+  existingTransportChecksums,
   onModeChange,
   onTargetIdChange,
   onTransportModeChange,
@@ -76,69 +81,90 @@ export function McpAddForm({
 
     return (
       <div className="grid gap-2">
-        {orderedPresets.map((preset) => (
-          <div
-            key={`${source}-${preset.id}`}
-            className={cn(
-              "grid gap-2 rounded-xl border bg-slate-50/55 p-3 transition-colors",
-              selectedId === preset.id
-                ? "sticky top-0 z-10 border-sky-400 bg-sky-50/95 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
-                : "border-slate-200",
-            )}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">{preset.name}</p>
-                {selectedId === preset.id ? (
-                  <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-sky-700">
-                    Loaded to Form
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-0.5 text-xs text-slate-600">{preset.summary}</p>
-              <p className="mt-1 text-[0.7rem] uppercase tracking-[0.08em] text-slate-500">
-                {preset.sourceLabel}
-              </p>
-              <p className="mt-1 break-all text-xs text-slate-600">
-                {preset.transport.mode === "stdio"
-                  ? `${preset.transport.command} ${preset.transport.args.join(" ")}`
-                  : preset.transport.url}
-              </p>
-              {preset.notes.map((note) => (
-                <p key={note} className="mt-1 text-xs text-slate-600">
-                  • {note}
+        {orderedPresets.map((preset) => {
+          const isAlreadyAddedById = existingTargetIds.has(preset.targetId.trim().toLowerCase());
+          const isAlreadyAddedByTransport = existingTransportChecksums.has(
+            buildPresetTransportChecksum(preset),
+          );
+          const isAlreadyAdded = isAlreadyAddedById || isAlreadyAddedByTransport;
+
+          return (
+            <div
+              key={`${source}-${preset.id}`}
+              className={cn(
+                "grid gap-2 rounded-xl border bg-slate-50/55 p-3 transition-colors",
+                selectedId === preset.id
+                  ? "sticky top-0 z-10 border-sky-400 bg-sky-50/95 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
+                  : "border-slate-200",
+              )}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900">{preset.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    {isAlreadyAdded ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                        Added
+                      </span>
+                    ) : null}
+                    {selectedId === preset.id ? (
+                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-sky-700">
+                        Loaded to Form
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="mt-0.5 text-xs text-slate-600">{preset.summary}</p>
+                <p className="mt-1 text-[0.7rem] uppercase tracking-[0.08em] text-slate-500">
+                  {preset.sourceLabel}
                 </p>
-              ))}
+                <p className="mt-1 break-all text-xs text-slate-600">
+                  {preset.transport.mode === "stdio"
+                    ? `${preset.transport.command} ${preset.transport.args.join(" ")}`
+                    : preset.transport.url}
+                </p>
+                {preset.notes.map((note) => (
+                  <p key={note} className="mt-1 text-xs text-slate-600">
+                    • {note}
+                  </p>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenPresetDocs(preset)}
+                  disabled={disabled}
+                >
+                  Open Docs
+                </Button>
+                {isAlreadyAdded ? (
+                  <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                    Already Added
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={selectedId === preset.id ? "secondary" : "default"}
+                    onClick={() => {
+                      onApplyPreset(preset, source);
+                      jumpToAddForm();
+                    }}
+                    disabled={disabled}
+                  >
+                    {selectedId === preset.id
+                      ? "Loaded to Form"
+                      : source === "registry"
+                        ? "Use Entry"
+                        : "Use Preset"}
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenPresetDocs(preset)}
-                disabled={disabled}
-              >
-                Open Docs
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={selectedId === preset.id ? "secondary" : "default"}
-                onClick={() => {
-                  onApplyPreset(preset, source);
-                  jumpToAddForm();
-                }}
-                disabled={disabled}
-              >
-                {selectedId === preset.id
-                  ? "Loaded to Form"
-                  : source === "registry"
-                    ? "Use Entry"
-                    : "Use Preset"}
-              </Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
