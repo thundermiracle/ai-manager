@@ -6,12 +6,13 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/utils";
-import type { SkillAddFormState, SkillAddMode } from "./useSkillAddForm";
+import type { SkillAddFormState, SkillAddMode, SkillSyncInfo } from "./useSkillAddForm";
 import type { SkillInstallInputKind } from "./useSkillManager";
 
 interface SkillAddFormProps {
   disabled: boolean;
   state: SkillAddFormState;
+  syncInfo: SkillSyncInfo;
   onModeChange: (value: SkillAddMode) => void;
   onTargetIdChange: (value: string) => void;
   onInstallKindChange: (value: SkillInstallInputKind) => void;
@@ -27,6 +28,7 @@ interface SkillAddFormProps {
 export function SkillAddForm({
   disabled,
   state,
+  syncInfo,
   onModeChange,
   onTargetIdChange,
   onInstallKindChange,
@@ -42,7 +44,19 @@ export function SkillAddForm({
     state.githubCandidates.find(
       (item) => item.manifest_path === state.selectedGithubManifestPath,
     ) ?? null;
-  const submitDisabled = disabled || (state.mode === "github" && !state.githubRiskAcknowledged);
+  const isUpToDate = syncInfo.status === "up_to_date";
+  const submitDisabled =
+    disabled || isUpToDate || (state.mode === "github" && !state.githubRiskAcknowledged);
+
+  function submitLabel(): string {
+    if (syncInfo.status === "up_to_date") {
+      return "Up to Date";
+    }
+    if (syncInfo.status === "update_available") {
+      return state.mode === "manual" ? "Update Skill" : "Update Selected Skill";
+    }
+    return state.mode === "manual" ? "Add Skill" : "Import Selected Skill";
+  }
 
   const form = (
     <form
@@ -50,6 +64,17 @@ export function SkillAddForm({
       onSubmit={(event) => void onSubmit(event)}
     >
       {state.localError ? <Alert variant="destructive">{state.localError}</Alert> : null}
+      {syncInfo.status === "up_to_date" ? (
+        <Alert variant="default" className="break-words">
+          Skill ID <strong>{state.targetId.trim() || "(empty)"}</strong> is up to date.
+        </Alert>
+      ) : null}
+      {syncInfo.status === "update_available" ? (
+        <Alert variant="warning" className="break-words">
+          Skill ID <strong>{state.targetId.trim() || "(empty)"}</strong> already exists with
+          different content. Submitting will update it.
+        </Alert>
+      ) : null}
 
       <Label>Add Method</Label>
       <div className="grid grid-cols-2 gap-2">
@@ -192,7 +217,7 @@ export function SkillAddForm({
       )}
 
       <Button type="submit" disabled={submitDisabled}>
-        {state.mode === "manual" ? "Add Skill" : "Import Selected Skill"}
+        {submitLabel()}
       </Button>
     </form>
   );

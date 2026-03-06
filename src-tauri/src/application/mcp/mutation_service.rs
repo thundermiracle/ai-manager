@@ -118,9 +118,9 @@ fn mutate_json_content(
     Ok(serialized)
 }
 
-fn resolve_mcp_section_map<'a>(
-    object: &'a mut serde_json::Map<String, serde_json::Value>,
-) -> Result<&'a mut serde_json::Map<String, serde_json::Value>, CommandError> {
+fn resolve_mcp_section_map(
+    object: &mut serde_json::Map<String, serde_json::Value>,
+) -> Result<&mut serde_json::Map<String, serde_json::Value>, CommandError> {
     let section_key = if object.contains_key("mcpServers") {
         "mcpServers"
     } else if object.contains_key("mcp_servers") {

@@ -10,6 +10,7 @@ pub struct DiscoveredSkillCandidate {
     pub manifest_path: String,
     pub suggested_target_id: String,
     pub summary: String,
+    pub manifest_checksum: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

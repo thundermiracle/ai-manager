@@ -81,6 +81,7 @@ export function useSkillEditForm({
       }
 
       const accepted = await onSubmit({
+        mode: "manual",
         targetId: normalizedTargetId,
         installKind: state.installKind,
         manifest: state.manifest,

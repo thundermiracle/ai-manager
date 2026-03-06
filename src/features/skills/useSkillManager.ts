@@ -30,11 +30,20 @@ export type AddSkillInput =
       githubSkillPath: string;
     };
 
-export interface UpdateSkillInput {
-  targetId: string;
-  manifest: string;
-  installKind: SkillInstallInputKind;
-}
+export type UpdateSkillInput =
+  | {
+      mode: "manual";
+      targetId: string;
+      manifest: string;
+      installKind: SkillInstallInputKind;
+    }
+  | {
+      mode: "github";
+      targetId: string;
+      githubRepoUrl: string;
+      githubSkillPath: string;
+      installKind: SkillInstallInputKind;
+    };
 
 export interface CopySkillInput {
   sourceClient: ClientKind;
@@ -319,15 +328,24 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
 
       setPendingUpdateId(input.targetId);
       try {
+        const payload: Record<string, unknown> =
+          input.mode === "github"
+            ? {
+                github_repo_url: input.githubRepoUrl.trim(),
+                github_skill_path: input.githubSkillPath,
+                install_kind: input.installKind,
+              }
+            : {
+                manifest: input.manifest,
+                install_kind: input.installKind,
+              };
+
         const envelope = await mutateResource({
           client,
           resource_kind: "skill",
           action: "update",
           target_id: input.targetId,
-          payload: {
-            manifest: input.manifest,
-            install_kind: input.installKind,
-          },
+          payload,
         });
 
         if (!envelope.ok || envelope.data === null) {

@@ -146,10 +146,7 @@ impl ClientConfigParser for JsonClientConfigParser {
     }
 }
 
-fn resolve_mcp_servers_section<'a>(
-    _client_kind: ClientKind,
-    parsed_value: &'a Value,
-) -> Option<&'a Value> {
+fn resolve_mcp_servers_section(_client_kind: ClientKind, parsed_value: &Value) -> Option<&Value> {
     resolve_root_mcp_servers(parsed_value)
 }
 

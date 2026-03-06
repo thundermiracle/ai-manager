@@ -16,6 +16,7 @@ pub struct GitHubSkillCandidate {
     pub manifest_path: String,
     pub suggested_target_id: String,
     pub summary: String,
+    pub manifest_checksum: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -62,6 +63,7 @@ pub fn scan_github_repository(github_repo_url: &str) -> Result<GitHubRepositoryS
             let summary = metadata
                 .description
                 .unwrap_or_else(|| "No description found in SKILL.md.".to_string());
+            let manifest_checksum = build_manifest_checksum(&manifest);
 
             let base_target_id =
                 suggest_target_id_from_path(&relative_manifest_path, normalized_repo_url);
@@ -77,6 +79,7 @@ pub fn scan_github_repository(github_repo_url: &str) -> Result<GitHubRepositoryS
                 manifest_path: relative_manifest_path,
                 suggested_target_id,
                 summary,
+                manifest_checksum,
             });
         }
 
@@ -394,14 +397,31 @@ fn path_to_posix(path: &Path) -> String {
         .join("/")
 }
 
+fn normalize_manifest_for_checksum(manifest: &str) -> String {
+    manifest.replace("\r\n", "\n").trim().to_string()
+}
+
+fn fnv1a32_hex(input: &str) -> String {
+    let mut hash: u32 = 0x811c9dc5;
+    for byte in input.as_bytes() {
+        hash ^= u32::from(*byte);
+        hash = hash.wrapping_mul(0x0100_0193);
+    }
+    format!("{hash:08x}")
+}
+
+fn build_manifest_checksum(manifest: &str) -> String {
+    fnv1a32_hex(&normalize_manifest_for_checksum(manifest))
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::path::Path;
 
     use super::{
-        normalize_github_repo_url, resolve_explicit_manifest_path, sanitize_target_id,
-        suggest_target_id_from_path,
+        build_manifest_checksum, normalize_github_repo_url, resolve_explicit_manifest_path,
+        sanitize_target_id, suggest_target_id_from_path,
     };
 
     #[test]
@@ -445,5 +465,13 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
 
         assert_eq!(resolved, manifest_path);
+    }
+
+    #[test]
+    fn manifest_checksum_normalizes_line_endings_and_trim() {
+        let checksum_a = build_manifest_checksum("# Skill\r\n\r\nBody\r\n");
+        let checksum_b = build_manifest_checksum("# Skill\n\nBody");
+
+        assert_eq!(checksum_a, checksum_b);
     }
 }

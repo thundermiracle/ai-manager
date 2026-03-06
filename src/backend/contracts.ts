@@ -67,6 +67,7 @@ export interface DiscoveredSkillCandidate {
   manifest_path: string;
   suggested_target_id: string;
   summary: string;
+  manifest_checksum: string;
 }
 
 export interface DiscoverSkillRepositoryResponse {

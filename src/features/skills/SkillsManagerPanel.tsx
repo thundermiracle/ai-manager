@@ -15,6 +15,7 @@ import { SkillAddForm } from "./SkillAddForm";
 import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
 import { SkillResourceTable } from "./SkillResourceTable";
+import { buildResourceSkillManifestChecksum } from "./skill-checksum";
 import { useSkillAddForm } from "./useSkillAddForm";
 import { useSkillCopyForm } from "./useSkillCopyForm";
 import { useSkillEditForm } from "./useSkillEditForm";
@@ -49,9 +50,34 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     clearFeedback,
   } = useSkillManager(client);
 
+  const existingSkillsById = useMemo(() => {
+    const entries = new Map<
+      string,
+      {
+        installKind: "directory" | "file";
+        checksum: string | null;
+      }
+    >();
+
+    for (const resource of resources) {
+      const normalizedTargetId = resource.display_name.trim().toLowerCase();
+      if (normalizedTargetId.length === 0) {
+        continue;
+      }
+      entries.set(normalizedTargetId, {
+        installKind: resource.install_kind === "file" ? "file" : "directory",
+        checksum: buildResourceSkillManifestChecksum(resource),
+      });
+    }
+
+    return entries;
+  }, [resources]);
+
   const addForm = useSkillAddForm({
-    onSubmit: addSkill,
+    onAddSubmit: addSkill,
+    onUpdateSubmit: updateSkill,
     onDiscoverGithubRepo: discoverGithubSkills,
+    existingSkillsById,
     onAccepted: () => setComposerOpen(false),
   });
   const editForm = useSkillEditForm({
@@ -233,6 +259,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
         <SkillAddForm
           disabled={phase === "loading"}
           state={addForm.state}
+          syncInfo={addForm.syncInfo}
           onModeChange={addForm.setMode}
           onTargetIdChange={addForm.setTargetId}
           onInstallKindChange={addForm.setInstallKind}

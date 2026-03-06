@@ -25,6 +25,7 @@ impl SkillRepositoryDiscoveryService {
                 manifest_path: item.manifest_path,
                 suggested_target_id: item.suggested_target_id,
                 summary: item.summary,
+                manifest_checksum: item.manifest_checksum,
             })
             .collect();
 

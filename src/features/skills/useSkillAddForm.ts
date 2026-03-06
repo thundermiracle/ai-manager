@@ -1,13 +1,27 @@
-import { type FormEvent, useCallback, useState } from "react";
+import { type FormEvent, useCallback, useMemo, useState } from "react";
 
 import type { DiscoveredSkillCandidate } from "../../backend/contracts";
+import { buildSkillManifestChecksum } from "./skill-checksum";
 import type {
   AddSkillInput,
   GithubSkillDiscoveryResult,
   SkillInstallInputKind,
+  UpdateSkillInput,
 } from "./useSkillManager";
 
 export type SkillAddMode = "manual" | "github";
+
+export interface ExistingSkillRecord {
+  installKind: SkillInstallInputKind;
+  checksum: string | null;
+}
+
+export type SkillSyncStatus = "new" | "update_available" | "up_to_date";
+
+export interface SkillSyncInfo {
+  status: SkillSyncStatus;
+  existingInstallKind: SkillInstallInputKind | null;
+}
 
 export interface SkillAddFormState {
   mode: SkillAddMode;
@@ -24,13 +38,16 @@ export interface SkillAddFormState {
 }
 
 interface UseSkillAddFormParams {
-  onSubmit: (input: AddSkillInput) => Promise<boolean>;
+  onAddSubmit: (input: AddSkillInput) => Promise<boolean>;
+  onUpdateSubmit: (input: UpdateSkillInput) => Promise<boolean>;
   onDiscoverGithubRepo: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
   onAccepted?: () => void;
+  existingSkillsById?: ReadonlyMap<string, ExistingSkillRecord>;
 }
 
 interface UseSkillAddFormResult {
   state: SkillAddFormState;
+  syncInfo: SkillSyncInfo;
   setMode: (value: SkillAddMode) => void;
   setTargetId: (value: string) => void;
   setInstallKind: (value: SkillInstallInputKind) => void;
@@ -61,12 +78,66 @@ const DEFAULT_STATE: SkillAddFormState = {
   localError: null,
 };
 
+function normalizeTargetId(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function selectedGithubCandidate(state: SkillAddFormState): DiscoveredSkillCandidate | null {
+  return (
+    state.githubCandidates.find(
+      (item) => item.manifest_path === state.selectedGithubManifestPath,
+    ) ?? null
+  );
+}
+
+function resolveIncomingChecksum(state: SkillAddFormState): string | null {
+  if (state.mode === "manual") {
+    if (state.manifest.trim().length === 0) {
+      return null;
+    }
+    return buildSkillManifestChecksum(state.manifest);
+  }
+  return selectedGithubCandidate(state)?.manifest_checksum ?? null;
+}
+
+function resolveSyncInfo(
+  state: SkillAddFormState,
+  existingSkillsById: ReadonlyMap<string, ExistingSkillRecord> | undefined,
+): SkillSyncInfo {
+  const normalizedTargetId = normalizeTargetId(state.targetId);
+  if (normalizedTargetId.length === 0 || existingSkillsById === undefined) {
+    return { status: "new", existingInstallKind: null };
+  }
+
+  const existing = existingSkillsById.get(normalizedTargetId);
+  if (!existing) {
+    return { status: "new", existingInstallKind: null };
+  }
+
+  const incomingChecksum = resolveIncomingChecksum(state);
+  if (
+    incomingChecksum !== null &&
+    existing.checksum !== null &&
+    incomingChecksum === existing.checksum
+  ) {
+    return { status: "up_to_date", existingInstallKind: existing.installKind };
+  }
+
+  return { status: "update_available", existingInstallKind: existing.installKind };
+}
+
 export function useSkillAddForm({
-  onSubmit,
+  onAddSubmit,
+  onUpdateSubmit,
   onDiscoverGithubRepo,
   onAccepted,
+  existingSkillsById,
 }: UseSkillAddFormParams): UseSkillAddFormResult {
   const [state, setState] = useState<SkillAddFormState>(DEFAULT_STATE);
+  const syncInfo = useMemo(
+    () => resolveSyncInfo(state, existingSkillsById),
+    [existingSkillsById, state],
+  );
 
   const setMode = useCallback((value: SkillAddMode) => {
     setState((current) => ({ ...current, mode: value, localError: null }));
@@ -149,6 +220,11 @@ export function useSkillAddForm({
         return;
       }
 
+      const currentSyncInfo = resolveSyncInfo(state, existingSkillsById);
+      if (currentSyncInfo.status === "up_to_date") {
+        return;
+      }
+
       const accepted =
         state.mode === "manual"
           ? await (async () => {
@@ -159,12 +235,19 @@ export function useSkillAddForm({
                 }));
                 return false;
               }
-              return onSubmit({
-                mode: "manual",
-                targetId: normalizedTargetId,
-                manifest: state.manifest,
-                installKind: state.installKind,
-              });
+              return currentSyncInfo.status === "update_available"
+                ? onUpdateSubmit({
+                    mode: "manual",
+                    targetId: normalizedTargetId,
+                    manifest: state.manifest,
+                    installKind: currentSyncInfo.existingInstallKind ?? state.installKind,
+                  })
+                : onAddSubmit({
+                    mode: "manual",
+                    targetId: normalizedTargetId,
+                    manifest: state.manifest,
+                    installKind: state.installKind,
+                  });
             })()
           : await (async () => {
               const normalizedGithubRepoUrl = state.githubRepoUrl.trim();
@@ -189,12 +272,20 @@ export function useSkillAddForm({
                 }));
                 return false;
               }
-              return onSubmit({
-                mode: "github",
-                targetId: normalizedTargetId,
-                githubRepoUrl: normalizedGithubRepoUrl,
-                githubSkillPath: state.selectedGithubManifestPath,
-              });
+              return currentSyncInfo.status === "update_available"
+                ? onUpdateSubmit({
+                    mode: "github",
+                    targetId: normalizedTargetId,
+                    githubRepoUrl: normalizedGithubRepoUrl,
+                    githubSkillPath: state.selectedGithubManifestPath,
+                    installKind: currentSyncInfo.existingInstallKind ?? "directory",
+                  })
+                : onAddSubmit({
+                    mode: "github",
+                    targetId: normalizedTargetId,
+                    githubRepoUrl: normalizedGithubRepoUrl,
+                    githubSkillPath: state.selectedGithubManifestPath,
+                  });
             })();
 
       if (accepted) {
@@ -202,11 +293,12 @@ export function useSkillAddForm({
         onAccepted?.();
       }
     },
-    [onAccepted, onSubmit, state],
+    [existingSkillsById, onAccepted, onAddSubmit, onUpdateSubmit, state],
   );
 
   return {
     state,
+    syncInfo,
     setMode,
     setTargetId,
     setInstallKind,
