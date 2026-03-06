@@ -18,6 +18,7 @@ interface SkillAddFormProps {
   onInstallKindChange: (value: SkillInstallInputKind) => void;
   onManifestChange: (value: string) => void;
   onGithubRepoUrlChange: (value: string) => void;
+  onApplyRecentGithubRepoUrl: (value: string) => void;
   onSelectedGithubManifestPathChange: (value: string) => void;
   onGithubRiskAcknowledgedChange: (value: boolean) => void;
   onDiscoverGithubRepo: () => Promise<void>;
@@ -34,6 +35,7 @@ export function SkillAddForm({
   onInstallKindChange,
   onManifestChange,
   onGithubRepoUrlChange,
+  onApplyRecentGithubRepoUrl,
   onSelectedGithubManifestPathChange,
   onGithubRiskAcknowledgedChange,
   onDiscoverGithubRepo,
@@ -135,6 +137,30 @@ export function SkillAddForm({
       ) : (
         <>
           <Label htmlFor="skill-github-url">GitHub Repository URL</Label>
+          {state.recentGithubRepoUrls.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
+                Recent
+              </p>
+              {state.recentGithubRepoUrls.map((recentUrl) => {
+                const isSelected = state.githubRepoUrl.trim() === recentUrl;
+                return (
+                  <Button
+                    key={recentUrl}
+                    type="button"
+                    size="sm"
+                    variant={isSelected ? "secondary" : "outline"}
+                    className="max-w-full"
+                    onClick={() => onApplyRecentGithubRepoUrl(recentUrl)}
+                    disabled={disabled}
+                    title={recentUrl}
+                  >
+                    <span className="truncate">{recentUrl}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          ) : null}
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <Input
               id="skill-github-url"

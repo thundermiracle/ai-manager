@@ -16,6 +16,7 @@ import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
 import { SkillResourceTable } from "./SkillResourceTable";
 import { buildResourceSkillManifestChecksum } from "./skill-checksum";
+import { buildSkillGithubRecentsStorageKey } from "./skill-github-recents";
 import { useSkillAddForm } from "./useSkillAddForm";
 import { useSkillCopyForm } from "./useSkillCopyForm";
 import { useSkillEditForm } from "./useSkillEditForm";
@@ -78,6 +79,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     onUpdateSubmit: updateSkill,
     onDiscoverGithubRepo: discoverGithubSkills,
     existingSkillsById,
+    recentGithubRepoStorageKey: client ? buildSkillGithubRecentsStorageKey(client) : undefined,
     onAccepted: () => setComposerOpen(false),
   });
   const editForm = useSkillEditForm({
@@ -265,6 +267,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
           onInstallKindChange={addForm.setInstallKind}
           onManifestChange={addForm.setManifest}
           onGithubRepoUrlChange={addForm.setGithubRepoUrl}
+          onApplyRecentGithubRepoUrl={addForm.applyRecentGithubRepoUrl}
           onSelectedGithubManifestPathChange={addForm.setSelectedGithubManifestPath}
           onGithubRiskAcknowledgedChange={addForm.setGithubRiskAcknowledged}
           onDiscoverGithubRepo={addForm.discoverGithubRepo}

@@ -1,7 +1,8 @@
-import { type FormEvent, useCallback, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DiscoveredSkillCandidate } from "../../backend/contracts";
 import { buildSkillManifestChecksum } from "./skill-checksum";
+import { loadSkillGithubRecents, rememberSkillGithubRepoUrl } from "./skill-github-recents";
 import type {
   AddSkillInput,
   GithubSkillDiscoveryResult,
@@ -31,6 +32,7 @@ export interface SkillAddFormState {
   githubRepoUrl: string;
   githubWarning: string | null;
   githubCandidates: DiscoveredSkillCandidate[];
+  recentGithubRepoUrls: string[];
   selectedGithubManifestPath: string;
   githubScanning: boolean;
   githubRiskAcknowledged: boolean;
@@ -43,6 +45,7 @@ interface UseSkillAddFormParams {
   onDiscoverGithubRepo: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
   onAccepted?: () => void;
   existingSkillsById?: ReadonlyMap<string, ExistingSkillRecord>;
+  recentGithubRepoStorageKey?: string;
 }
 
 interface UseSkillAddFormResult {
@@ -53,9 +56,10 @@ interface UseSkillAddFormResult {
   setInstallKind: (value: SkillInstallInputKind) => void;
   setManifest: (value: string) => void;
   setGithubRepoUrl: (value: string) => void;
+  applyRecentGithubRepoUrl: (value: string) => void;
   setSelectedGithubManifestPath: (value: string) => void;
   setGithubRiskAcknowledged: (value: boolean) => void;
-  discoverGithubRepo: () => Promise<void>;
+  discoverGithubRepo: (githubRepoUrlOverride?: string) => Promise<void>;
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
@@ -72,6 +76,7 @@ const DEFAULT_STATE: SkillAddFormState = {
   githubRepoUrl: "",
   githubWarning: null,
   githubCandidates: [],
+  recentGithubRepoUrls: [],
   selectedGithubManifestPath: "",
   githubScanning: false,
   githubRiskAcknowledged: false,
@@ -132,12 +137,33 @@ export function useSkillAddForm({
   onDiscoverGithubRepo,
   onAccepted,
   existingSkillsById,
+  recentGithubRepoStorageKey,
 }: UseSkillAddFormParams): UseSkillAddFormResult {
   const [state, setState] = useState<SkillAddFormState>(DEFAULT_STATE);
   const syncInfo = useMemo(
     () => resolveSyncInfo(state, existingSkillsById),
     [existingSkillsById, state],
   );
+
+  useEffect(() => {
+    if (!recentGithubRepoStorageKey) {
+      setState((current) => ({
+        ...current,
+        recentGithubRepoUrls: [],
+      }));
+      return;
+    }
+
+    const recentGithubRepoUrls = loadSkillGithubRecents(recentGithubRepoStorageKey);
+    setState((current) => ({
+      ...current,
+      recentGithubRepoUrls,
+      githubRepoUrl:
+        current.githubRepoUrl.trim().length > 0
+          ? current.githubRepoUrl
+          : (recentGithubRepoUrls[0] ?? ""),
+    }));
+  }, [recentGithubRepoStorageKey]);
 
   const setMode = useCallback((value: SkillAddMode) => {
     setState((current) => ({ ...current, mode: value, localError: null }));
@@ -181,32 +207,55 @@ export function useSkillAddForm({
     setState((current) => ({ ...current, githubRiskAcknowledged: value }));
   }, []);
 
-  const discoverGithubRepo = useCallback(async () => {
-    const githubRepoUrl = state.githubRepoUrl.trim();
-    if (githubRepoUrl.length === 0) {
-      setState((current) => ({ ...current, localError: "GitHub repository URL is required." }));
-      return;
-    }
+  const discoverGithubRepo = useCallback(
+    async (githubRepoUrlOverride?: string) => {
+      const githubRepoUrl = (githubRepoUrlOverride ?? state.githubRepoUrl).trim();
+      if (githubRepoUrl.length === 0) {
+        setState((current) => ({ ...current, localError: "GitHub repository URL is required." }));
+        return;
+      }
 
-    setState((current) => ({ ...current, githubScanning: true, localError: null }));
-    const result = await onDiscoverGithubRepo(githubRepoUrl);
-    if (result === null) {
-      setState((current) => ({ ...current, githubScanning: false }));
-      return;
-    }
+      setState((current) => ({
+        ...current,
+        githubRepoUrl,
+        githubCandidates: [],
+        selectedGithubManifestPath: "",
+        githubWarning: null,
+        githubRiskAcknowledged: false,
+        githubScanning: true,
+        localError: null,
+      }));
+      const result = await onDiscoverGithubRepo(githubRepoUrl);
+      if (result === null) {
+        setState((current) => ({ ...current, githubScanning: false }));
+        return;
+      }
 
-    const firstCandidate = result.items[0] ?? null;
-    setState((current) => ({
-      ...current,
-      githubRepoUrl: result.normalizedRepoUrl,
-      githubWarning: result.warning,
-      githubCandidates: result.items,
-      selectedGithubManifestPath: firstCandidate?.manifest_path ?? "",
-      targetId: firstCandidate?.suggested_target_id ?? current.targetId,
-      githubScanning: false,
-      githubRiskAcknowledged: false,
-    }));
-  }, [onDiscoverGithubRepo, state.githubRepoUrl]);
+      const firstCandidate = result.items[0] ?? null;
+      setState((current) => ({
+        ...current,
+        githubRepoUrl: result.normalizedRepoUrl,
+        githubWarning: result.warning,
+        githubCandidates: result.items,
+        recentGithubRepoUrls:
+          recentGithubRepoStorageKey === undefined
+            ? current.recentGithubRepoUrls
+            : rememberSkillGithubRepoUrl(recentGithubRepoStorageKey, result.normalizedRepoUrl),
+        selectedGithubManifestPath: firstCandidate?.manifest_path ?? "",
+        targetId: firstCandidate?.suggested_target_id ?? current.targetId,
+        githubScanning: false,
+        githubRiskAcknowledged: false,
+      }));
+    },
+    [onDiscoverGithubRepo, recentGithubRepoStorageKey, state.githubRepoUrl],
+  );
+
+  const applyRecentGithubRepoUrl = useCallback(
+    (value: string) => {
+      void discoverGithubRepo(value);
+    },
+    [discoverGithubRepo],
+  );
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -289,7 +338,11 @@ export function useSkillAddForm({
             })();
 
       if (accepted) {
-        setState(DEFAULT_STATE);
+        setState((current) => ({
+          ...DEFAULT_STATE,
+          recentGithubRepoUrls: current.recentGithubRepoUrls,
+          githubRepoUrl: current.recentGithubRepoUrls[0] ?? "",
+        }));
         onAccepted?.();
       }
     },
@@ -304,6 +357,7 @@ export function useSkillAddForm({
     setInstallKind,
     setManifest,
     setGithubRepoUrl,
+    applyRecentGithubRepoUrl,
     setSelectedGithubManifestPath,
     setGithubRiskAcknowledged,
     discoverGithubRepo,
