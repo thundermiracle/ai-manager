@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.2...ai-manager-v0.3.0) (2026-03-06)
+
+
+### Features
+
+* add manifest checksum handling for skill management ([091d9f8](https://github.com/thundermiracle/ai-manager/commit/091d9f84b29e9f3935ef0a2f1d4c8a33efa479b5))
+* compare mcp settings to prevent from duplicated adding ([e202e2c](https://github.com/thundermiracle/ai-manager/commit/e202e2c44a8e08c0c4c00717fdcc5be593f51074))
+* remember GitHub repository URL in SkillAddForm ([513c4f0](https://github.com/thundermiracle/ai-manager/commit/513c4f054af6079fb893ecc86de6dfb84097dcba))
+
+
+### Bug Fixes
+
+* adding mcp for claude code ([a2baa37](https://github.com/thundermiracle/ai-manager/commit/a2baa3791edb5c9a2733cb6d92b608b0b2408f8c))
+
 ## [0.2.2](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.1...ai-manager-v0.2.2) (2026-03-04)
 
 
