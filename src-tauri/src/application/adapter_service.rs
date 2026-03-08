@@ -3,7 +3,10 @@ use std::path::Path;
 use crate::{
     application::{
         detection::detection_service::DetectionService,
-        mcp::{listing_service::McpListingService, mutation_service::McpMutationService},
+        mcp::{
+            listing_service::McpListingService, mutation_service::McpMutationService,
+            replication_service::McpReplicationService,
+        },
         project_context_resolver::ProjectContextResolver,
         skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
     },
@@ -14,6 +17,7 @@ use crate::{
         detect::{DetectClientsRequest, DetectClientsResponse},
         list::{ListResourcesRequest, ListResourcesResponse},
         mutate::{MutateResourceRequest, MutateResourceResponse},
+        replicate::{ReplicateResourceRequest, ReplicateResourceResponse},
     },
 };
 
@@ -202,6 +206,67 @@ impl<'a> AdapterService<'a> {
             message: result.message,
             source_path: None,
             target_source_id: request.target_source_id.clone(),
+        })
+    }
+
+    pub fn replicate_resource(
+        &self,
+        request: ReplicateResourceRequest,
+    ) -> Result<ReplicateResourceResponse, CommandError> {
+        if !matches!(request.resource_kind, ResourceKind::Mcp) {
+            return Err(CommandError::not_implemented(
+                "Replication is currently supported only for MCP resources.",
+            ));
+        }
+
+        let source_target_id = request.source_target_id.trim();
+        if source_target_id.is_empty() {
+            return Err(CommandError::validation(
+                "source_target_id must not be empty for replication commands.",
+            ));
+        }
+
+        let source_source_id = request.source_source_id.trim();
+        if source_source_id.is_empty() {
+            return Err(CommandError::validation(
+                "source_source_id must not be empty for replication commands.",
+            ));
+        }
+
+        let source_project_root =
+            ProjectContextResolver::new().resolve(request.source_project_root.as_deref())?;
+        let destination_project_root =
+            ProjectContextResolver::new().resolve(request.destination_project_root.as_deref())?;
+
+        let destination_target_id = request
+            .destination_target_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .unwrap_or_else(|| source_target_id.to_string());
+
+        let outcome = McpReplicationService::new(self.detector_registry).replicate(
+            request.source_client,
+            source_target_id,
+            source_source_id,
+            source_project_root.as_deref(),
+            request.destination_client,
+            Some(destination_target_id.as_str()),
+            request.destination_source_id.as_str(),
+            destination_project_root.as_deref(),
+            request.overwrite,
+        )?;
+
+        Ok(ReplicateResourceResponse {
+            accepted: true,
+            resource_kind: request.resource_kind,
+            source_client: request.source_client,
+            source_target_id: source_target_id.to_string(),
+            destination_client: request.destination_client,
+            destination_target_id: outcome.destination_target_id,
+            destination_source_id: outcome.destination_source_id,
+            message: outcome.message,
         })
     }
 }

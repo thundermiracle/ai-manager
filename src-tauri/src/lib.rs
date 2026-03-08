@@ -12,7 +12,10 @@ pub use domain::{
 };
 
 use interface::{
-    commands::{detect_clients, discover_skill_repository, list_resources, mutate_resource},
+    commands::{
+        detect_clients, discover_skill_repository, list_resources, mutate_resource,
+        replicate_resource,
+    },
     state::AppState,
 };
 use tauri::Manager;
@@ -25,7 +28,8 @@ pub fn run() {
             detect_clients,
             discover_skill_repository,
             list_resources,
-            mutate_resource
+            mutate_resource,
+            replicate_resource
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

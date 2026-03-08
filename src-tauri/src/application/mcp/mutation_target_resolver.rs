@@ -12,6 +12,7 @@ use super::{
         McpSourceCatalogService, McpSourceDescriptor, descriptor_for_scope, selector_for_scope,
         storage_kind_for_client,
     },
+    source_id::McpSourceId,
 };
 
 pub struct McpMutationTargetResolver<'a> {
@@ -91,7 +92,7 @@ fn build_override_descriptor(
     override_path: PathBuf,
     descriptors: &[McpSourceDescriptor],
 ) -> Result<McpSourceDescriptor, CommandError> {
-    let parsed = parse_source_id(target_source_id).ok_or_else(|| {
+    let parsed = McpSourceId::parse(target_source_id).ok_or_else(|| {
         CommandError::validation(format!(
             "target_source_id '{}' is not a valid MCP source identifier.",
             target_source_id
@@ -164,7 +165,7 @@ fn unresolved_target_source_error(
     descriptors: &[McpSourceDescriptor],
     has_project_root: bool,
 ) -> CommandError {
-    if let Some(parsed) = parse_source_id(target_source_id) {
+    if let Some(parsed) = McpSourceId::parse(target_source_id) {
         if parsed.client != client {
             return CommandError::validation(format!(
                 "target_source_id '{}' does not belong to '{}'.",
@@ -214,50 +215,6 @@ fn unsupported_scope_error(
         client.as_str(),
         supported_scopes
     ))
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ParsedSourceId {
-    client: ClientKind,
-    scope: ResourceSourceScope,
-    selector: Option<String>,
-}
-
-fn parse_source_id(value: &str) -> Option<ParsedSourceId> {
-    let mut parts = value.splitn(5, "::");
-    let prefix = parts.next()?;
-    let client = parts.next().and_then(parse_client_kind)?;
-    let scope = parts.next().and_then(parse_scope)?;
-    let _path = parts.next()?;
-    let selector = parts.next().map(str::to_string);
-
-    if prefix != "mcp" {
-        return None;
-    }
-
-    Some(ParsedSourceId {
-        client,
-        scope,
-        selector,
-    })
-}
-
-fn parse_client_kind(value: &str) -> Option<ClientKind> {
-    match value {
-        "claude_code" => Some(ClientKind::ClaudeCode),
-        "codex" => Some(ClientKind::Codex),
-        "cursor" => Some(ClientKind::Cursor),
-        _ => None,
-    }
-}
-
-fn parse_scope(value: &str) -> Option<ResourceSourceScope> {
-    match value {
-        "user" => Some(ResourceSourceScope::User),
-        "project_shared" => Some(ResourceSourceScope::ProjectShared),
-        "project_private" => Some(ResourceSourceScope::ProjectPrivate),
-        _ => None,
-    }
 }
 
 #[cfg(test)]
