@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 
-import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import {
+  type ClientKind,
+  RESOURCE_KIND_CATALOG,
+  type ResourceRecord,
+} from "../../backend/contracts";
 import { ConfirmModal } from "../../components/shared/ConfirmModal";
 import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
 import { SlideOverPanel } from "../../components/shared/SlideOverPanel";
@@ -16,6 +20,7 @@ import {
   isProjectContextIncomplete,
   type ResourceContextMode,
 } from "../resources/resource-context";
+import { listNativeResourceEntryPoints } from "./native-resource-catalog";
 import { SkillAddForm } from "./SkillAddForm";
 import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
@@ -45,6 +50,10 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     projectRoot,
   });
   const contextHint = buildSkillContextHint(contextMode);
+  const nativeResourceEntryPoints = useMemo(
+    () => (client === null ? [] : listNativeResourceEntryPoints(client)),
+    [client],
+  );
   const activeClient = isProjectContextIncomplete({ mode: contextMode, projectRoot })
     ? null
     : client;
@@ -184,7 +193,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     return (
       <ViewStatePanel
         title="Client Selection Required"
-        message="Select a client to list and mutate skill entries."
+        message="Select a client to list and mutate generic skill library entries."
       />
     );
   }
@@ -193,7 +202,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     return (
       <ViewStatePanel
         title="Project Context Required"
-        message="Apply a project root to prepare project-aware Skills screens."
+        message="Apply a project root to review generic skill libraries alongside native-resource notices."
       />
     );
   }
@@ -204,9 +213,10 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
         <CardHeader className="grid gap-4 p-5">
           <div className="flex items-start justify-between gap-3 max-[720px]:flex-col">
             <div>
-              <CardTitle className="text-[1.35rem] tracking-[-0.012em]">Skills Manager</CardTitle>
+              <CardTitle className="text-[1.35rem] tracking-[-0.012em]">Skill Libraries</CardTitle>
               <p className="mt-1 text-sm text-slate-700">
-                Managing AI Manager personal skills for <strong>{formatClientLabel(client)}</strong>
+                Managing AI Manager generic skill libraries for{" "}
+                <strong>{formatClientLabel(client)}</strong>
               </p>
               <p className="mt-1 text-xs text-slate-500">{contextSummary.description}</p>
             </div>
@@ -224,12 +234,54 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
                 {phase === "loading" ? "Loading..." : "Reload"}
               </Button>
               <Button type="button" size="sm" onClick={openComposer}>
-                Add Personal Skill
+                Add Generic Skill
               </Button>
             </div>
           </div>
 
           {contextMode === "project" ? <Alert variant="warning">{contextHint}</Alert> : null}
+
+          <section className="grid gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="rounded-full bg-emerald-600 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-white">
+                {RESOURCE_KIND_CATALOG.skill.family} family
+              </p>
+              <p className="rounded-full bg-slate-900 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-slate-100">
+                AI Manager-managed
+              </p>
+            </div>
+            <p className="text-sm text-slate-700">
+              This surface manages reusable `SKILL.md` libraries only. Native client resources stay
+              on dedicated surfaces so project-native features do not get folded into generic skill
+              storage.
+            </p>
+            {nativeResourceEntryPoints.length > 0 ? (
+              <div className="grid gap-2">
+                {nativeResourceEntryPoints.map((entryPoint) => (
+                  <div
+                    key={entryPoint.id}
+                    className="rounded-xl border border-sky-200/80 bg-sky-50/80 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3 max-[720px]:flex-col">
+                      <div className="grid gap-1">
+                        <p className="text-sm font-semibold text-slate-900">{entryPoint.title}</p>
+                        <p className="text-xs leading-relaxed text-slate-600">
+                          {entryPoint.description}
+                        </p>
+                      </div>
+                      <p className="rounded-full bg-sky-600 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-white">
+                        {entryPoint.statusLabel}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                No native resource entry points are defined for this client yet.
+              </p>
+            )}
+          </section>
 
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 p-2.5">
             <p className="rounded-full bg-slate-900 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-slate-100">
@@ -274,8 +326,8 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
               normalizedQuery.length > 0
                 ? `No skill entries match "${searchQuery.trim()}".`
                 : contextMode === "project"
-                  ? "No personal skill entries are available for the selected client in this project context."
-                  : "No skill entries registered for the selected client."
+                  ? "No generic skill library entries are available for the selected client in this project context."
+                  : "No generic skill library entries are registered for the selected client."
             }
           />
         </CardContent>
@@ -283,8 +335,8 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
 
       <SlideOverPanel
         open={isComposerOpen}
-        title="Add Personal Skill"
-        description="Install a skill into the selected client's personal storage while keeping the list in view."
+        title="Add Generic Skill"
+        description="Install a skill into the selected client's personal library storage while keeping the list in view."
         panelClassName="max-w-[42rem] max-[920px]:max-w-full"
         onClose={() => setComposerOpen(false)}
       >
@@ -311,8 +363,8 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
 
       <SlideOverPanel
         open={isCopyOpen}
-        title="Copy Skill to Another Client"
-        description="Copy the selected skill into another client's personal skill storage."
+        title="Copy Generic Skill to Another Client"
+        description="Copy the selected skill into another client's personal generic skill library."
         panelClassName="max-w-[40rem] max-[920px]:max-w-full"
         onClose={() => {
           if (pendingCopyId !== null) {
@@ -338,8 +390,8 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
 
       <SlideOverPanel
         open={isEditOpen}
-        title="Edit Personal Skill"
-        description="Update the selected skill manifest in the client's personal storage."
+        title="Edit Generic Skill"
+        description="Update the selected skill manifest in the client's personal generic library."
         panelClassName="max-w-[40rem] max-[920px]:max-w-full"
         onClose={() => {
           if (pendingUpdateId !== null) {
@@ -363,7 +415,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
 
       <ConfirmModal
         open={removalCandidate !== null}
-        title="Remove Personal Skill"
+        title="Remove Generic Skill"
         description={
           removalCandidate ? (
             <p>
@@ -374,7 +426,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
             ""
           )
         }
-        confirmLabel={pendingRemovalId === null ? "Remove from personal" : "Removing..."}
+        confirmLabel={pendingRemovalId === null ? "Remove from library" : "Removing..."}
         confirmDisabled={pendingRemovalId !== null}
         onConfirm={() => {
           void handleConfirmRemoval();

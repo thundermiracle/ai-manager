@@ -1,8 +1,33 @@
 export type ClientKind = "claude_code" | "codex" | "cursor";
 
 export type ResourceKind = "mcp" | "skill" | "subagent";
+export type ResourceFamily = "generic" | "native";
 export type ResourceSourceScope = "user" | "project_shared" | "project_private";
 export type ResourceViewMode = "effective" | "all_sources";
+
+export interface ResourceKindCatalogEntry {
+  family: ResourceFamily;
+  label: string;
+  managementModel: "ai_manager" | "client_native";
+}
+
+export const RESOURCE_KIND_CATALOG: Record<ResourceKind, ResourceKindCatalogEntry> = {
+  mcp: {
+    family: "native",
+    label: "MCP",
+    managementModel: "client_native",
+  },
+  skill: {
+    family: "generic",
+    label: "Skill Library",
+    managementModel: "ai_manager",
+  },
+  subagent: {
+    family: "native",
+    label: "Subagent",
+    managementModel: "client_native",
+  },
+};
 
 export type LifecyclePhase = "running" | "shutting_down";
 

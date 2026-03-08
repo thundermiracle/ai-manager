@@ -196,6 +196,7 @@
     "resourceKindSupport": {
       "type": "object",
       "required": [
+        "family",
         "currentSourceScopes",
         "targetSourceScopes",
         "currentDestinationScopes",
@@ -205,6 +206,13 @@
         "notes"
       ],
       "properties": {
+        "family": {
+          "type": "string",
+          "enum": [
+            "generic",
+            "native"
+          ]
+        },
         "currentSourceScopes": {
           "type": "array",
           "items": {

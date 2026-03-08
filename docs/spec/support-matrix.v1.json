@@ -99,6 +99,7 @@
       ],
       "resourceKinds": {
         "mcp": {
+          "family": "native",
           "currentSourceScopes": [
             "user"
           ],
@@ -127,6 +128,7 @@
           ]
         },
         "skills": {
+          "family": "generic",
           "currentSourceScopes": [
             "user"
           ],
@@ -149,6 +151,7 @@
           ]
         },
         "subagents": {
+          "family": "native",
           "currentSourceScopes": [
             "user",
             "project_shared"
@@ -263,6 +266,7 @@
       ],
       "resourceKinds": {
         "mcp": {
+          "family": "native",
           "currentSourceScopes": [
             "user"
           ],
@@ -284,6 +288,7 @@
           ]
         },
         "skills": {
+          "family": "generic",
           "currentSourceScopes": [
             "user"
           ],
@@ -306,6 +311,7 @@
           ]
         },
         "subagents": {
+          "family": "native",
           "currentSourceScopes": [],
           "targetSourceScopes": [],
           "currentDestinationScopes": [],
@@ -425,6 +431,7 @@
       ],
       "resourceKinds": {
         "mcp": {
+          "family": "native",
           "currentSourceScopes": [
             "user"
           ],
@@ -449,6 +456,7 @@
           ]
         },
         "skills": {
+          "family": "generic",
           "currentSourceScopes": [
             "user"
           ],
@@ -471,6 +479,7 @@
           ]
         },
         "subagents": {
+          "family": "native",
           "currentSourceScopes": [],
           "targetSourceScopes": [],
           "currentDestinationScopes": [],
