@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub use crate::domain::{ClientKind, ResourceKind};
+pub use crate::domain::{ClientKind, ResourceKind, ResourceSourceScope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

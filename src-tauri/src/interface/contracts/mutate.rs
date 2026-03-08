@@ -12,6 +12,10 @@ pub struct MutateResourceRequest {
     pub action: MutationAction,
     pub target_id: String,
     #[serde(default)]
+    pub project_root: Option<String>,
+    #[serde(default)]
+    pub target_source_id: Option<String>,
+    #[serde(default)]
     pub payload: Option<Value>,
 }
 
@@ -22,6 +26,7 @@ pub struct MutateResourceResponse {
     pub target_id: String,
     pub message: String,
     pub source_path: Option<String>,
+    pub target_source_id: Option<String>,
 }
 
 impl MutateResourceResponse {
@@ -33,7 +38,10 @@ impl MutateResourceResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::{MutateResourceResponse, MutationAction};
+    use serde_json::json;
+
+    use super::{MutateResourceRequest, MutateResourceResponse, MutationAction};
+    use crate::domain::{ClientKind, ResourceKind};
 
     #[test]
     fn mutate_response_redacts_message() {
@@ -43,9 +51,27 @@ mod tests {
             target_id: "demo".to_string(),
             message: "token=abc123".to_string(),
             source_path: None,
+            target_source_id: None,
         }
         .redact_sensitive();
 
         assert_eq!(response.message, "token=[REDACTED]");
+    }
+
+    #[test]
+    fn mutate_request_defaults_source_targeting_fields() {
+        let request: MutateResourceRequest = serde_json::from_value(json!({
+            "client": "codex",
+            "resource_kind": "mcp",
+            "action": "add",
+            "target_id": "filesystem",
+            "payload": null
+        }))
+        .expect("request should deserialize");
+
+        assert_eq!(request.project_root, None);
+        assert_eq!(request.target_source_id, None);
+        assert!(matches!(request.client, ClientKind::Codex));
+        assert!(matches!(request.resource_kind, ResourceKind::Mcp));
     }
 }

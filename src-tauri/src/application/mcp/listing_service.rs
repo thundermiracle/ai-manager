@@ -1,6 +1,7 @@
 use std::fs;
 
 use crate::{
+    domain::{ResourceSourceMetadata, ResourceSourceScope},
     infra::DetectorRegistry,
     infra::parsers::{ParseOutcome, ParserRegistry},
     interface::contracts::{
@@ -63,6 +64,17 @@ where
 {
     let mut items: Vec<ResourceRecord> = Vec::new();
     let mut warnings: Vec<String> = Vec::new();
+    let scope_filter_excludes_user = request
+        .scope_filter
+        .as_ref()
+        .is_some_and(|scopes| !scopes.contains(&ResourceSourceScope::User));
+
+    if scope_filter_excludes_user {
+        return McpListResult {
+            items,
+            warning: None,
+        };
+    }
 
     for detection in detections {
         let client = detection.client;
@@ -102,6 +114,8 @@ where
 
         match parse_outcome {
             ParseOutcome::Success { data, .. } => {
+                let source_id = format!("mcp::user::{}", config_path);
+                let source_label = "Personal config";
                 for server in data.mcp_servers {
                     if let Some(enabled_filter) = request.enabled
                         && server.enabled != enabled_filter
@@ -109,20 +123,32 @@ where
                         continue;
                     }
 
-                    items.push(ResourceRecord {
-                        id: format!("{}::{}", client.as_str(), server.name),
-                        client,
-                        display_name: server.name,
-                        enabled: server.enabled,
-                        transport_kind: Some(server.transport_kind),
-                        transport_command: server.transport_command,
-                        transport_args: Some(server.transport_args),
-                        transport_url: server.transport_url,
-                        source_path: Some(config_path.to_string()),
-                        description: None,
-                        install_kind: None,
-                        manifest_content: None,
-                    });
+                    let logical_id = server.name.clone();
+                    items.push(
+                        ResourceRecord {
+                            id: format!("{}::mcp::{}::{}", client.as_str(), source_id, logical_id),
+                            logical_id,
+                            client,
+                            display_name: server.name,
+                            enabled: server.enabled,
+                            transport_kind: Some(server.transport_kind),
+                            transport_command: server.transport_command,
+                            transport_args: Some(server.transport_args),
+                            transport_url: server.transport_url,
+                            source_path: Some(config_path.to_string()),
+                            source_id: String::new(),
+                            source_scope: ResourceSourceScope::User,
+                            source_label: String::new(),
+                            is_effective: true,
+                            shadowed_by: None,
+                            description: None,
+                            install_kind: None,
+                            manifest_content: None,
+                        }
+                        .with_source_metadata(
+                            ResourceSourceMetadata::personal(source_id.clone(), source_label),
+                        ),
+                    );
                 }
             }
             ParseOutcome::Failure { errors, .. } => {
@@ -161,12 +187,12 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use crate::infra::parsers::ParserRegistry;
     use crate::interface::contracts::{
         common::{ClientKind, ResourceKind},
         detect::{ClientDetection, DetectionEvidence, DetectionStatus},
-        list::ListResourcesRequest,
+        list::{ListResourcesRequest, ResourceViewMode},
     };
+    use crate::{domain::ResourceSourceScope, infra::parsers::ParserRegistry};
 
     use super::collect_from_detections;
 
@@ -213,6 +239,9 @@ enabled = false
             client: None,
             resource_kind: ResourceKind::Mcp,
             enabled: None,
+            project_root: None,
+            view_mode: ResourceViewMode::Effective,
+            scope_filter: None,
         };
 
         let result =
@@ -225,19 +254,25 @@ enabled = false
 
         assert_eq!(result.items.len(), 5);
         assert!(result.warning.is_none());
+        assert!(result.items.iter().all(|entry| {
+            entry.source_path.is_some()
+                && entry.transport_kind.is_some()
+                && !entry.source_id.is_empty()
+                && entry.is_effective
+        }));
         assert!(
             result
                 .items
                 .iter()
-                .all(|entry| entry.source_path.is_some() && entry.transport_kind.is_some())
+                .any(|entry| entry.logical_id == "filesystem"
+                    && entry.source_scope == ResourceSourceScope::User)
         );
         assert!(
             result
                 .items
                 .iter()
-                .any(|entry| entry.id == "claude_code::filesystem")
+                .any(|entry| entry.logical_id == "github")
         );
-        assert!(result.items.iter().any(|entry| entry.id == "codex::github"));
     }
 
     #[test]
@@ -273,6 +308,9 @@ enabled = false
             client: Some(ClientKind::Codex),
             resource_kind: ResourceKind::Mcp,
             enabled: Some(false),
+            project_root: None,
+            view_mode: ResourceViewMode::Effective,
+            scope_filter: None,
         };
 
         let result =
@@ -319,6 +357,9 @@ enabled = true
             client: None,
             resource_kind: ResourceKind::Mcp,
             enabled: None,
+            project_root: None,
+            view_mode: ResourceViewMode::Effective,
+            scope_filter: None,
         };
 
         let result =
