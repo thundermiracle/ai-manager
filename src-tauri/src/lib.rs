@@ -3,6 +3,12 @@ mod domain;
 mod infra;
 mod interface;
 
+pub use application::ClientCapabilityService;
+pub use domain::{
+    ClientCapabilities, ClientKind, ClientProfile, ResourceKind, ResourceScopeCapabilities,
+    ResourceSourceScope, profile_for_client,
+};
+
 use interface::{
     commands::{detect_clients, discover_skill_repository, list_resources, mutate_resource},
     state::AppState,
