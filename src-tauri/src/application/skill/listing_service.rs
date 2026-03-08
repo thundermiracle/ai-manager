@@ -3,7 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::interface::contracts::{common::ClientKind, list::ResourceRecord};
+use crate::{
+    domain::{ResourceSourceMetadata, ResourceSourceScope},
+    interface::contracts::{common::ClientKind, list::ResourceRecord},
+};
 
 use super::{
     metadata_parser::parse_skill_metadata,
@@ -23,7 +26,19 @@ impl SkillListingService {
         Self
     }
 
-    pub fn list(&self, client: ClientKind, enabled_filter: Option<bool>) -> SkillListResult {
+    pub fn list(
+        &self,
+        client: ClientKind,
+        enabled_filter: Option<bool>,
+        scope_filter: Option<&[ResourceSourceScope]>,
+    ) -> SkillListResult {
+        if scope_filter.is_some_and(|scopes| !scopes.contains(&ResourceSourceScope::User)) {
+            return SkillListResult {
+                items: Vec::new(),
+                warning: None,
+            };
+        }
+
         let SkillDirResolution {
             path: maybe_root,
             mut warnings,
@@ -110,20 +125,34 @@ fn collect_skills_from_directory(
         }
 
         let metadata = parse_skill_metadata(&manifest_source);
-        items.push(ResourceRecord {
-            id: format!("{}::skill::{}", client.as_str(), manifest_candidate.name),
-            client,
-            display_name: manifest_candidate.name,
-            enabled,
-            transport_kind: None,
-            transport_command: None,
-            transport_args: None,
-            transport_url: None,
-            source_path: Some(manifest_candidate.manifest_path.display().to_string()),
-            description: metadata.description,
-            install_kind: Some(manifest_candidate.install_kind.to_string()),
-            manifest_content: Some(manifest_source),
-        });
+        let logical_id = manifest_candidate.name.clone();
+        let source_id = format!("skill::user::{}", root.display());
+        items.push(
+            ResourceRecord {
+                id: format!("{}::skill::{}::{}", client.as_str(), source_id, logical_id),
+                logical_id,
+                client,
+                display_name: manifest_candidate.name,
+                enabled,
+                transport_kind: None,
+                transport_command: None,
+                transport_args: None,
+                transport_url: None,
+                source_path: Some(manifest_candidate.manifest_path.display().to_string()),
+                source_id: String::new(),
+                source_scope: ResourceSourceScope::User,
+                source_label: String::new(),
+                is_effective: true,
+                shadowed_by: None,
+                description: metadata.description,
+                install_kind: Some(manifest_candidate.install_kind.to_string()),
+                manifest_content: Some(manifest_source),
+            }
+            .with_source_metadata(ResourceSourceMetadata::personal(
+                source_id,
+                "Personal skills directory",
+            )),
+        );
     }
 
     items.sort_by(|left, right| {
@@ -218,12 +247,13 @@ mod tests {
                 .iter()
                 .any(|item| item.install_kind.as_deref() == Some("file"))
         );
-        assert!(
-            outcome
-                .items
-                .iter()
-                .all(|item| item.description.is_some() && item.source_path.is_some())
-        );
+        assert!(outcome.items.iter().all(|item| {
+            item.description.is_some()
+                && item.source_path.is_some()
+                && !item.logical_id.is_empty()
+                && !item.source_id.is_empty()
+                && item.is_effective
+        }));
     }
 
     #[test]

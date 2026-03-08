@@ -48,6 +48,8 @@ impl<'a> AdapterService<'a> {
             return Ok(ListResourcesResponse {
                 client: request.client,
                 resource_kind: request.resource_kind,
+                project_root: request.project_root,
+                view_mode: request.view_mode,
                 items: result.items,
                 warning: result.warning,
             });
@@ -68,11 +70,14 @@ impl<'a> AdapterService<'a> {
         let _adapter_probe = adapter.list_resources(request.resource_kind);
 
         let skill_listing_service = SkillListingService::new();
-        let result = skill_listing_service.list(client, request.enabled);
+        let result =
+            skill_listing_service.list(client, request.enabled, request.scope_filter.as_deref());
 
         Ok(ListResourcesResponse {
             client: Some(client),
             resource_kind: request.resource_kind,
+            project_root: request.project_root,
+            view_mode: request.view_mode,
             items: result.items,
             warning: result.warning,
         })
@@ -127,6 +132,7 @@ impl<'a> AdapterService<'a> {
                 target_id: target_id.to_string(),
                 message,
                 source_path: Some(file_mutation_payload.target_path),
+                target_source_id: request.target_source_id.clone(),
             });
         }
 
@@ -145,6 +151,7 @@ impl<'a> AdapterService<'a> {
                 target_id: target_id.to_string(),
                 message: outcome.message,
                 source_path: Some(outcome.source_path),
+                target_source_id: request.target_source_id.clone(),
             });
         }
 
@@ -163,6 +170,7 @@ impl<'a> AdapterService<'a> {
                 target_id: target_id.to_string(),
                 message: outcome.message,
                 source_path: Some(outcome.source_path),
+                target_source_id: request.target_source_id.clone(),
             });
         }
 
@@ -181,6 +189,7 @@ impl<'a> AdapterService<'a> {
             target_id: target_id.to_string(),
             message: result.message,
             source_path: None,
+            target_source_id: request.target_source_id.clone(),
         })
     }
 }
@@ -248,7 +257,7 @@ mod tests {
         interface::contracts::{
             common::{ClientKind, ResourceKind},
             detect::{DetectClientsRequest, DetectionStatus},
-            list::ListResourcesRequest,
+            list::{ListResourcesRequest, ResourceViewMode},
             mutate::{MutateResourceRequest, MutationAction},
         },
     };
@@ -288,11 +297,16 @@ mod tests {
                 client: Some(ClientKind::Cursor),
                 resource_kind: ResourceKind::Skill,
                 enabled: None,
+                project_root: Some("/tmp/project".to_string()),
+                view_mode: ResourceViewMode::AllSources,
+                scope_filter: None,
             })
             .expect("skill list should resolve through skill listing service");
 
         assert_eq!(response.client, Some(ClientKind::Cursor));
         assert!(matches!(response.resource_kind, ResourceKind::Skill));
+        assert_eq!(response.project_root.as_deref(), Some("/tmp/project"));
+        assert!(matches!(response.view_mode, ResourceViewMode::AllSources));
     }
 
     #[test]
@@ -306,6 +320,9 @@ mod tests {
                 client: None,
                 resource_kind: ResourceKind::Skill,
                 enabled: None,
+                project_root: None,
+                view_mode: ResourceViewMode::Effective,
+                scope_filter: None,
             })
             .expect_err("skill listing should require a client");
 
@@ -324,6 +341,8 @@ mod tests {
                 resource_kind: ResourceKind::Mcp,
                 action: MutationAction::Add,
                 target_id: "  ".to_string(),
+                project_root: None,
+                target_source_id: None,
                 payload: None,
             })
             .expect_err("blank target_id should fail validation");
@@ -351,6 +370,8 @@ mod tests {
                 resource_kind: ResourceKind::Mcp,
                 action: MutationAction::Add,
                 target_id: "cursor-mcp".to_string(),
+                project_root: None,
+                target_source_id: None,
                 payload: Some(json!({
                     "target_path": target.display().to_string(),
                     "content": "{\"before\":false}"
@@ -386,6 +407,8 @@ mod tests {
                 resource_kind: ResourceKind::Mcp,
                 action: MutationAction::Add,
                 target_id: "cursor-mcp".to_string(),
+                project_root: None,
+                target_source_id: None,
                 payload: Some(json!({
                     "target_path": target.display().to_string(),
                     "content": "{\"before\":false}",
@@ -419,6 +442,8 @@ mod tests {
                 resource_kind: ResourceKind::Mcp,
                 action: MutationAction::Add,
                 target_id: "filesystem".to_string(),
+                project_root: None,
+                target_source_id: Some("mcp::user::/tmp/claude.json".to_string()),
                 payload: Some(json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx", "args": ["-y", "server"] },
@@ -436,6 +461,10 @@ mod tests {
         assert_eq!(
             response.source_path.as_deref(),
             Some(expected_source_path.as_str())
+        );
+        assert_eq!(
+            response.target_source_id.as_deref(),
+            Some("mcp::user::/tmp/claude.json")
         );
         assert!(content.contains("filesystem"));
     }
@@ -458,6 +487,8 @@ mod tests {
                 resource_kind: ResourceKind::Skill,
                 action: MutationAction::Add,
                 target_id: "python-refactor".to_string(),
+                project_root: None,
+                target_source_id: None,
                 payload: Some(json!({
                     "skills_dir": temp_dir.display().to_string(),
                     "manifest": "# Python Refactor\n\nRefactor Python code safely.\n"

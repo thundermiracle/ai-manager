@@ -4,6 +4,7 @@ mod client_profile;
 mod mutation_action;
 mod resource_kind;
 mod resource_record;
+mod resource_source;
 
 pub use client_adapter::{AdapterListResult, AdapterMutationResult, ClientAdapter};
 pub use client_kind::ClientKind;
@@ -11,3 +12,4 @@ pub use client_profile::{CLAUDE_CODE_PROFILE, CODEX_PROFILE, CURSOR_PROFILE, Cli
 pub use mutation_action::MutationAction;
 pub use resource_kind::ResourceKind;
 pub use resource_record::ResourceRecord;
+pub use resource_source::{ResourceSourceMetadata, ResourceSourceScope};
