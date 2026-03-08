@@ -9,6 +9,7 @@ use crate::{
         },
         project_context_resolver::ProjectContextResolver,
         skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
+        subagent::listing_service::SubagentListingService,
     },
     infra::{AdapterRegistry, DetectorRegistry, MutationTestHooks, SafeFileMutator},
     interface::contracts::{
@@ -80,6 +81,26 @@ impl<'a> AdapterService<'a> {
             )));
         };
         let _adapter_probe = adapter.list_resources(request.resource_kind);
+
+        if matches!(request.resource_kind, ResourceKind::Subagent) {
+            let subagent_listing_service = SubagentListingService::new();
+            let result = subagent_listing_service.list(
+                client,
+                request.project_root.as_deref(),
+                request.enabled,
+                request.view_mode,
+                request.scope_filter.as_deref(),
+            );
+
+            return Ok(ListResourcesResponse {
+                client: Some(client),
+                resource_kind: request.resource_kind,
+                project_root: request.project_root,
+                view_mode: request.view_mode,
+                items: result.items,
+                warning: result.warning,
+            });
+        }
 
         let skill_listing_service = SkillListingService::new();
         let result =
@@ -188,6 +209,12 @@ impl<'a> AdapterService<'a> {
                 source_path: Some(outcome.source_path),
                 target_source_id: request.target_source_id.clone(),
             });
+        }
+
+        if matches!(request.resource_kind, ResourceKind::Subagent) {
+            return Err(CommandError::not_implemented(
+                "Subagent mutations are not implemented yet.",
+            ));
         }
 
         let Some(adapter) = self.adapter_registry.find(request.client) else {
@@ -428,6 +455,50 @@ mod tests {
     }
 
     #[test]
+    fn list_resources_routes_subagent_requests_to_native_claude_listing() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+        let project_root = std::env::temp_dir().join(format!(
+            "ai-manager-subagent-project-context-{}",
+            std::process::id()
+        ));
+        let subagent_dir = project_root.join(".claude").join("agents");
+        let _ = fs::create_dir_all(&subagent_dir);
+        fs::write(
+            subagent_dir.join("reviewer.md"),
+            r#"---
+name: reviewer
+description: Reviews pull requests.
+---
+"#,
+        )
+        .expect("should create project subagent");
+
+        let response = service
+            .list_resources(ListResourcesRequest {
+                client: Some(ClientKind::ClaudeCode),
+                resource_kind: ResourceKind::Subagent,
+                enabled: None,
+                project_root: Some(project_root.display().to_string()),
+                view_mode: ResourceViewMode::Effective,
+                scope_filter: Some(vec![crate::domain::ResourceSourceScope::ProjectShared]),
+            })
+            .expect("subagent list should resolve through native listing service");
+
+        let _ = fs::remove_dir_all(&project_root);
+
+        assert_eq!(response.client, Some(ClientKind::ClaudeCode));
+        assert!(matches!(response.resource_kind, ResourceKind::Subagent));
+        assert_eq!(response.items.len(), 1);
+        assert_eq!(response.items[0].logical_id, "reviewer");
+        assert_eq!(
+            response.items[0].source_scope,
+            crate::domain::ResourceSourceScope::ProjectShared
+        );
+    }
+
+    #[test]
     fn mutate_resource_validates_target_id_before_adapter_call() {
         let adapter_registry = AdapterRegistry::with_default_adapters();
         let detector_registry = DetectorRegistry::with_default_detectors();
@@ -660,5 +731,26 @@ mod tests {
             Some(expected_source_path.as_str())
         );
         assert!(content.contains("Python Refactor"));
+    }
+
+    #[test]
+    fn mutate_resource_rejects_subagent_mutations_until_supported() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+
+        let error = service
+            .mutate_resource(&MutateResourceRequest {
+                client: ClientKind::ClaudeCode,
+                resource_kind: ResourceKind::Subagent,
+                action: MutationAction::Add,
+                target_id: "reviewer".to_string(),
+                project_root: None,
+                target_source_id: None,
+                payload: None,
+            })
+            .expect_err("subagent mutations should remain unimplemented");
+
+        assert!(error.message.contains("Subagent mutations"));
     }
 }

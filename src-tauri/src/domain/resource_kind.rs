@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum ResourceKind {
     Mcp,
     Skill,
+    Subagent,
 }
 
 impl ResourceKind {
@@ -12,6 +13,7 @@ impl ResourceKind {
         match self {
             Self::Mcp => "mcp",
             Self::Skill => "skill",
+            Self::Subagent => "subagent",
         }
     }
 }

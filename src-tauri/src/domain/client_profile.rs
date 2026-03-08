@@ -7,6 +7,10 @@ const CLAUDE_MCP_SCOPES: &[ResourceSourceScope] = &[
     ResourceSourceScope::ProjectShared,
     ResourceSourceScope::ProjectPrivate,
 ];
+const CLAUDE_SUBAGENT_SCOPES: &[ResourceSourceScope] = &[
+    ResourceSourceScope::User,
+    ResourceSourceScope::ProjectShared,
+];
 const CURSOR_MCP_SCOPES: &[ResourceSourceScope] = &[
     ResourceSourceScope::User,
     ResourceSourceScope::ProjectShared,
@@ -32,8 +36,10 @@ impl ResourceScopeCapabilities {
 pub struct ClientCapabilities {
     pub supports_mcp: bool,
     pub supports_skills: bool,
+    pub supports_subagents: bool,
     pub mcp: Option<ResourceScopeCapabilities>,
     pub skills: Option<ResourceScopeCapabilities>,
+    pub subagents: Option<ResourceScopeCapabilities>,
 }
 
 impl ClientCapabilities {
@@ -41,6 +47,7 @@ impl ClientCapabilities {
         match resource_kind {
             ResourceKind::Mcp => self.mcp,
             ResourceKind::Skill => self.skills,
+            ResourceKind::Subagent => self.subagents,
         }
     }
 
@@ -89,6 +96,7 @@ pub const CLAUDE_CODE_PROFILE: ClientProfile = ClientProfile {
     capabilities: ClientCapabilities {
         supports_mcp: true,
         supports_skills: true,
+        supports_subagents: true,
         mcp: Some(ResourceScopeCapabilities {
             source_scopes: CLAUDE_MCP_SCOPES,
             destination_scopes: CLAUDE_MCP_SCOPES,
@@ -96,6 +104,10 @@ pub const CLAUDE_CODE_PROFILE: ClientProfile = ClientProfile {
         skills: Some(ResourceScopeCapabilities {
             source_scopes: USER_ONLY_SCOPES,
             destination_scopes: USER_ONLY_SCOPES,
+        }),
+        subagents: Some(ResourceScopeCapabilities {
+            source_scopes: CLAUDE_SUBAGENT_SCOPES,
+            destination_scopes: CLAUDE_SUBAGENT_SCOPES,
         }),
     },
 };
@@ -107,6 +119,7 @@ pub const CODEX_PROFILE: ClientProfile = ClientProfile {
     capabilities: ClientCapabilities {
         supports_mcp: true,
         supports_skills: true,
+        supports_subagents: false,
         mcp: Some(ResourceScopeCapabilities {
             source_scopes: USER_ONLY_SCOPES,
             destination_scopes: USER_ONLY_SCOPES,
@@ -115,6 +128,7 @@ pub const CODEX_PROFILE: ClientProfile = ClientProfile {
             source_scopes: USER_ONLY_SCOPES,
             destination_scopes: USER_ONLY_SCOPES,
         }),
+        subagents: None,
     },
 };
 
@@ -125,6 +139,7 @@ pub const CURSOR_PROFILE: ClientProfile = ClientProfile {
     capabilities: ClientCapabilities {
         supports_mcp: true,
         supports_skills: true,
+        supports_subagents: false,
         mcp: Some(ResourceScopeCapabilities {
             source_scopes: CURSOR_MCP_SCOPES,
             destination_scopes: CURSOR_MCP_SCOPES,
@@ -133,6 +148,7 @@ pub const CURSOR_PROFILE: ClientProfile = ClientProfile {
             source_scopes: USER_ONLY_SCOPES,
             destination_scopes: USER_ONLY_SCOPES,
         }),
+        subagents: None,
     },
 };
 
@@ -211,6 +227,36 @@ mod tests {
             assert_eq!(
                 capabilities.destination_scopes_for(ResourceKind::Skill),
                 &[ResourceSourceScope::User]
+            );
+        }
+    }
+
+    #[test]
+    fn subagent_support_is_claude_only_with_project_and_user_scopes() {
+        let claude_capabilities = profile_for_client(ClientKind::ClaudeCode).capabilities;
+        assert!(claude_capabilities.supports_subagents);
+        assert_eq!(
+            claude_capabilities.source_scopes_for(ResourceKind::Subagent),
+            &[
+                ResourceSourceScope::User,
+                ResourceSourceScope::ProjectShared
+            ]
+        );
+        assert_eq!(
+            claude_capabilities.destination_scopes_for(ResourceKind::Subagent),
+            &[
+                ResourceSourceScope::User,
+                ResourceSourceScope::ProjectShared
+            ]
+        );
+
+        for client in [ClientKind::Codex, ClientKind::Cursor] {
+            let capabilities = profile_for_client(client).capabilities;
+            assert!(!capabilities.supports_subagents);
+            assert!(
+                capabilities
+                    .source_scopes_for(ResourceKind::Subagent)
+                    .is_empty()
             );
         }
     }

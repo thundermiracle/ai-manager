@@ -109,4 +109,20 @@ mod tests {
             ));
         }
     }
+
+    #[test]
+    fn service_exposes_claude_only_subagent_support() {
+        let service = ClientCapabilityService::new();
+
+        assert!(service.supports_source(
+            ClientKind::ClaudeCode,
+            ResourceKind::Subagent,
+            ResourceSourceScope::ProjectShared
+        ));
+        assert!(!service.supports_source(
+            ClientKind::Cursor,
+            ResourceKind::Subagent,
+            ResourceSourceScope::ProjectShared
+        ));
+    }
 }

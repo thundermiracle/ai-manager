@@ -6,6 +6,7 @@ mod detection;
 mod mcp;
 mod project_context_resolver;
 mod skill;
+mod subagent;
 
 pub use adapter_service::AdapterService;
 pub use capability::client_capability_service::ClientCapabilityService;
