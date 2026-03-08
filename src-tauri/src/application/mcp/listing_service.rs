@@ -1,13 +1,20 @@
-use std::fs;
+use std::{collections::HashMap, fs, io};
+
+use serde_json::{Value, json};
 
 use crate::{
     domain::{ResourceSourceMetadata, ResourceSourceScope},
     infra::DetectorRegistry,
     infra::parsers::{ParseOutcome, ParserRegistry},
     interface::contracts::{
-        detect::{ClientDetection, DetectClientsRequest},
+        common::ClientKind,
+        detect::DetectClientsRequest,
         list::{ListResourcesRequest, ResourceRecord},
     },
+};
+
+use super::source_catalog_service::{
+    McpSourceCatalogService, McpSourceDescriptor, McpSourceStorageKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,83 +37,101 @@ impl<'a> McpListingService<'a> {
     }
 
     pub fn list(&self, request: &ListResourcesRequest) -> McpListResult {
-        let detect_request = DetectClientsRequest {
-            include_versions: false,
-        };
-        let detections: Vec<ClientDetection> = match request.client {
-            Some(client) => self
-                .detector_registry
-                .find(client)
-                .map(|detector| vec![detector.detect(&detect_request)])
-                .unwrap_or_default(),
-            None => self
-                .detector_registry
-                .all()
-                .map(|detector| detector.detect(&detect_request))
-                .collect(),
-        };
+        let source_catalog_service = McpSourceCatalogService::new(self.detector_registry);
+        let descriptors = requested_clients(self.detector_registry, request.client)
+            .into_iter()
+            .flat_map(|client| {
+                source_catalog_service.list_sources(client, request.project_root.as_deref())
+            })
+            .collect::<Vec<_>>();
 
-        collect_from_detections(&self.parser_registry, detections, request, |path| {
-            fs::read_to_string(path).map_err(|error| error.to_string())
+        collect_from_descriptors(&self.parser_registry, descriptors, request, |path| {
+            fs::read_to_string(path)
         })
     }
 }
 
-fn collect_from_detections<I, F>(
+fn requested_clients(
+    detector_registry: &DetectorRegistry,
+    client_filter: Option<ClientKind>,
+) -> Vec<ClientKind> {
+    let detect_request = DetectClientsRequest {
+        include_versions: false,
+    };
+
+    match client_filter {
+        Some(client) => vec![client],
+        None => detector_registry
+            .all()
+            .map(|detector| detector.detect(&detect_request).client)
+            .collect(),
+    }
+}
+
+fn collect_from_descriptors<I, F>(
     parser_registry: &ParserRegistry,
-    detections: I,
+    descriptors: I,
     request: &ListResourcesRequest,
     read_source: F,
 ) -> McpListResult
 where
-    I: IntoIterator<Item = ClientDetection>,
-    F: Fn(&str) -> Result<String, String>,
+    I: IntoIterator<Item = McpSourceDescriptor>,
+    F: Fn(&str) -> io::Result<String>,
 {
     let mut items: Vec<ResourceRecord> = Vec::new();
     let mut warnings: Vec<String> = Vec::new();
-    let scope_filter_excludes_user = request
-        .scope_filter
-        .as_ref()
-        .is_some_and(|scopes| !scopes.contains(&ResourceSourceScope::User));
-
-    if scope_filter_excludes_user {
-        return McpListResult {
-            items,
-            warning: None,
-        };
-    }
-
-    for detection in detections {
-        let client = detection.client;
-
-        if let Some(client_filter) = request.client
-            && client != client_filter
+    for descriptor in descriptors {
+        if request
+            .scope_filter
+            .as_ref()
+            .is_some_and(|scopes| !scopes.contains(&descriptor.source_scope))
         {
             continue;
         }
 
-        let Some(config_path) = detection.evidence.config_path.as_deref() else {
-            continue;
-        };
-
-        let source = match read_source(config_path) {
+        let source = match read_source(&descriptor.container_path.display().to_string()) {
             Ok(source) => source,
             Err(error) => {
+                if error.kind() == io::ErrorKind::NotFound {
+                    continue;
+                }
                 warnings.push(format!(
                     "[{}:CONFIG_READ] failed to read '{}': {}",
-                    client.as_str(),
-                    config_path,
+                    descriptor.client.as_str(),
+                    descriptor.container_path.display(),
                     error
                 ));
                 continue;
             }
         };
 
-        let parse_outcome = parser_registry.parse_client_config(client, &source);
+        let Some(parse_input) = (match build_parse_input(&descriptor, &source) {
+            Ok(parse_input) => parse_input,
+            Err(error) => {
+                let warning_code = if error.starts_with("Invalid JSON payload:") {
+                    "PARSER_JSON_SYNTAX"
+                } else {
+                    "CONFIG_SECTION_INVALID"
+                };
+                warnings.push(format!(
+                    "[{}:{}] failed to resolve '{}' in '{}': {}",
+                    descriptor.client.as_str(),
+                    warning_code,
+                    descriptor.selector,
+                    descriptor.container_path.display(),
+                    error
+                ));
+                continue;
+            }
+        }) else {
+            continue;
+        };
+
+        let parse_outcome = parser_registry.parse_client_config(descriptor.client, &parse_input);
         for warning in parse_outcome.warnings() {
             warnings.push(format!(
                 "[{}:{}] {}",
-                client.as_str(),
+                descriptor.client.as_str(),
                 warning.code,
                 warning.message
             ));
@@ -114,8 +139,6 @@ where
 
         match parse_outcome {
             ParseOutcome::Success { data, .. } => {
-                let source_id = format!("mcp::user::{}", config_path);
-                let source_label = "Personal config";
                 for server in data.mcp_servers {
                     if let Some(enabled_filter) = request.enabled
                         && server.enabled != enabled_filter
@@ -126,18 +149,23 @@ where
                     let logical_id = server.name.clone();
                     items.push(
                         ResourceRecord {
-                            id: format!("{}::mcp::{}::{}", client.as_str(), source_id, logical_id),
+                            id: format!(
+                                "{}::mcp::{}::{}",
+                                descriptor.client.as_str(),
+                                descriptor.source_id,
+                                logical_id
+                            ),
                             logical_id,
-                            client,
+                            client: descriptor.client,
                             display_name: server.name,
                             enabled: server.enabled,
                             transport_kind: Some(server.transport_kind),
                             transport_command: server.transport_command,
                             transport_args: Some(server.transport_args),
                             transport_url: server.transport_url,
-                            source_path: Some(config_path.to_string()),
+                            source_path: Some(descriptor.container_path.display().to_string()),
                             source_id: String::new(),
-                            source_scope: ResourceSourceScope::User,
+                            source_scope: descriptor.source_scope,
                             source_label: String::new(),
                             is_effective: true,
                             shadowed_by: None,
@@ -145,9 +173,13 @@ where
                             install_kind: None,
                             manifest_content: None,
                         }
-                        .with_source_metadata(
-                            ResourceSourceMetadata::personal(source_id.clone(), source_label),
-                        ),
+                        .with_source_metadata(ResourceSourceMetadata {
+                            source_id: descriptor.source_id.clone(),
+                            source_scope: descriptor.source_scope,
+                            source_label: descriptor.source_label.clone(),
+                            is_effective: true,
+                            shadowed_by: None,
+                        }),
                     );
                 }
             }
@@ -155,13 +187,21 @@ where
                 for error in errors {
                     warnings.push(format!(
                         "[{}:{}] {}",
-                        client.as_str(),
+                        descriptor.client.as_str(),
                         error.code,
                         error.message
                     ));
                 }
             }
         }
+    }
+
+    apply_effective_precedence(&mut items);
+    if !matches!(
+        request.view_mode,
+        crate::interface::contracts::list::ResourceViewMode::AllSources
+    ) {
+        items.retain(|item| item.is_effective);
     }
 
     items.sort_by(|left, right| {
@@ -183,25 +223,124 @@ where
     }
 }
 
+fn build_parse_input(
+    descriptor: &McpSourceDescriptor,
+    source: &str,
+) -> Result<Option<String>, String> {
+    match descriptor.storage_kind {
+        McpSourceStorageKind::JsonSection => select_json_mcp_section(source, &descriptor.selector),
+        McpSourceStorageKind::TomlTable => Ok(Some(source.to_string())),
+    }
+}
+
+fn select_json_mcp_section(source: &str, selector: &str) -> Result<Option<String>, String> {
+    let parsed = serde_json::from_str::<Value>(source)
+        .map_err(|error| format!("Invalid JSON payload: {error}"))?;
+    let Some(section) = parsed.pointer(selector) else {
+        return Ok(None);
+    };
+    let Some(section_object) = section.as_object() else {
+        return Err("Selected MCP section must be an object map.".to_string());
+    };
+
+    let synthetic_root = json!({
+        "mcpServers": Value::Object(section_object.clone())
+    });
+
+    Ok(Some(synthetic_root.to_string()))
+}
+
+fn apply_effective_precedence(items: &mut [ResourceRecord]) {
+    let mut indices_by_resource: HashMap<(String, String), Vec<usize>> = HashMap::new();
+
+    for (index, item) in items.iter().enumerate() {
+        indices_by_resource
+            .entry((item.client.as_str().to_string(), item.logical_id.clone()))
+            .or_default()
+            .push(index);
+    }
+
+    for indices in indices_by_resource.values() {
+        let Some((&winner_index, rest)) = indices.split_first() else {
+            continue;
+        };
+
+        let winner_index = rest
+            .iter()
+            .copied()
+            .fold(winner_index, |current, candidate| {
+                if precedence_key(&items[candidate]) < precedence_key(&items[current]) {
+                    candidate
+                } else {
+                    current
+                }
+            });
+
+        let winner_id = items[winner_index].id.clone();
+        for index in indices {
+            let item = &mut items[*index];
+            item.is_effective = *index == winner_index;
+            item.shadowed_by = (*index != winner_index).then(|| winner_id.clone());
+        }
+    }
+}
+
+fn precedence_key(item: &ResourceRecord) -> (u8, &str, &str) {
+    (
+        precedence_rank(item.client, item.source_scope),
+        item.source_id.as_str(),
+        item.id.as_str(),
+    )
+}
+
+fn precedence_rank(client: ClientKind, scope: ResourceSourceScope) -> u8 {
+    match client {
+        ClientKind::ClaudeCode => match scope {
+            ResourceSourceScope::ProjectPrivate => 0,
+            ResourceSourceScope::ProjectShared => 1,
+            ResourceSourceScope::User => 2,
+        },
+        ClientKind::Cursor => match scope {
+            ResourceSourceScope::ProjectShared => 0,
+            ResourceSourceScope::User => 1,
+            ResourceSourceScope::ProjectPrivate => 2,
+        },
+        ClientKind::Codex => 0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, io};
 
+    use crate::McpSourceDescriptor;
+    use crate::McpSourceStorageKind;
     use crate::interface::contracts::{
         common::{ClientKind, ResourceKind},
-        detect::{ClientDetection, DetectionEvidence, DetectionStatus},
         list::{ListResourcesRequest, ResourceViewMode},
     };
     use crate::{domain::ResourceSourceScope, infra::parsers::ParserRegistry};
 
-    use super::collect_from_detections;
+    use super::collect_from_descriptors;
 
     #[test]
     fn unified_mcp_listing_normalizes_entries_from_multiple_clients() {
-        let detections = vec![
-            detection(ClientKind::ClaudeCode, Some("/fixtures/claude.json")),
-            detection(ClientKind::Codex, Some("/fixtures/codex.toml")),
-            detection(ClientKind::Cursor, Some("/fixtures/cursor.json")),
+        let descriptors = vec![
+            descriptor(
+                ClientKind::ClaudeCode,
+                ResourceSourceScope::User,
+                "/fixtures/claude.json",
+            ),
+            descriptor(
+                ClientKind::Codex,
+                ResourceSourceScope::User,
+                "/fixtures/codex.toml",
+            ),
+            descriptor(
+                ClientKind::Cursor,
+                ResourceSourceScope::User,
+                "/fixtures/cursor.json",
+            ),
         ];
 
         let fixtures: HashMap<&str, &str> = HashMap::from([
@@ -245,10 +384,13 @@ enabled = false
         };
 
         let result =
-            collect_from_detections(&ParserRegistry::new(), detections, &request, |path| {
+            collect_from_descriptors(&ParserRegistry::new(), descriptors, &request, |path| {
                 match fixtures.get(path) {
                     Some(payload) => Ok((*payload).to_string()),
-                    None => Err(format!("missing fixture: {path}")),
+                    None => Err(io::Error::new(
+                        io::ErrorKind::NotFound,
+                        format!("missing fixture: {path}"),
+                    )),
                 }
             });
 
@@ -277,9 +419,17 @@ enabled = false
 
     #[test]
     fn listing_filters_by_client_and_enabled_state() {
-        let detections = vec![
-            detection(ClientKind::Codex, Some("/fixtures/codex.toml")),
-            detection(ClientKind::Cursor, Some("/fixtures/cursor.json")),
+        let descriptors = vec![
+            descriptor(
+                ClientKind::Codex,
+                ResourceSourceScope::User,
+                "/fixtures/codex.toml",
+            ),
+            descriptor(
+                ClientKind::Cursor,
+                ResourceSourceScope::User,
+                "/fixtures/cursor.json",
+            ),
         ];
 
         let fixtures: HashMap<&str, &str> = HashMap::from([
@@ -314,10 +464,13 @@ enabled = false
         };
 
         let result =
-            collect_from_detections(&ParserRegistry::new(), detections, &request, |path| {
+            collect_from_descriptors(&ParserRegistry::new(), descriptors, &request, |path| {
                 match fixtures.get(path) {
                     Some(payload) => Ok((*payload).to_string()),
-                    None => Err(format!("missing fixture: {path}")),
+                    None => Err(io::Error::new(
+                        io::ErrorKind::NotFound,
+                        format!("missing fixture: {path}"),
+                    )),
                 }
             });
 
@@ -329,9 +482,17 @@ enabled = false
 
     #[test]
     fn parse_errors_do_not_fail_whole_listing() {
-        let detections = vec![
-            detection(ClientKind::Cursor, Some("/fixtures/broken-cursor.json")),
-            detection(ClientKind::Codex, Some("/fixtures/codex.toml")),
+        let descriptors = vec![
+            descriptor(
+                ClientKind::Cursor,
+                ResourceSourceScope::User,
+                "/fixtures/broken-cursor.json",
+            ),
+            descriptor(
+                ClientKind::Codex,
+                ResourceSourceScope::User,
+                "/fixtures/codex.toml",
+            ),
         ];
 
         let fixtures: HashMap<&str, &str> = HashMap::from([
@@ -363,10 +524,13 @@ enabled = true
         };
 
         let result =
-            collect_from_detections(&ParserRegistry::new(), detections, &request, |path| {
+            collect_from_descriptors(&ParserRegistry::new(), descriptors, &request, |path| {
                 match fixtures.get(path) {
                     Some(payload) => Ok((*payload).to_string()),
-                    None => Err(format!("missing fixture: {path}")),
+                    None => Err(io::Error::new(
+                        io::ErrorKind::NotFound,
+                        format!("missing fixture: {path}"),
+                    )),
                 }
             });
 
@@ -380,18 +544,232 @@ enabled = true
         );
     }
 
-    fn detection(client: ClientKind, config_path: Option<&str>) -> ClientDetection {
-        ClientDetection {
-            client,
-            status: DetectionStatus::Detected,
-            confidence: 100,
-            evidence: DetectionEvidence {
-                binary_path: None,
-                app_path: None,
-                config_path: config_path.map(str::to_string),
-                version: None,
+    #[test]
+    fn project_scoped_sources_affect_effective_listing_and_shadowing() {
+        let project_root = "/fixtures/workspace";
+        let descriptors = vec![
+            descriptor(
+                ClientKind::ClaudeCode,
+                ResourceSourceScope::User,
+                "/fixtures/claude.json",
+            ),
+            descriptor(
+                ClientKind::ClaudeCode,
+                ResourceSourceScope::ProjectShared,
+                "/fixtures/workspace/.mcp.json",
+            ),
+            McpSourceDescriptor {
+                client: ClientKind::ClaudeCode,
+                source_id: format!(
+                    "mcp::claude_code::project_private::/fixtures/claude.json::/projects/{}/mcpServers",
+                    project_root.replace('/', "~1")
+                ),
+                source_scope: ResourceSourceScope::ProjectPrivate,
+                source_label: "Project private config".to_string(),
+                container_path: "/fixtures/claude.json".into(),
+                selector: format!("/projects/{}/mcpServers", project_root.replace('/', "~1")),
+                storage_kind: McpSourceStorageKind::JsonSection,
+                project_root: Some(project_root.to_string()),
             },
-            note: String::new(),
+        ];
+
+        let fixtures: HashMap<&str, &str> = HashMap::from([
+            (
+                "/fixtures/claude.json",
+                r#"{
+  "mcpServers": {
+    "filesystem": { "command": "npx", "enabled": true }
+  },
+  "projects": {
+    "/fixtures/workspace": {
+      "mcpServers": {
+        "github": { "url": "https://mcp.example.com/sse", "enabled": true }
+      }
+    }
+  }
+}"#,
+            ),
+            (
+                "/fixtures/workspace/.mcp.json",
+                r#"{
+  "mcpServers": {
+    "filesystem": { "command": "uvx", "enabled": true }
+  }
+}"#,
+            ),
+        ]);
+
+        let request = ListResourcesRequest {
+            client: Some(ClientKind::ClaudeCode),
+            resource_kind: ResourceKind::Mcp,
+            enabled: None,
+            project_root: Some(project_root.to_string()),
+            view_mode: ResourceViewMode::AllSources,
+            scope_filter: None,
+        };
+
+        let result =
+            collect_from_descriptors(&ParserRegistry::new(), descriptors, &request, |path| {
+                match fixtures.get(path) {
+                    Some(payload) => Ok((*payload).to_string()),
+                    None => Err(io::Error::new(
+                        io::ErrorKind::NotFound,
+                        format!("missing fixture: {path}"),
+                    )),
+                }
+            });
+
+        assert_eq!(result.items.len(), 3);
+        let filesystem_entries = result
+            .items
+            .iter()
+            .filter(|entry| entry.logical_id == "filesystem")
+            .collect::<Vec<_>>();
+        assert_eq!(filesystem_entries.len(), 2);
+        assert!(filesystem_entries.iter().any(|entry| {
+            entry.source_scope == ResourceSourceScope::ProjectShared && entry.is_effective
+        }));
+        assert!(filesystem_entries.iter().any(|entry| {
+            entry.source_scope == ResourceSourceScope::User
+                && !entry.is_effective
+                && entry.shadowed_by.is_some()
+        }));
+        assert!(result.items.iter().any(|entry| {
+            entry.logical_id == "github"
+                && entry.source_scope == ResourceSourceScope::ProjectPrivate
+                && entry.is_effective
+        }));
+
+        let effective_result = collect_from_descriptors(
+            &ParserRegistry::new(),
+            vec![
+                descriptor(
+                    ClientKind::ClaudeCode,
+                    ResourceSourceScope::User,
+                    "/fixtures/claude.json",
+                ),
+                descriptor(
+                    ClientKind::ClaudeCode,
+                    ResourceSourceScope::ProjectShared,
+                    "/fixtures/workspace/.mcp.json",
+                ),
+                McpSourceDescriptor {
+                    client: ClientKind::ClaudeCode,
+                    source_id: format!(
+                        "mcp::claude_code::project_private::/fixtures/claude.json::/projects/{}/mcpServers",
+                        project_root.replace('/', "~1")
+                    ),
+                    source_scope: ResourceSourceScope::ProjectPrivate,
+                    source_label: "Project private config".to_string(),
+                    container_path: "/fixtures/claude.json".into(),
+                    selector: format!("/projects/{}/mcpServers", project_root.replace('/', "~1")),
+                    storage_kind: McpSourceStorageKind::JsonSection,
+                    project_root: Some(project_root.to_string()),
+                },
+            ],
+            &ListResourcesRequest {
+                view_mode: ResourceViewMode::Effective,
+                ..request.clone()
+            },
+            |path| match fixtures.get(path) {
+                Some(payload) => Ok((*payload).to_string()),
+                None => Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("missing fixture: {path}"),
+                )),
+            },
+        );
+
+        assert_eq!(effective_result.items.len(), 2);
+        assert!(
+            effective_result
+                .items
+                .iter()
+                .all(|entry| entry.is_effective)
+        );
+
+        let scoped_result = collect_from_descriptors(
+            &ParserRegistry::new(),
+            vec![
+                descriptor(
+                    ClientKind::ClaudeCode,
+                    ResourceSourceScope::User,
+                    "/fixtures/claude.json",
+                ),
+                descriptor(
+                    ClientKind::ClaudeCode,
+                    ResourceSourceScope::ProjectShared,
+                    "/fixtures/workspace/.mcp.json",
+                ),
+                McpSourceDescriptor {
+                    client: ClientKind::ClaudeCode,
+                    source_id: format!(
+                        "mcp::claude_code::project_private::/fixtures/claude.json::/projects/{}/mcpServers",
+                        project_root.replace('/', "~1")
+                    ),
+                    source_scope: ResourceSourceScope::ProjectPrivate,
+                    source_label: "Project private config".to_string(),
+                    container_path: "/fixtures/claude.json".into(),
+                    selector: format!("/projects/{}/mcpServers", project_root.replace('/', "~1")),
+                    storage_kind: McpSourceStorageKind::JsonSection,
+                    project_root: Some(project_root.to_string()),
+                },
+            ],
+            &ListResourcesRequest {
+                scope_filter: Some(vec![ResourceSourceScope::ProjectShared]),
+                ..request
+            },
+            |path| match fixtures.get(path) {
+                Some(payload) => Ok((*payload).to_string()),
+                None => Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("missing fixture: {path}"),
+                )),
+            },
+        );
+
+        assert_eq!(scoped_result.items.len(), 1);
+        assert_eq!(
+            scoped_result.items[0].source_scope,
+            ResourceSourceScope::ProjectShared
+        );
+    }
+
+    fn descriptor(
+        client: ClientKind,
+        source_scope: ResourceSourceScope,
+        path: &str,
+    ) -> McpSourceDescriptor {
+        let selector = if matches!(client, ClientKind::Codex) {
+            "mcp_servers".to_string()
+        } else {
+            "/mcpServers".to_string()
+        };
+
+        McpSourceDescriptor {
+            client,
+            source_id: format!(
+                "mcp::{}::{}::{}::{}",
+                client.as_str(),
+                source_scope.as_str(),
+                path,
+                selector
+            ),
+            source_scope,
+            source_label: match source_scope {
+                ResourceSourceScope::User => "Personal config",
+                ResourceSourceScope::ProjectShared => "Project config",
+                ResourceSourceScope::ProjectPrivate => "Project private config",
+            }
+            .to_string(),
+            container_path: path.into(),
+            selector,
+            storage_kind: if matches!(client, ClientKind::Codex) {
+                McpSourceStorageKind::TomlTable
+            } else {
+                McpSourceStorageKind::JsonSection
+            },
+            project_root: None,
         }
     }
 }
