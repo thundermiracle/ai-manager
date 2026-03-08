@@ -9,6 +9,12 @@ import { formatClientLabel } from "./features/clients/client-labels";
 import { useClientDetections } from "./features/clients/useClientDetections";
 import { McpManagerPanel } from "./features/mcp/McpManagerPanel";
 import { type AppRoute, NAVIGATION_ITEMS } from "./features/navigation";
+import { ResourceContextBar } from "./features/resources/ResourceContextBar";
+import {
+  normalizeProjectRootInput,
+  type ResourceContextMode,
+  type ResourceContextState,
+} from "./features/resources/resource-context";
 import { SkillsManagerPanel } from "./features/skills/SkillsManagerPanel";
 import { cn } from "./lib/utils";
 import "./App.css";
@@ -24,20 +30,39 @@ function findSelectedDetection(
   return detections.find((entry) => entry.client === selectedClient) ?? null;
 }
 
-function renderRouteContent(route: AppRoute, selectedDetection: ClientDetection | null) {
+function renderRouteContent(
+  route: AppRoute,
+  selectedDetection: ClientDetection | null,
+  resourceContext: ResourceContextState,
+) {
   if (route === "dashboard") {
     return null;
   }
 
   if (route === "mcp") {
-    return <McpManagerPanel client={selectedDetection?.client ?? null} />;
+    return (
+      <McpManagerPanel
+        client={selectedDetection?.client ?? null}
+        contextMode={resourceContext.mode}
+        projectRoot={resourceContext.projectRoot}
+      />
+    );
   }
 
-  return <SkillsManagerPanel client={selectedDetection?.client ?? null} />;
+  return (
+    <SkillsManagerPanel
+      client={selectedDetection?.client ?? null}
+      contextMode={resourceContext.mode}
+      projectRoot={resourceContext.projectRoot}
+    />
+  );
 }
 
 function App() {
   const [activeRoute, setActiveRoute] = useState<AppRoute>("dashboard");
+  const [resourceContextMode, setResourceContextMode] = useState<ResourceContextMode>("personal");
+  const [draftProjectRoot, setDraftProjectRoot] = useState("");
+  const [projectRoot, setProjectRoot] = useState<string | null>(null);
   const {
     phase,
     detections,
@@ -53,10 +78,17 @@ function App() {
     () => findSelectedDetection(detections, selectedClient),
     [detections, selectedClient],
   );
+  const resourceContext = useMemo<ResourceContextState>(
+    () => ({
+      mode: resourceContextMode,
+      projectRoot: resourceContextMode === "project" ? projectRoot : null,
+    }),
+    [projectRoot, resourceContextMode],
+  );
 
   const featureContent = useMemo(
-    () => renderRouteContent(activeRoute, selectedDetection),
-    [activeRoute, selectedDetection],
+    () => renderRouteContent(activeRoute, selectedDetection, resourceContext),
+    [activeRoute, resourceContext, selectedDetection],
   );
   const isDashboardRoute = activeRoute === "dashboard";
 
@@ -223,6 +255,23 @@ function App() {
                 </div>
               </section>
             )}
+
+            {!isDashboardRoute ? (
+              <ResourceContextBar
+                mode={resourceContextMode}
+                draftProjectRoot={draftProjectRoot}
+                projectRoot={projectRoot}
+                onModeChange={setResourceContextMode}
+                onDraftProjectRootChange={setDraftProjectRoot}
+                onApplyProjectRoot={() =>
+                  setProjectRoot(normalizeProjectRootInput(draftProjectRoot))
+                }
+                onClearProjectRoot={() => {
+                  setDraftProjectRoot("");
+                  setProjectRoot(null);
+                }}
+              />
+            ) : null}
 
             {featureContent}
           </>

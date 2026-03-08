@@ -26,8 +26,9 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "package:macos:dmg": "node ./scripts/package-macos-dmg.mjs",
-    "test": "pnpm run test:contracts",
+    "test": "pnpm run test:contracts && pnpm run test:web:unit",
     "test:contracts": "node --test tests/error-ui-contract.test.mjs tests/normalized-domain-model.test.mjs tests/support-matrix.test.mjs tests/mvp-acceptance-contract.test.mjs",
+    "test:web:unit": "tsx --test tests/resource-context.test.ts",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -55,6 +56,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.3.2",
     "tailwindcss": "^4.2.1",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
   }
