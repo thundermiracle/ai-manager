@@ -1,9 +1,9 @@
 {
   "$schema": "../../schemas/support-matrix.schema.json",
-  "version": "1.0.0",
-  "updatedAt": "2026-03-04",
+  "version": "1.1.0",
+  "updatedAt": "2026-03-08",
   "resolutionPolicy": {
-    "precedence": "ascending_priority_per_kind",
+    "precedence": "per_resource_kind_scope_order_then_candidate_priority",
     "tieBreaker": "more_specific_os_match_then_lexicographic_path",
     "fallbackStrategy": "continue_to_next_candidate_until_exhausted"
   },
@@ -97,6 +97,57 @@
           "role": "fallback"
         }
       ],
+      "resourceKinds": {
+        "mcp": {
+          "currentSourceScopes": [
+            "user"
+          ],
+          "targetSourceScopes": [
+            "user",
+            "project_shared",
+            "project_private"
+          ],
+          "currentDestinationScopes": [
+            "user"
+          ],
+          "targetDestinationScopes": [
+            "user",
+            "project_shared",
+            "project_private"
+          ],
+          "effectivePrecedence": [
+            "project_private",
+            "project_shared",
+            "user"
+          ],
+          "projectScopeStatus": "planned",
+          "notes": [
+            "Project-shared MCP is sourced from {projectRoot}/.mcp.json.",
+            "Project-private MCP is sourced from ~/.claude.json under projects[{canonicalProjectRoot}].mcpServers."
+          ]
+        },
+        "skills": {
+          "currentSourceScopes": [
+            "user"
+          ],
+          "targetSourceScopes": [
+            "user"
+          ],
+          "currentDestinationScopes": [
+            "user"
+          ],
+          "targetDestinationScopes": [
+            "user"
+          ],
+          "effectivePrecedence": [
+            "user"
+          ],
+          "projectScopeStatus": "deferred",
+          "notes": [
+            "Claude project-scoped customization should be clarified via subagents in issue #110 before adding native project support."
+          ]
+        }
+      },
       "detectionEvidenceRequirements": [
         "binary_resolves",
         "mcp_config_readable",
@@ -185,6 +236,50 @@
           "role": "fallback"
         }
       ],
+      "resourceKinds": {
+        "mcp": {
+          "currentSourceScopes": [
+            "user"
+          ],
+          "targetSourceScopes": [
+            "user"
+          ],
+          "currentDestinationScopes": [
+            "user"
+          ],
+          "targetDestinationScopes": [
+            "user"
+          ],
+          "effectivePrecedence": [
+            "user"
+          ],
+          "projectScopeStatus": "not_applicable",
+          "notes": [
+            "Codex remains user-only until official upstream project-local MCP support exists."
+          ]
+        },
+        "skills": {
+          "currentSourceScopes": [
+            "user"
+          ],
+          "targetSourceScopes": [
+            "user"
+          ],
+          "currentDestinationScopes": [
+            "user"
+          ],
+          "targetDestinationScopes": [
+            "user"
+          ],
+          "effectivePrecedence": [
+            "user"
+          ],
+          "projectScopeStatus": "deferred",
+          "notes": [
+            "No native project-scoped skills source is documented for Codex. Generic repository handling remains separate from native support."
+          ]
+        }
+      },
       "detectionEvidenceRequirements": [
         "app_install_present",
         "mcp_config_readable",
@@ -291,6 +386,53 @@
           "role": "fallback"
         }
       ],
+      "resourceKinds": {
+        "mcp": {
+          "currentSourceScopes": [
+            "user"
+          ],
+          "targetSourceScopes": [
+            "user",
+            "project_shared"
+          ],
+          "currentDestinationScopes": [
+            "user"
+          ],
+          "targetDestinationScopes": [
+            "user",
+            "project_shared"
+          ],
+          "effectivePrecedence": [
+            "project_shared",
+            "user"
+          ],
+          "projectScopeStatus": "planned",
+          "notes": [
+            "Cursor project-scoped MCP is sourced from {projectRoot}/.cursor/mcp.json."
+          ]
+        },
+        "skills": {
+          "currentSourceScopes": [
+            "user"
+          ],
+          "targetSourceScopes": [
+            "user"
+          ],
+          "currentDestinationScopes": [
+            "user"
+          ],
+          "targetDestinationScopes": [
+            "user"
+          ],
+          "effectivePrecedence": [
+            "user"
+          ],
+          "projectScopeStatus": "deferred",
+          "notes": [
+            "Project-scoped skills remain deferred until the product taxonomy is clarified in issue #110."
+          ]
+        }
+      },
       "detectionEvidenceRequirements": [
         "mcp_config_readable",
         "skills_dir_accessible",
