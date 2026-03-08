@@ -20,6 +20,7 @@ export interface McpCopyFormState {
   sourceProjectRoot: string | null;
   destinationClient: ClientKind;
   targetId: string;
+  overwrite: boolean;
   transportPreview: string;
   localError: string | null;
 }
@@ -48,6 +49,7 @@ interface UseMcpCopyFormResult {
   setMode: (value: McpReplicationAction) => void;
   setDestinationClient: (value: ClientKind) => void;
   setTargetId: (value: string) => void;
+  setOverwrite: (value: boolean) => void;
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
@@ -114,6 +116,7 @@ const DEFAULT_STATE: McpCopyFormState = {
   sourceProjectRoot: null,
   destinationClient: "claude_code",
   targetId: "",
+  overwrite: false,
   transportPreview: "",
   localError: null,
 };
@@ -143,6 +146,7 @@ export function useMcpCopyForm({
       destinationClient:
         mode === "promote" ? resource.client : pickDefaultDestination(resource.client),
       targetId: resource.display_name,
+      overwrite: false,
       transportPreview: transport.preview,
       localError: transport.error,
     });
@@ -158,6 +162,7 @@ export function useMcpCopyForm({
       mode: current.availableModes.includes(value) ? value : current.mode,
       destinationClient:
         value === "promote" ? current.sourceClient : pickDefaultDestination(current.sourceClient),
+      overwrite: false,
       localError: null,
     }));
   }, []);
@@ -166,12 +171,17 @@ export function useMcpCopyForm({
     setState((current) => ({
       ...current,
       destinationClient: value,
+      overwrite: false,
       localError: null,
     }));
   }, []);
 
   const setTargetId = useCallback((value: string) => {
-    setState((current) => ({ ...current, targetId: value }));
+    setState((current) => ({ ...current, targetId: value, overwrite: false }));
+  }, []);
+
+  const setOverwrite = useCallback((value: boolean) => {
+    setState((current) => ({ ...current, overwrite: value, localError: null }));
   }, []);
 
   const submit = useCallback(
@@ -217,6 +227,7 @@ export function useMcpCopyForm({
         destinationProjectRoot: destination.projectRoot,
         destinationSourceId: destination.targetSourceId,
         sourceLabel: state.sourceLabel,
+        overwrite: state.overwrite,
       });
 
       if (accepted) {
@@ -234,6 +245,7 @@ export function useMcpCopyForm({
     setMode,
     setDestinationClient,
     setTargetId,
+    setOverwrite,
     submit,
   };
 }

@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 
-import type { ClientKind } from "../../backend/contracts";
+import type { ClientKind, ResourceRecord } from "../../backend/contracts";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -19,9 +19,12 @@ interface McpCopyFormProps {
   disabled: boolean;
   state: McpCopyFormState;
   destinationPlan: McpMutationTargetPlan;
+  conflictResource: ResourceRecord | null;
+  suggestedTargetId: string | null;
   onModeChange: (value: McpReplicationAction) => void;
   onDestinationClientChange: (value: ClientKind) => void;
   onTargetIdChange: (value: string) => void;
+  onOverwriteChange: (value: boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   className?: string;
 }
@@ -30,14 +33,18 @@ export function McpCopyForm({
   disabled,
   state,
   destinationPlan,
+  conflictResource,
+  suggestedTargetId,
   onModeChange,
   onDestinationClientChange,
   onTargetIdChange,
+  onOverwriteChange,
   onSubmit,
   className,
 }: McpCopyFormProps) {
   const destinationOptions = buildMcpCopyDestinationClients(state.sourceClient);
   const submitLabel = describeMcpAction(state.mode, destinationPlan);
+  const hasConflict = conflictResource !== null;
 
   return (
     <form
@@ -57,6 +64,43 @@ export function McpCopyForm({
       </Alert>
       {destinationPlan.fallbackNotice ? (
         <Alert variant="warning">{destinationPlan.fallbackNotice}</Alert>
+      ) : null}
+      {conflictResource ? (
+        <Alert variant="warning" className="grid gap-3">
+          <div>
+            <strong>{conflictResource.display_name}</strong> already exists in{" "}
+            <strong>{conflictResource.source_label}</strong> for{" "}
+            <strong>{formatClientLabel(conflictResource.client)}</strong>. Rename the target ID,
+            enable overwrite, or cancel this action.
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {suggestedTargetId ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onTargetIdChange(suggestedTargetId)}
+                disabled={disabled}
+              >
+                Use {suggestedTargetId}
+              </Button>
+            ) : null}
+            <label
+              className="flex items-center gap-2 text-sm text-slate-800"
+              htmlFor="mcp-copy-overwrite"
+            >
+              <input
+                id="mcp-copy-overwrite"
+                className="size-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                type="checkbox"
+                checked={state.overwrite}
+                onChange={(event) => onOverwriteChange(event.currentTarget.checked)}
+                disabled={disabled}
+              />
+              Overwrite the existing destination entry
+            </label>
+          </div>
+        </Alert>
       ) : null}
 
       <Label>Source</Label>
@@ -131,7 +175,11 @@ export function McpCopyForm({
 
       <Button
         type="submit"
-        disabled={disabled || (state.mode === "copy" && destinationOptions.length === 0)}
+        disabled={
+          disabled ||
+          (state.mode === "copy" && destinationOptions.length === 0) ||
+          (hasConflict && !state.overwrite)
+        }
       >
         {submitLabel}
       </Button>

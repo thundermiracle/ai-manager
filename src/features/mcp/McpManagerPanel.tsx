@@ -21,6 +21,7 @@ import { McpCopyForm } from "./McpCopyForm";
 import { McpEditForm } from "./McpEditForm";
 import { McpResourceTable } from "./McpResourceTable";
 import { buildResourceTransportChecksum } from "./mcp-checksum";
+import { findMcpReplicationConflict, suggestMcpReplicationTargetId } from "./mcp-replication";
 import {
   buildMcpMutationTargetPlan,
   buildMcpProjectModeHint,
@@ -92,6 +93,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
   const {
     phase,
     resources,
+    sourceAwareResources,
     resolvedProjectRoot,
     warning,
     operationError,
@@ -167,6 +169,33 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
       effectiveProjectRoot,
     ],
   );
+  const copyDestinationResources = useMemo(
+    () =>
+      sourceAwareResources.filter((resource) =>
+        matchesMcpDestination(resource, copyDestinationPlan),
+      ),
+    [copyDestinationPlan, sourceAwareResources],
+  );
+  const copyConflict = useMemo(
+    () =>
+      findMcpReplicationConflict(
+        copyDestinationResources,
+        copyDestinationPlan,
+        copyForm.state.targetId,
+      ),
+    [copyDestinationPlan, copyDestinationResources, copyForm.state.targetId],
+  );
+  const copySuggestedTargetId = useMemo(() => {
+    if (copyConflict === null) {
+      return null;
+    }
+
+    return suggestMcpReplicationTargetId(
+      copyDestinationResources,
+      copyDestinationPlan,
+      copyForm.state.targetId,
+    );
+  }, [copyConflict, copyDestinationPlan, copyDestinationResources, copyForm.state.targetId]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const resourcesById = useMemo(
@@ -492,9 +521,12 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
           disabled={phase === "loading" || pendingReplicationId !== null}
           state={copyForm.state}
           destinationPlan={copyDestinationPlan}
+          conflictResource={copyConflict}
+          suggestedTargetId={copySuggestedTargetId}
           onModeChange={copyForm.setMode}
           onDestinationClientChange={copyForm.setDestinationClient}
           onTargetIdChange={copyForm.setTargetId}
+          onOverwriteChange={copyForm.setOverwrite}
           onSubmit={copyForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />
