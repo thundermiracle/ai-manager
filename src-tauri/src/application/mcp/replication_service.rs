@@ -420,6 +420,84 @@ mod tests {
     }
 
     #[test]
+    fn replicate_overwrites_existing_destination_when_requested() {
+        let _guard = env_lock().lock().expect("env lock should be available");
+        let temp_root = temp_dir("copy-overwrite");
+        let claude_path = temp_root.join(".claude.json");
+        let cursor_path = temp_root.join(".cursor").join("mcp.json");
+        fs::create_dir_all(cursor_path.parent().expect("cursor parent should exist"))
+            .expect("cursor directory should be writable");
+        fs::write(
+            &claude_path,
+            r#"{
+  "mcpServers": {
+    "filesystem": { "command": "npx", "args": ["-y", "@mcp/server-filesystem"], "enabled": true }
+  }
+}"#,
+        )
+        .expect("claude source should be writable");
+        fs::write(
+            &cursor_path,
+            r#"{
+  "mcpServers": {
+    "filesystem": { "command": "cursor-filesystem", "enabled": true }
+  }
+}"#,
+        )
+        .expect("cursor config should be writable");
+
+        let previous_claude = std::env::var("AI_MANAGER_CLAUDE_CODE_MCP_CONFIG").ok();
+        let previous_cursor = std::env::var("AI_MANAGER_CURSOR_MCP_CONFIG").ok();
+        set_env_var(
+            "AI_MANAGER_CLAUDE_CODE_MCP_CONFIG",
+            claude_path.display().to_string(),
+        );
+        set_env_var(
+            "AI_MANAGER_CURSOR_MCP_CONFIG",
+            cursor_path.display().to_string(),
+        );
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let source_catalog = McpSourceCatalogService::new(&detector_registry);
+        let source_source_id = source_catalog
+            .list_sources(ClientKind::ClaudeCode, None)
+            .into_iter()
+            .find(|descriptor| descriptor.source_scope == ResourceSourceScope::User)
+            .expect("claude user source should exist")
+            .source_id;
+
+        let result = McpReplicationService::new(&detector_registry)
+            .replicate(
+                ClientKind::ClaudeCode,
+                "filesystem",
+                source_source_id.as_str(),
+                None,
+                ClientKind::Cursor,
+                None,
+                None,
+                None,
+                true,
+            )
+            .expect("replication should overwrite destination");
+
+        let destination: Value = serde_json::from_str(
+            &fs::read_to_string(&cursor_path).expect("cursor config should exist"),
+        )
+        .expect("destination config should remain valid json");
+
+        assert!(result.message.contains("overwrote"));
+        assert!(
+            destination["mcpServers"]["filesystem"]["command"]
+                .as_str()
+                .is_some_and(|value| value == "npx")
+        );
+
+        restore_env("AI_MANAGER_CLAUDE_CODE_MCP_CONFIG", previous_claude);
+        restore_env("AI_MANAGER_CURSOR_MCP_CONFIG", previous_cursor);
+        let _ = fs::remove_dir_all(&temp_root);
+    }
+
+    #[test]
     fn replicate_rejects_unsupported_destination_scope() {
         let _guard = env_lock().lock().expect("env lock should be available");
         let temp_root = temp_dir("unsupported-scope");

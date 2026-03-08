@@ -58,6 +58,7 @@ export interface CopyMcpInput {
   destinationProjectRoot: string | null;
   destinationSourceId: string | null;
   sourceLabel: string;
+  overwrite: boolean;
 }
 
 export interface RemoveMcpInput {
@@ -86,6 +87,7 @@ type LoadPhase = "idle" | "loading" | "ready" | "error";
 interface UseMcpManagerResult {
   phase: LoadPhase;
   resources: ResourceRecord[];
+  sourceAwareResources: ResourceRecord[];
   resolvedProjectRoot: string | null;
   warning: string | null;
   operationError: ErrorDiagnostic | null;
@@ -127,6 +129,7 @@ export function useMcpManager({
 }: UseMcpManagerParams): UseMcpManagerResult {
   const [phase, setPhase] = useState<LoadPhase>("idle");
   const [resources, setResources] = useState<ResourceRecord[]>([]);
+  const [sourceAwareResources, setSourceAwareResources] = useState<ResourceRecord[]>([]);
   const [resolvedProjectRoot, setResolvedProjectRoot] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<ErrorDiagnostic | null>(null);
@@ -149,6 +152,7 @@ export function useMcpManager({
 
       if (!envelope.ok || envelope.data === null) {
         setPhase("error");
+        setSourceAwareResources([]);
         setResolvedProjectRoot(null);
         setOperationError(
           envelopeErrorDiagnostic(
@@ -159,13 +163,28 @@ export function useMcpManager({
         return;
       }
 
+      let allSourceItems = envelope.data.items;
+      if (viewMode !== "all_sources") {
+        const allSourcesEnvelope = await listResources({
+          client: null,
+          resource_kind: "mcp",
+          project_root: contextMode === "project" ? projectRoot : null,
+          view_mode: "all_sources",
+        });
+        if (allSourcesEnvelope.ok && allSourcesEnvelope.data) {
+          allSourceItems = allSourcesEnvelope.data.items;
+        }
+      }
+
       setResources(sortResources(envelope.data.items));
+      setSourceAwareResources(sortResources(allSourceItems));
       setResolvedProjectRoot(envelope.data.project_root);
       setWarning(redactNullableSensitiveText(envelope.data.warning));
       setOperationError(null);
       setPhase("ready");
     } catch (error) {
       setPhase("error");
+      setSourceAwareResources([]);
       setResolvedProjectRoot(null);
       const message = error instanceof Error ? error.message : "Unknown list runtime error.";
       setOperationError(runtimeErrorToDiagnostic(message));
@@ -355,7 +374,7 @@ export function useMcpManager({
           destination_target_id: normalizedTargetId,
           destination_source_id: input.destinationSourceId,
           destination_project_root: input.destinationProjectRoot,
-          overwrite: false,
+          overwrite: input.overwrite,
         });
 
         if (!envelope.ok || envelope.data === null) {
@@ -390,6 +409,7 @@ export function useMcpManager({
   return {
     phase,
     resources,
+    sourceAwareResources,
     resolvedProjectRoot,
     warning,
     operationError,
