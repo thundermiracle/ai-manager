@@ -49,6 +49,7 @@
           "category",
           "binaryCandidates",
           "configPathCandidates",
+          "resourceKinds",
           "detectionEvidenceRequirements",
           "assumptions"
         ],
@@ -144,6 +145,22 @@
               "additionalProperties": false
             }
           },
+          "resourceKinds": {
+            "type": "object",
+            "required": [
+              "mcp",
+              "skills"
+            ],
+            "properties": {
+              "mcp": {
+                "$ref": "#/$defs/resourceKindSupport"
+              },
+              "skills": {
+                "$ref": "#/$defs/resourceKindSupport"
+              }
+            },
+            "additionalProperties": false
+          },
           "detectionEvidenceRequirements": {
             "type": "array",
             "minItems": 2,
@@ -161,6 +178,77 @@
         },
         "additionalProperties": false
       }
+    }
+  },
+  "$defs": {
+    "resourceSourceScope": {
+      "type": "string",
+      "enum": [
+        "user",
+        "project_shared",
+        "project_private"
+      ]
+    },
+    "resourceKindSupport": {
+      "type": "object",
+      "required": [
+        "currentSourceScopes",
+        "targetSourceScopes",
+        "currentDestinationScopes",
+        "targetDestinationScopes",
+        "effectivePrecedence",
+        "projectScopeStatus",
+        "notes"
+      ],
+      "properties": {
+        "currentSourceScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "targetSourceScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "currentDestinationScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "targetDestinationScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "effectivePrecedence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "projectScopeStatus": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "deferred",
+            "not_applicable"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

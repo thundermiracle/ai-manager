@@ -1,7 +1,7 @@
 {
   "$schema": "../../schemas/normalized-domain-model.schema.json",
-  "version": "1.0.0",
-  "updatedAt": "2026-03-03",
+  "version": "1.1.0",
+  "updatedAt": "2026-03-08",
   "entities": {
     "clients": [
       {
@@ -12,7 +12,41 @@
         "capabilities": {
           "supportsMcp": true,
           "supportsSkills": true,
-          "supportsEnableDisable": true
+          "supportsEnableDisable": true,
+          "scopeSupport": {
+            "mcp": {
+              "currentSourceScopes": [
+                "user"
+              ],
+              "targetSourceScopes": [
+                "user",
+                "project_shared",
+                "project_private"
+              ],
+              "currentDestinationScopes": [
+                "user"
+              ],
+              "targetDestinationScopes": [
+                "user",
+                "project_shared",
+                "project_private"
+              ]
+            },
+            "skills": {
+              "currentSourceScopes": [
+                "user"
+              ],
+              "targetSourceScopes": [
+                "user"
+              ],
+              "currentDestinationScopes": [
+                "user"
+              ],
+              "targetDestinationScopes": [
+                "user"
+              ]
+            }
+          }
         },
         "source": {
           "origin": "detector",
@@ -27,6 +61,60 @@
         }
       },
       {
+        "id": "client:codex:default",
+        "clientType": "codex",
+        "displayName": "Codex",
+        "status": "partial",
+        "capabilities": {
+          "supportsMcp": true,
+          "supportsSkills": true,
+          "supportsEnableDisable": false,
+          "scopeSupport": {
+            "mcp": {
+              "currentSourceScopes": [
+                "user"
+              ],
+              "targetSourceScopes": [
+                "user"
+              ],
+              "currentDestinationScopes": [
+                "user"
+              ],
+              "targetDestinationScopes": [
+                "user"
+              ]
+            },
+            "skills": {
+              "currentSourceScopes": [
+                "user"
+              ],
+              "targetSourceScopes": [
+                "user"
+              ],
+              "currentDestinationScopes": [
+                "user"
+              ],
+              "targetDestinationScopes": [
+                "user"
+              ]
+            }
+          }
+        },
+        "source": {
+          "origin": "detector",
+          "path": "~/.codex/config.toml",
+          "warnings": [
+            "app_install_missing"
+          ]
+        },
+        "raw": {
+          "appDataRoot": "~/.codex"
+        },
+        "extensions": {
+          "futureClientMetadata": {}
+        }
+      },
+      {
         "id": "client:cursor:default",
         "clientType": "cursor",
         "displayName": "Cursor",
@@ -34,7 +122,39 @@
         "capabilities": {
           "supportsMcp": true,
           "supportsSkills": true,
-          "supportsEnableDisable": false
+          "supportsEnableDisable": false,
+          "scopeSupport": {
+            "mcp": {
+              "currentSourceScopes": [
+                "user"
+              ],
+              "targetSourceScopes": [
+                "user",
+                "project_shared"
+              ],
+              "currentDestinationScopes": [
+                "user"
+              ],
+              "targetDestinationScopes": [
+                "user",
+                "project_shared"
+              ]
+            },
+            "skills": {
+              "currentSourceScopes": [
+                "user"
+              ],
+              "targetSourceScopes": [
+                "user"
+              ],
+              "currentDestinationScopes": [
+                "user"
+              ],
+              "targetDestinationScopes": [
+                "user"
+              ]
+            }
+          }
         },
         "source": {
           "origin": "detector",
@@ -53,7 +173,8 @@
     ],
     "mcps": [
       {
-        "id": "mcp:claude_code:filesystem",
+        "id": "mcp:claude_code:user:filesystem",
+        "logicalId": "mcp:claude_code:filesystem",
         "clientId": "client:claude_code:default",
         "name": "filesystem",
         "enabled": true,
@@ -75,7 +196,13 @@
         ],
         "source": {
           "origin": "mcp_config",
-          "path": "~/.claude.json",
+          "path": "~/.claude.json#/mcpServers/filesystem",
+          "containerPath": "~/.claude.json",
+          "sourceId": "mcp::claude_code::user::~/.claude.json#/mcpServers",
+          "scope": "user",
+          "label": "Personal config",
+          "isEffective": false,
+          "shadowedBy": "mcp:claude_code:project_shared:filesystem",
           "line": 18,
           "column": 9,
           "warnings": []
@@ -88,11 +215,81 @@
         "extensions": {
           "futureTransportMetadata": {}
         }
+      },
+      {
+        "id": "mcp:claude_code:project_shared:filesystem",
+        "logicalId": "mcp:claude_code:filesystem",
+        "clientId": "client:claude_code:default",
+        "name": "filesystem",
+        "enabled": true,
+        "transport": {
+          "kind": "stdio",
+          "command": "npx",
+          "args": [
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            "/Users/fengliu/Code/ai-manager"
+          ]
+        },
+        "env": [],
+        "source": {
+          "origin": "mcp_config",
+          "path": "{projectRoot}/.mcp.json#/mcpServers/filesystem",
+          "containerPath": "{projectRoot}/.mcp.json",
+          "sourceId": "mcp::claude_code::project_shared::{projectRoot}/.mcp.json#/mcpServers",
+          "scope": "project_shared",
+          "label": "Project config",
+          "isEffective": true,
+          "shadowedBy": null,
+          "line": 4,
+          "column": 7,
+          "warnings": []
+        },
+        "raw": {
+          "providerSpecific": {
+            "managedBy": "repository"
+          }
+        },
+        "extensions": {
+          "futureTransportMetadata": {}
+        }
+      },
+      {
+        "id": "mcp:codex:user:github",
+        "logicalId": "mcp:codex:github",
+        "clientId": "client:codex:default",
+        "name": "github",
+        "enabled": true,
+        "transport": {
+          "kind": "streamable_http",
+          "url": "https://api.githubcopilot.com/mcp/"
+        },
+        "env": [],
+        "source": {
+          "origin": "mcp_config",
+          "path": "~/.codex/config.toml#servers.github",
+          "containerPath": "~/.codex/config.toml",
+          "sourceId": "mcp::codex::user::~/.codex/config.toml#servers",
+          "scope": "user",
+          "label": "Personal config",
+          "isEffective": true,
+          "shadowedBy": null,
+          "warnings": []
+        },
+        "raw": {
+          "providerSpecific": {
+            "table": "servers.github"
+          }
+        },
+        "extensions": {
+          "futureTransportMetadata": {}
+        }
       }
     ],
     "skills": [
       {
-        "id": "skill:cursor:python-refactor",
+        "id": "skill:cursor:user:python-refactor",
+        "logicalId": "skill:cursor:python-refactor",
         "clientId": "client:cursor:default",
         "name": "python-refactor",
         "enabled": true,
@@ -111,6 +308,12 @@
         "source": {
           "origin": "skills_dir",
           "path": "~/.cursor/skills/python-refactor/SKILL.md",
+          "containerPath": "~/.cursor/skills",
+          "sourceId": "skill::cursor::user::~/.cursor/skills",
+          "scope": "user",
+          "label": "Personal skills",
+          "isEffective": true,
+          "shadowedBy": null,
           "warnings": []
         },
         "raw": {

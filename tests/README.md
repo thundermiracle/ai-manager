@@ -1,6 +1,6 @@
 # Tests
 
-The test suite is intentionally minimal and focuses only on stable contract invariants.
+The test suite is intentionally minimal and focuses on stable contract invariants for the current source-aware rollout.
 
 ## Included Tests
 
@@ -12,6 +12,7 @@ The test suite is intentionally minimal and focuses only on stable contract inva
 ## Why These Only
 
 - They validate JSON contract structure and consistency.
+- They pin staged support assumptions such as `current*Scopes` vs `target*Scopes`.
 - They are less brittle than source-text UI/implementation guards.
 - They keep maintenance cost low while preserving core compatibility checks.
 

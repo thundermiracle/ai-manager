@@ -6,6 +6,7 @@ const matrixPath = new URL("../docs/spec/support-matrix.v1.json", import.meta.ur
 const matrix = JSON.parse(readFileSync(matrixPath, "utf8"));
 
 const expectedClientIds = ["claude_code", "codex", "cursor"];
+const sourceScopeSet = new Set(["user", "project_shared", "project_private"]);
 
 function assertContiguousPriorities(candidates, fieldName) {
   const priorities = candidates.map((candidate) => candidate.priority).sort((a, b) => a - b);
@@ -18,7 +19,7 @@ function assertContiguousPriorities(candidates, fieldName) {
 }
 
 test("matrix includes exactly three target clients", () => {
-  assert.equal(matrix.version, "1.0.0");
+  assert.equal(matrix.version, "1.1.0");
   assert.equal(matrix.clients.length, expectedClientIds.length);
   assert.deepEqual(matrix.clients.map((client) => client.id).sort(), [...expectedClientIds].sort());
 });
@@ -59,4 +60,51 @@ test("detection requirements are actionable and include config readability", () 
       `${client.id} must have at least two detection requirements`,
     );
   }
+});
+
+test("resource kinds expose staged scope support and precedence", () => {
+  for (const client of matrix.clients) {
+    for (const kind of ["mcp", "skills"]) {
+      const support = client.resourceKinds[kind];
+      assert.ok(Array.isArray(support.currentSourceScopes));
+      assert.ok(Array.isArray(support.targetSourceScopes));
+      assert.ok(Array.isArray(support.currentDestinationScopes));
+      assert.ok(Array.isArray(support.targetDestinationScopes));
+      assert.ok(Array.isArray(support.effectivePrecedence));
+      assert.ok(Array.isArray(support.notes));
+
+      for (const scope of support.targetSourceScopes) {
+        assert.ok(sourceScopeSet.has(scope), `unsupported ${client.id}/${kind} scope: ${scope}`);
+      }
+
+      assert.ok(
+        support.targetSourceScopes.includes(support.effectivePrecedence[0]),
+        `${client.id}/${kind} precedence must start with a supported scope`,
+      );
+      assert.ok(
+        support.currentSourceScopes.every((scope) => support.targetSourceScopes.includes(scope)),
+        `${client.id}/${kind} current scopes must be a subset of target scopes`,
+      );
+    }
+  }
+});
+
+test("staged MCP support matches the client rollout plan", () => {
+  const byId = new Map(matrix.clients.map((client) => [client.id, client]));
+
+  assert.deepEqual(byId.get("claude_code").resourceKinds.mcp.targetSourceScopes, [
+    "user",
+    "project_shared",
+    "project_private",
+  ]);
+  assert.equal(byId.get("claude_code").resourceKinds.mcp.projectScopeStatus, "planned");
+
+  assert.deepEqual(byId.get("cursor").resourceKinds.mcp.targetSourceScopes, [
+    "user",
+    "project_shared",
+  ]);
+  assert.equal(byId.get("cursor").resourceKinds.mcp.projectScopeStatus, "planned");
+
+  assert.deepEqual(byId.get("codex").resourceKinds.mcp.targetSourceScopes, ["user"]);
+  assert.equal(byId.get("codex").resourceKinds.mcp.projectScopeStatus, "not_applicable");
 });

@@ -48,7 +48,15 @@
     }
   },
   "$defs": {
-    "sourceMetadata": {
+    "resourceSourceScope": {
+      "type": "string",
+      "enum": [
+        "user",
+        "project_shared",
+        "project_private"
+      ]
+    },
+    "traceSourceMetadata": {
       "type": "object",
       "required": [
         "origin",
@@ -79,6 +87,105 @@
           "items": {
             "type": "string"
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "resourceScopeSupport": {
+      "type": "object",
+      "required": [
+        "currentSourceScopes",
+        "targetSourceScopes",
+        "currentDestinationScopes",
+        "targetDestinationScopes"
+      ],
+      "properties": {
+        "currentSourceScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "targetSourceScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "currentDestinationScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        },
+        "targetDestinationScopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceSourceScope"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "resourceSourceMetadata": {
+      "type": "object",
+      "required": [
+        "origin",
+        "path",
+        "warnings",
+        "containerPath",
+        "sourceId",
+        "scope",
+        "label",
+        "isEffective",
+        "shadowedBy"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string",
+          "enum": [
+            "detector",
+            "mcp_config",
+            "skills_dir"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "containerPath": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/resourceSourceScope"
+        },
+        "label": {
+          "type": "string"
+        },
+        "isEffective": {
+          "type": "boolean"
+        },
+        "shadowedBy": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false
@@ -123,7 +230,8 @@
           "required": [
             "supportsMcp",
             "supportsSkills",
-            "supportsEnableDisable"
+            "supportsEnableDisable",
+            "scopeSupport"
           ],
           "properties": {
             "supportsMcp": {
@@ -134,12 +242,28 @@
             },
             "supportsEnableDisable": {
               "type": "boolean"
+            },
+            "scopeSupport": {
+              "type": "object",
+              "required": [
+                "mcp",
+                "skills"
+              ],
+              "properties": {
+                "mcp": {
+                  "$ref": "#/$defs/resourceScopeSupport"
+                },
+                "skills": {
+                  "$ref": "#/$defs/resourceScopeSupport"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
         },
         "source": {
-          "$ref": "#/$defs/sourceMetadata"
+          "$ref": "#/$defs/traceSourceMetadata"
         },
         "raw": {
           "type": "object"
@@ -212,6 +336,7 @@
       "type": "object",
       "required": [
         "id",
+        "logicalId",
         "clientId",
         "name",
         "enabled",
@@ -222,6 +347,9 @@
       ],
       "properties": {
         "id": {
+          "type": "string"
+        },
+        "logicalId": {
           "type": "string"
         },
         "clientId": {
@@ -243,7 +371,7 @@
           }
         },
         "source": {
-          "$ref": "#/$defs/sourceMetadata"
+          "$ref": "#/$defs/resourceSourceMetadata"
         },
         "raw": {
           "type": "object"
@@ -282,6 +410,7 @@
       "type": "object",
       "required": [
         "id",
+        "logicalId",
         "clientId",
         "name",
         "enabled",
@@ -292,6 +421,9 @@
       ],
       "properties": {
         "id": {
+          "type": "string"
+        },
+        "logicalId": {
           "type": "string"
         },
         "clientId": {
@@ -328,7 +460,7 @@
           "additionalProperties": false
         },
         "source": {
-          "$ref": "#/$defs/sourceMetadata"
+          "$ref": "#/$defs/resourceSourceMetadata"
         },
         "raw": {
           "type": "object"

@@ -8,9 +8,10 @@ const model = JSON.parse(readFileSync(modelPath, "utf8"));
 const clientTypeSet = new Set(["claude_code", "codex", "cursor"]);
 const transportKindSet = new Set(["stdio", "http", "sse", "streamable_http"]);
 const skillInstallKindSet = new Set(["file", "directory", "reference"]);
+const sourceScopeSet = new Set(["user", "project_shared", "project_private"]);
 
 test("domain model envelope version and entity groups are present", () => {
-  assert.equal(model.version, "1.0.0");
+  assert.equal(model.version, "1.1.0");
   assert.ok(model.entities);
   assert.ok(Array.isArray(model.entities.clients));
   assert.ok(Array.isArray(model.entities.mcps));
@@ -26,6 +27,16 @@ test("client entities expose capability flags and extension points", () => {
     assert.equal(typeof client.capabilities.supportsMcp, "boolean");
     assert.equal(typeof client.capabilities.supportsSkills, "boolean");
     assert.equal(typeof client.capabilities.supportsEnableDisable, "boolean");
+    for (const kind of ["mcp", "skills"]) {
+      const support = client.capabilities.scopeSupport[kind];
+      assert.ok(Array.isArray(support.currentSourceScopes));
+      assert.ok(Array.isArray(support.targetSourceScopes));
+      assert.ok(Array.isArray(support.currentDestinationScopes));
+      assert.ok(Array.isArray(support.targetDestinationScopes));
+      for (const scope of support.targetSourceScopes) {
+        assert.ok(sourceScopeSet.has(scope), `unsupported ${kind} source scope: ${scope}`);
+      }
+    }
     assert.equal(typeof client.extensions, "object");
     assert.equal(typeof client.raw, "object");
   }
@@ -33,12 +44,22 @@ test("client entities expose capability flags and extension points", () => {
 
 test("mcp entities include transport model, source metadata and raw payload", () => {
   for (const mcp of model.entities.mcps) {
+    assert.equal(typeof mcp.logicalId, "string");
     assert.ok(
       transportKindSet.has(mcp.transport.kind),
       `unsupported transport: ${mcp.transport.kind}`,
     );
     assert.equal(typeof mcp.source.origin, "string");
     assert.equal(typeof mcp.source.path, "string");
+    assert.equal(typeof mcp.source.containerPath, "string");
+    assert.equal(typeof mcp.source.sourceId, "string");
+    assert.ok(sourceScopeSet.has(mcp.source.scope), `unsupported scope: ${mcp.source.scope}`);
+    assert.equal(typeof mcp.source.label, "string");
+    assert.equal(typeof mcp.source.isEffective, "boolean");
+    assert.ok(
+      typeof mcp.source.shadowedBy === "string" || mcp.source.shadowedBy === null,
+      "shadowedBy must be string or null",
+    );
     assert.equal(typeof mcp.extensions, "object");
     assert.equal(typeof mcp.raw, "object");
     assert.ok(Array.isArray(mcp.env));
@@ -47,6 +68,7 @@ test("mcp entities include transport model, source metadata and raw payload", ()
 
 test("skill entities include install model, metadata and raw payload", () => {
   for (const skill of model.entities.skills) {
+    assert.equal(typeof skill.logicalId, "string");
     assert.ok(
       skillInstallKindSet.has(skill.install.kind),
       `unsupported install kind: ${skill.install.kind}`,
@@ -54,9 +76,27 @@ test("skill entities include install model, metadata and raw payload", () => {
     assert.equal(typeof skill.install.path, "string");
     assert.ok(Array.isArray(skill.metadata.tags));
     assert.equal(typeof skill.source.path, "string");
+    assert.equal(typeof skill.source.sourceId, "string");
+    assert.ok(sourceScopeSet.has(skill.source.scope), `unsupported scope: ${skill.source.scope}`);
     assert.equal(typeof skill.extensions, "object");
     assert.equal(typeof skill.raw, "object");
   }
+});
+
+test("source-aware ids allow one logical resource to appear in multiple sources", () => {
+  const byLogicalId = new Map();
+
+  for (const mcp of model.entities.mcps) {
+    const entries = byLogicalId.get(mcp.logicalId) ?? [];
+    entries.push(mcp.id);
+    byLogicalId.set(mcp.logicalId, entries);
+    assert.notEqual(mcp.id, mcp.logicalId, "source-aware id should differ from logical id");
+  }
+
+  assert.deepEqual(byLogicalId.get("mcp:claude_code:filesystem"), [
+    "mcp:claude_code:user:filesystem",
+    "mcp:claude_code:project_shared:filesystem",
+  ]);
 });
 
 test("cross-entity references are consistent", () => {
