@@ -206,7 +206,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
             <div>
               <CardTitle className="text-[1.35rem] tracking-[-0.012em]">Skills Manager</CardTitle>
               <p className="mt-1 text-sm text-slate-700">
-                Managing personal skills for <strong>{formatClientLabel(client)}</strong>
+                Managing AI Manager personal skills for <strong>{formatClientLabel(client)}</strong>
               </p>
               <p className="mt-1 text-xs text-slate-500">{contextSummary.description}</p>
             </div>

@@ -28,6 +28,8 @@ This document freezes the detection input matrix and staged scope rollout plan f
 ## Staged Scope Support
 
 - `resourceKinds.mcp` captures current vs target MCP scope support per client.
+- `resourceKinds.skills` refers to AI Manager-managed generic `SKILL.md` repositories only.
+- Native client features such as Claude subagents are tracked separately from `resourceKinds.skills`.
 - `resourceKinds.skills` stays user-only for now and records that project scope is deferred.
 - `projectScopeStatus` values are:
   - `planned`: native project support is intended in a follow-up implementation issue
@@ -54,3 +56,5 @@ Each client includes both:
   - `schemas/support-matrix.schema.json`
 - Unit tests:
   - `tests/support-matrix.test.mjs`
+- Skill taxonomy:
+  - `docs/spec/skill-like-taxonomy.md`

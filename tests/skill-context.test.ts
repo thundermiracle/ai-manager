@@ -7,14 +7,14 @@ import {
 } from "../src/features/skills/skill-context.ts";
 
 test("project mode hint stays explicit about personal-only skill storage", () => {
-  assert.match(buildSkillContextHint("project"), /personal skill storage/i);
-  assert.match(buildSkillContextHint("project"), /not available yet/i);
+  assert.match(buildSkillContextHint("project"), /personal skill libraries/i);
+  assert.match(buildSkillContextHint("project"), /subagents/i);
 });
 
 test("personal mode hint stays concise", () => {
   assert.equal(
     buildSkillContextHint("personal"),
-    "Skills are managed in the selected client's personal storage.",
+    "This tab manages AI Manager personal skill libraries for the selected client.",
   );
 });
 

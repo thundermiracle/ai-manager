@@ -25,8 +25,9 @@ This document defines the source-aware normalized model required by issues `#106
 - `source` carries scope, source container, effective state, and shadowing metadata.
 
 3. `Skill`
-- Installation target and metadata independent from MCP transport details.
+- Installation target and metadata for AI Manager-managed generic `SKILL.md` repositories.
 - Uses the same source-aware identity and source metadata pattern as MCP records.
+- Does not represent client-native Claude subagents; that requires a separate native resource kind.
 
 ## Lossless Mapping Strategy
 
@@ -46,7 +47,7 @@ This document defines the source-aware normalized model required by issues `#106
 - `current*Scopes` describe what the repo can list/mutate today.
 - `target*Scopes` describe the intended source-aware model for staged rollout.
 - Codex remains user-only unless upstream project-local MCP support becomes official.
-- Project-scoped skill support stays out of scope until taxonomy is resolved in `#110`.
+- Generic skills remain personal-only after `#110`; native Claude project support moves to a future subagent resource kind instead of extending `skill`.
 
 ## Files
 

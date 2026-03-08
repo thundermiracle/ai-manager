@@ -19,7 +19,7 @@ function assertContiguousPriorities(candidates, fieldName) {
 }
 
 test("matrix includes exactly three target clients", () => {
-  assert.equal(matrix.version, "1.1.0");
+  assert.equal(matrix.version, "1.2.0");
   assert.equal(matrix.clients.length, expectedClientIds.length);
   assert.deepEqual(matrix.clients.map((client) => client.id).sort(), [...expectedClientIds].sort());
 });
@@ -107,4 +107,15 @@ test("staged MCP support matches the client rollout plan", () => {
 
   assert.deepEqual(byId.get("codex").resourceKinds.mcp.targetSourceScopes, ["user"]);
   assert.equal(byId.get("codex").resourceKinds.mcp.projectScopeStatus, "not_applicable");
+});
+
+test("skills notes distinguish generic repositories from native client features", () => {
+  const byId = new Map(matrix.clients.map((client) => [client.id, client]));
+
+  for (const client of matrix.clients) {
+    const joinedNotes = client.resourceKinds.skills.notes.join(" ");
+    assert.match(joinedNotes, /generic/i);
+  }
+
+  assert.match(byId.get("claude_code").resourceKinds.skills.notes.join(" "), /subagents|agents/i);
 });

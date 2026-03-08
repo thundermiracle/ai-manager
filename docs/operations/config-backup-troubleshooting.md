@@ -21,6 +21,8 @@ This guide documents real application behavior for issue `#35`.
     - `~/Library/Application Support/Cursor/User/mcp.json`
 ### Skills directory paths
 
+These paths refer to AI Manager-managed generic `SKILL.md` repositories. They are not a claim about native client project features such as Claude subagents.
+
 - Claude Code:
   - Override: `AI_MANAGER_CLAUDE_CODE_SKILLS_DIR`
   - Fallback: `~/.claude/skills`
@@ -87,6 +89,8 @@ If only `Backup: ...` is visible, use the client path mapping above to determine
 
 - `MCP '<id>' already exists.` / `MCP '<id>' does not exist.`
   - Use list flow first, then re-run add/remove
+- `MCP '<id>' already exists in <destination>. Set overwrite=true or choose a different destination_target_id.`
+  - Rename the destination ID or confirm overwrite in the MCP copy/promote flow
 - `Skill '<id>' already exists. Conflicts: ...`
   - Remove conflict target or choose a different id
 - `source_path '<...>' does not exist.`
