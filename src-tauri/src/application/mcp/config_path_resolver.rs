@@ -45,7 +45,7 @@ pub fn resolve_mcp_config_path(
     )))
 }
 
-fn default_mcp_config_path(client: ClientKind) -> PathBuf {
+pub(super) fn default_mcp_config_path(client: ClientKind) -> PathBuf {
     match client {
         ClientKind::ClaudeCode => expand_user_path(
             &read_first_env(&["AI_MANAGER_CLAUDE_CODE_MCP_CONFIG"])

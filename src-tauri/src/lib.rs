@@ -3,7 +3,9 @@ mod domain;
 mod infra;
 mod interface;
 
-pub use application::ClientCapabilityService;
+pub use application::{
+    ClientCapabilityService, McpSourceCatalogService, McpSourceDescriptor, McpSourceStorageKind,
+};
 pub use domain::{
     ClientCapabilities, ClientKind, ClientProfile, ResourceKind, ResourceScopeCapabilities,
     ResourceSourceScope, profile_for_client,
