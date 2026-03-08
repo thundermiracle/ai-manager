@@ -93,7 +93,7 @@ export function SkillCopyForm({
       />
 
       <Button type="submit" disabled={disabled || destinationOptions.length === 0}>
-        Copy Skill
+        Copy to another client
       </Button>
     </form>
   );

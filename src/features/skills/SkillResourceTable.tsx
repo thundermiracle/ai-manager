@@ -127,7 +127,7 @@ export function SkillResourceTable({
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-7 text-center">
         <p className="text-sm leading-relaxed text-slate-600">
-          {emptyMessage ?? "No Skill entries registered for the selected client."}
+          {emptyMessage ?? "No skill entries registered for the selected client."}
         </p>
       </div>
     );
@@ -167,7 +167,7 @@ export function SkillResourceTable({
                 <TableCell className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                   <SkillActionButton
                     icon={<CopyIcon />}
-                    label="Copy"
+                    label="Copy to another client"
                     busyLabel="Copying..."
                     busy={copying}
                     disabled={copying || updating || removing}
@@ -178,7 +178,7 @@ export function SkillResourceTable({
                   />
                   <SkillActionButton
                     icon={<EditIcon />}
-                    label="Edit"
+                    label="Edit personal skill"
                     busyLabel="Updating..."
                     busy={updating}
                     disabled={updating || removing || copying}
@@ -189,7 +189,7 @@ export function SkillResourceTable({
                   />
                   <SkillActionButton
                     icon={<RemoveIcon />}
-                    label="Remove"
+                    label="Remove from personal"
                     busyLabel="Removing..."
                     busy={removing}
                     disabled={removing || updating || copying}

@@ -21,6 +21,7 @@ import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
 import { SkillResourceTable } from "./SkillResourceTable";
 import { buildResourceSkillManifestChecksum } from "./skill-checksum";
+import { buildSkillContextHint } from "./skill-context";
 import { buildSkillGithubRecentsStorageKey } from "./skill-github-recents";
 import { useSkillAddForm } from "./useSkillAddForm";
 import { useSkillCopyForm } from "./useSkillCopyForm";
@@ -43,6 +44,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     mode: contextMode,
     projectRoot,
   });
+  const contextHint = buildSkillContextHint(contextMode);
   const activeClient = isProjectContextIncomplete({ mode: contextMode, projectRoot })
     ? null
     : client;
@@ -204,7 +206,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
             <div>
               <CardTitle className="text-[1.35rem] tracking-[-0.012em]">Skills Manager</CardTitle>
               <p className="mt-1 text-sm text-slate-700">
-                Managing <strong>{formatClientLabel(client)}</strong>
+                Managing personal skills for <strong>{formatClientLabel(client)}</strong>
               </p>
               <p className="mt-1 text-xs text-slate-500">{contextSummary.description}</p>
             </div>
@@ -222,10 +224,12 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
                 {phase === "loading" ? "Loading..." : "Reload"}
               </Button>
               <Button type="button" size="sm" onClick={openComposer}>
-                Add Skill
+                Add Personal Skill
               </Button>
             </div>
           </div>
+
+          {contextMode === "project" ? <Alert variant="warning">{contextHint}</Alert> : null}
 
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 p-2.5">
             <p className="rounded-full bg-slate-900 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-slate-100">
@@ -269,7 +273,9 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
             emptyMessage={
               normalizedQuery.length > 0
                 ? `No skill entries match "${searchQuery.trim()}".`
-                : "No Skill entries registered for the selected client."
+                : contextMode === "project"
+                  ? "No personal skill entries are available for the selected client in this project context."
+                  : "No skill entries registered for the selected client."
             }
           />
         </CardContent>
@@ -277,33 +283,36 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
 
       <SlideOverPanel
         open={isComposerOpen}
-        title="Add Skill Entry"
-        description="Install a skill from a compact composer while keeping the list in view."
+        title="Add Personal Skill"
+        description="Install a skill into the selected client's personal storage while keeping the list in view."
         panelClassName="max-w-[42rem] max-[920px]:max-w-full"
         onClose={() => setComposerOpen(false)}
       >
-        <SkillAddForm
-          disabled={phase === "loading"}
-          state={addForm.state}
-          syncInfo={addForm.syncInfo}
-          onModeChange={addForm.setMode}
-          onTargetIdChange={addForm.setTargetId}
-          onInstallKindChange={addForm.setInstallKind}
-          onManifestChange={addForm.setManifest}
-          onGithubRepoUrlChange={addForm.setGithubRepoUrl}
-          onApplyRecentGithubRepoUrl={addForm.applyRecentGithubRepoUrl}
-          onSelectedGithubManifestPathChange={addForm.setSelectedGithubManifestPath}
-          onGithubRiskAcknowledgedChange={addForm.setGithubRiskAcknowledged}
-          onDiscoverGithubRepo={addForm.discoverGithubRepo}
-          onSubmit={addForm.submit}
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-        />
+        <div className="grid gap-3">
+          <Alert variant={contextMode === "project" ? "warning" : "default"}>{contextHint}</Alert>
+          <SkillAddForm
+            disabled={phase === "loading"}
+            state={addForm.state}
+            syncInfo={addForm.syncInfo}
+            onModeChange={addForm.setMode}
+            onTargetIdChange={addForm.setTargetId}
+            onInstallKindChange={addForm.setInstallKind}
+            onManifestChange={addForm.setManifest}
+            onGithubRepoUrlChange={addForm.setGithubRepoUrl}
+            onApplyRecentGithubRepoUrl={addForm.applyRecentGithubRepoUrl}
+            onSelectedGithubManifestPathChange={addForm.setSelectedGithubManifestPath}
+            onGithubRiskAcknowledgedChange={addForm.setGithubRiskAcknowledged}
+            onDiscoverGithubRepo={addForm.discoverGithubRepo}
+            onSubmit={addForm.submit}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          />
+        </div>
       </SlideOverPanel>
 
       <SlideOverPanel
         open={isCopyOpen}
-        title="Copy Skill Entry"
-        description="Copy the selected skill to a different AI client."
+        title="Copy Skill to Another Client"
+        description="Copy the selected skill into another client's personal skill storage."
         panelClassName="max-w-[40rem] max-[920px]:max-w-full"
         onClose={() => {
           if (pendingCopyId !== null) {
@@ -313,21 +322,24 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
           copyForm.reset();
         }}
       >
-        <SkillCopyForm
-          disabled={phase === "loading" || pendingCopyId !== null}
-          state={copyForm.state}
-          onDestinationClientChange={copyForm.setDestinationClient}
-          onTargetIdChange={copyForm.setTargetId}
-          onInstallKindChange={copyForm.setInstallKind}
-          onSubmit={copyForm.submit}
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-        />
+        <div className="grid gap-3">
+          <Alert variant={contextMode === "project" ? "warning" : "default"}>{contextHint}</Alert>
+          <SkillCopyForm
+            disabled={phase === "loading" || pendingCopyId !== null}
+            state={copyForm.state}
+            onDestinationClientChange={copyForm.setDestinationClient}
+            onTargetIdChange={copyForm.setTargetId}
+            onInstallKindChange={copyForm.setInstallKind}
+            onSubmit={copyForm.submit}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          />
+        </div>
       </SlideOverPanel>
 
       <SlideOverPanel
         open={isEditOpen}
-        title="Edit Skill Entry"
-        description="Update the selected skill manifest and write it to the installed path."
+        title="Edit Personal Skill"
+        description="Update the selected skill manifest in the client's personal storage."
         panelClassName="max-w-[40rem] max-[920px]:max-w-full"
         onClose={() => {
           if (pendingUpdateId !== null) {
@@ -337,29 +349,32 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
           editForm.reset();
         }}
       >
-        <SkillEditForm
-          disabled={phase === "loading" || pendingUpdateId !== null}
-          state={editForm.state}
-          onManifestChange={editForm.setManifest}
-          onSubmit={editForm.submit}
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-        />
+        <div className="grid gap-3">
+          <Alert variant={contextMode === "project" ? "warning" : "default"}>{contextHint}</Alert>
+          <SkillEditForm
+            disabled={phase === "loading" || pendingUpdateId !== null}
+            state={editForm.state}
+            onManifestChange={editForm.setManifest}
+            onSubmit={editForm.submit}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          />
+        </div>
       </SlideOverPanel>
 
       <ConfirmModal
         open={removalCandidate !== null}
-        title="Remove Skill Entry"
+        title="Remove Personal Skill"
         description={
           removalCandidate ? (
             <p>
-              Remove Skill <strong>{removalCandidate.display_name}</strong> from{" "}
+              Remove skill <strong>{removalCandidate.display_name}</strong> from{" "}
               <strong>{formatClientLabel(removalCandidate.client)}</strong>?
             </p>
           ) : (
             ""
           )
         }
-        confirmLabel={pendingRemovalId === null ? "Remove Skill" : "Removing..."}
+        confirmLabel={pendingRemovalId === null ? "Remove from personal" : "Removing..."}
         confirmDisabled={pendingRemovalId !== null}
         onConfirm={() => {
           void handleConfirmRemoval();

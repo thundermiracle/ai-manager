@@ -55,9 +55,9 @@ export function SkillAddForm({
       return "Up to Date";
     }
     if (syncInfo.status === "update_available") {
-      return state.mode === "manual" ? "Update Skill" : "Update Selected Skill";
+      return "Update personal skill";
     }
-    return state.mode === "manual" ? "Add Skill" : "Import Selected Skill";
+    return state.mode === "manual" ? "Add personal skill" : "Import to personal skills";
   }
 
   const form = (
