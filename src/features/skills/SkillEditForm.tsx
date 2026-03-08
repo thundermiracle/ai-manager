@@ -46,7 +46,7 @@ export function SkillEditForm({
       />
 
       <Button type="submit" disabled={disabled}>
-        Update Skill
+        Update personal skill
       </Button>
     </form>
   );
