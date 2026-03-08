@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { listResources, mutateResource } from "../../backend/client";
-import type { ClientKind, CommandEnvelope, ResourceRecord } from "../../backend/contracts";
+import type {
+  ClientKind,
+  CommandEnvelope,
+  ResourceRecord,
+  ResourceViewMode,
+} from "../../backend/contracts";
 import { redactNullableSensitiveText, redactSensitiveText } from "../../security/redaction";
 import {
   commandErrorToDiagnostic,
   type ErrorDiagnostic,
   runtimeErrorToDiagnostic,
 } from "../common/errorDiagnostics";
+import type { ResourceContextMode } from "../resources/resource-context";
 
 export type McpTransportInput =
   | {
@@ -21,16 +27,23 @@ export type McpTransportInput =
     };
 
 export interface AddMcpInput {
+  destinationClient: ClientKind;
   targetId: string;
   transport: McpTransportInput;
   enabled: boolean;
+  projectRoot: string | null;
+  targetSourceId: string | null;
 }
 
 export interface UpdateMcpInput {
+  resourceId: string;
+  client: ClientKind;
   targetId: string;
   transport: McpTransportInput;
   enabled: boolean;
-  sourcePath: string | null;
+  projectRoot: string | null;
+  targetSourceId: string;
+  sourceLabel: string;
 }
 
 export interface CopyMcpInput {
@@ -40,6 +53,23 @@ export interface CopyMcpInput {
   targetId: string;
   transport: McpTransportInput;
   enabled: boolean;
+  projectRoot: string | null;
+  targetSourceId: string | null;
+}
+
+export interface RemoveMcpInput {
+  resourceId: string;
+  client: ClientKind;
+  targetId: string;
+  projectRoot: string | null;
+  targetSourceId: string;
+  sourceLabel: string;
+}
+
+interface UseMcpManagerParams {
+  contextMode: ResourceContextMode;
+  projectRoot: string | null;
+  viewMode: ResourceViewMode;
 }
 
 interface MutationFeedback {
@@ -53,6 +83,7 @@ type LoadPhase = "idle" | "loading" | "ready" | "error";
 interface UseMcpManagerResult {
   phase: LoadPhase;
   resources: ResourceRecord[];
+  resolvedProjectRoot: string | null;
   warning: string | null;
   operationError: ErrorDiagnostic | null;
   feedback: MutationFeedback | null;
@@ -63,7 +94,7 @@ interface UseMcpManagerResult {
   addMcp: (input: AddMcpInput) => Promise<boolean>;
   updateMcp: (input: UpdateMcpInput) => Promise<boolean>;
   copyMcp: (input: CopyMcpInput) => Promise<boolean>;
-  removeMcp: (targetId: string, sourcePath: string | null) => Promise<boolean>;
+  removeMcp: (input: RemoveMcpInput) => Promise<boolean>;
   clearFeedback: () => void;
 }
 
@@ -86,9 +117,14 @@ function sortResources(resources: ResourceRecord[]): ResourceRecord[] {
   });
 }
 
-export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
+export function useMcpManager({
+  contextMode,
+  projectRoot,
+  viewMode,
+}: UseMcpManagerParams): UseMcpManagerResult {
   const [phase, setPhase] = useState<LoadPhase>("idle");
   const [resources, setResources] = useState<ResourceRecord[]>([]);
+  const [resolvedProjectRoot, setResolvedProjectRoot] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<ErrorDiagnostic | null>(null);
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
@@ -97,25 +133,20 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
   const [pendingCopyId, setPendingCopyId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (client === null) {
-      setPhase("idle");
-      setResources([]);
-      setWarning(null);
-      setOperationError(null);
-      return;
-    }
-
     setPhase("loading");
     setOperationError(null);
 
     try {
       const envelope = await listResources({
-        client,
+        client: null,
         resource_kind: "mcp",
+        project_root: contextMode === "project" ? projectRoot : null,
+        view_mode: viewMode,
       });
 
       if (!envelope.ok || envelope.data === null) {
         setPhase("error");
+        setResolvedProjectRoot(null);
         setOperationError(
           envelopeErrorDiagnostic(
             envelope,
@@ -126,15 +157,17 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
       }
 
       setResources(sortResources(envelope.data.items));
+      setResolvedProjectRoot(envelope.data.project_root);
       setWarning(redactNullableSensitiveText(envelope.data.warning));
       setOperationError(null);
       setPhase("ready");
     } catch (error) {
       setPhase("error");
+      setResolvedProjectRoot(null);
       const message = error instanceof Error ? error.message : "Unknown list runtime error.";
       setOperationError(runtimeErrorToDiagnostic(message));
     }
-  }, [client]);
+  }, [contextMode, projectRoot, viewMode]);
 
   useEffect(() => {
     void refresh();
@@ -142,36 +175,23 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
 
   const addMcp = useCallback(
     async (input: AddMcpInput) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic("Select a client before adding an MCP entry.");
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
       const transport =
         input.transport.kind === "stdio"
           ? { command: input.transport.command, args: input.transport.args }
           : { url: input.transport.url };
-
-      const sourcePathHint = resources.find((entry) => entry.source_path !== null)?.source_path;
       const payload: Record<string, unknown> = {
         transport,
         enabled: input.enabled,
       };
-      if (sourcePathHint !== null && sourcePathHint !== undefined) {
-        payload.source_path = sourcePathHint;
-      }
 
       try {
         const envelope = await mutateResource({
-          client,
+          client: input.destinationClient,
           resource_kind: "mcp",
           action: "add",
           target_id: input.targetId,
+          project_root: input.projectRoot,
+          target_source_id: input.targetSourceId,
           payload,
         });
 
@@ -198,31 +218,21 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         return false;
       }
     },
-    [client, refresh, resources],
+    [refresh],
   );
 
   const removeMcp = useCallback(
-    async (targetId: string, sourcePath: string | null) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Select a client before removing an MCP entry.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
-      setPendingRemovalId(targetId);
+    async (input: RemoveMcpInput) => {
+      setPendingRemovalId(input.resourceId);
       try {
         const envelope = await mutateResource({
-          client,
+          client: input.client,
           resource_kind: "mcp",
           action: "remove",
-          target_id: targetId,
-          payload: sourcePath ? { source_path: sourcePath } : null,
+          target_id: input.targetId,
+          project_root: input.projectRoot,
+          target_source_id: input.targetSourceId,
+          payload: null,
         });
 
         if (!envelope.ok || envelope.data === null) {
@@ -242,7 +252,7 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         const diagnostic = runtimeErrorToDiagnostic(message);
         setFeedback({
           kind: "error",
-          message: diagnostic.message,
+          message: `${input.sourceLabel}: ${diagnostic.message}`,
           diagnostic,
         });
         return false;
@@ -250,37 +260,26 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         setPendingRemovalId(null);
       }
     },
-    [client, refresh],
+    [refresh],
   );
 
   const updateMcp = useCallback(
     async (input: UpdateMcpInput) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Select a client before updating an MCP entry.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
       const payloadTransport =
         input.transport.kind === "stdio"
           ? { command: input.transport.command, args: input.transport.args }
           : { url: input.transport.url };
 
-      setPendingUpdateId(input.targetId);
+      setPendingUpdateId(input.resourceId);
       try {
         const envelope = await mutateResource({
-          client,
+          client: input.client,
           resource_kind: "mcp",
           action: "update",
           target_id: input.targetId,
+          project_root: input.projectRoot,
+          target_source_id: input.targetSourceId,
           payload: {
-            source_path: input.sourcePath,
             transport: payloadTransport,
             enabled: input.enabled,
           },
@@ -303,7 +302,7 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         const diagnostic = runtimeErrorToDiagnostic(message);
         setFeedback({
           kind: "error",
-          message: diagnostic.message,
+          message: `${input.sourceLabel}: ${diagnostic.message}`,
           diagnostic,
         });
         return false;
@@ -311,33 +310,11 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         setPendingUpdateId(null);
       }
     },
-    [client, refresh],
+    [refresh],
   );
 
   const copyMcp = useCallback(
     async (input: CopyMcpInput) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic("Select a client before copying an MCP entry.");
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
-      if (input.sourceClient !== client) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Selected source client is stale. Reload the MCP list and retry the copy operation.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
       if (input.destinationClient === input.sourceClient) {
         const diagnostic = runtimeErrorToDiagnostic(
           "Choose a different destination client when copying an MCP entry.",
@@ -375,6 +352,8 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
           resource_kind: "mcp",
           action: "add",
           target_id: normalizedTargetId,
+          project_root: input.projectRoot,
+          target_source_id: input.targetSourceId,
           payload: {
             transport: payloadTransport,
             enabled: input.enabled,
@@ -391,6 +370,7 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         }
 
         setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
+        await refresh();
         return true;
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown copy runtime error.";
@@ -405,12 +385,13 @@ export function useMcpManager(client: ClientKind | null): UseMcpManagerResult {
         setPendingCopyId(null);
       }
     },
-    [client],
+    [refresh],
   );
 
   return {
     phase,
     resources,
+    resolvedProjectRoot,
     warning,
     operationError,
     feedback,

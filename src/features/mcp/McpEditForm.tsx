@@ -37,6 +37,9 @@ export function McpEditForm({
       onSubmit={(event) => void onSubmit(event)}
     >
       {state.localError ? <Alert variant="destructive">{state.localError}</Alert> : null}
+      {state.sourceLabel ? (
+        <Alert variant="default">Editing the entry stored in {state.sourceLabel}.</Alert>
+      ) : null}
 
       {state.transportMode === "stdio" && state.command.trim().length === 0 ? (
         <Alert variant="warning">
@@ -113,7 +116,7 @@ export function McpEditForm({
       </label>
 
       <Button type="submit" disabled={disabled}>
-        Update MCP
+        Update in {state.sourceLabel || "selected source"}
       </Button>
     </form>
   );

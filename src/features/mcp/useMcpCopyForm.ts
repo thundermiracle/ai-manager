@@ -17,6 +17,10 @@ export interface McpCopyFormState {
 
 interface UseMcpCopyFormParams {
   onSubmit: (input: CopyMcpInput) => Promise<boolean>;
+  resolveDestination: (client: ClientKind) => {
+    projectRoot: string | null;
+    targetSourceId: string | null;
+  };
   onAccepted?: () => void;
 }
 
@@ -91,6 +95,7 @@ const DEFAULT_STATE: McpCopyFormState = {
 
 export function useMcpCopyForm({
   onSubmit,
+  resolveDestination,
   onAccepted,
 }: UseMcpCopyFormParams): UseMcpCopyFormResult {
   const [state, setState] = useState<McpCopyFormState>(DEFAULT_STATE);
@@ -171,6 +176,7 @@ export function useMcpCopyForm({
         targetId: normalizedTargetId,
         transport: state.transport,
         enabled: state.enabled,
+        ...resolveDestination(state.destinationClient),
       });
 
       if (accepted) {
@@ -178,7 +184,7 @@ export function useMcpCopyForm({
         onAccepted?.();
       }
     },
-    [onAccepted, onSubmit, state],
+    [onAccepted, onSubmit, resolveDestination, state],
   );
 
   return {

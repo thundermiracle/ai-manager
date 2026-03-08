@@ -1,19 +1,28 @@
 import { type FormEvent, type KeyboardEvent, useRef } from "react";
 
+import type { ClientKind } from "../../backend/contracts";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { cn } from "../../lib/utils";
+import { formatClientLabel } from "../clients/client-labels";
 import { buildPresetTransportChecksum } from "./mcp-checksum";
+import { MCP_CLIENTS } from "./mcp-targets";
 import type { McpOfficialPreset } from "./official-presets";
 import type { McpAddFormState, McpAddMode, McpPresetSource, TransportMode } from "./useMcpAddForm";
 
 interface McpAddFormProps {
   disabled: boolean;
   state: McpAddFormState;
+  destinationClient: ClientKind;
+  destinationLabel: string;
+  destinationDescription: string;
+  destinationNotice: string | null;
+  submitLabel: string;
   existingTargetIds: ReadonlySet<string>;
   existingTransportChecksums: ReadonlySet<string>;
+  onDestinationClientChange: (value: ClientKind) => void;
   onModeChange: (value: McpAddMode) => void;
   onTargetIdChange: (value: string) => void;
   onTransportModeChange: (value: TransportMode) => void;
@@ -32,8 +41,14 @@ interface McpAddFormProps {
 export function McpAddForm({
   disabled,
   state,
+  destinationClient,
+  destinationLabel,
+  destinationDescription,
+  destinationNotice,
+  submitLabel,
   existingTargetIds,
   existingTransportChecksums,
+  onDestinationClientChange,
   onModeChange,
   onTargetIdChange,
   onTransportModeChange,
@@ -256,6 +271,25 @@ export function McpAddForm({
       onSubmit={(event) => void onSubmit(event)}
     >
       {state.localError ? <Alert variant="destructive">{state.localError}</Alert> : null}
+      <Label htmlFor="mcp-destination-client">Destination Client</Label>
+      <select
+        id="mcp-destination-client"
+        className="h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
+        value={destinationClient}
+        onChange={(event) => onDestinationClientChange(event.currentTarget.value as ClientKind)}
+        disabled={disabled}
+      >
+        {MCP_CLIENTS.map((client) => (
+          <option key={client} value={client}>
+            {formatClientLabel(client)}
+          </option>
+        ))}
+      </select>
+
+      <Alert variant="default">
+        <strong>{destinationLabel}.</strong> {destinationDescription}
+      </Alert>
+      {destinationNotice ? <Alert variant="warning">{destinationNotice}</Alert> : null}
 
       <Label>Add Method</Label>
       <div className="grid grid-cols-3 gap-2 max-[560px]:grid-cols-1">
@@ -398,11 +432,7 @@ export function McpAddForm({
       </label>
 
       <Button type="submit" disabled={disabled}>
-        {state.mode === "manual"
-          ? "Add MCP"
-          : state.mode === "registry"
-            ? "Add from Registry"
-            : "Add from Preset"}
+        {submitLabel}
       </Button>
     </form>
   );
