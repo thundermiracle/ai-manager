@@ -126,7 +126,7 @@ fn build_source_descriptors(
     descriptors
 }
 
-fn descriptor_for_scope(
+pub(super) fn descriptor_for_scope(
     client: ClientKind,
     source_scope: ResourceSourceScope,
     container_path: PathBuf,
@@ -160,7 +160,7 @@ fn descriptor_for_scope(
     }
 }
 
-fn selector_for_scope(
+pub(super) fn selector_for_scope(
     client: ClientKind,
     source_scope: ResourceSourceScope,
     project_root: Option<&str>,
@@ -182,7 +182,7 @@ fn selector_for_scope(
     }
 }
 
-fn storage_kind_for_client(client: ClientKind) -> McpSourceStorageKind {
+pub(super) fn storage_kind_for_client(client: ClientKind) -> McpSourceStorageKind {
     match client {
         ClientKind::Codex => McpSourceStorageKind::TomlTable,
         ClientKind::ClaudeCode | ClientKind::Cursor => McpSourceStorageKind::JsonSection,

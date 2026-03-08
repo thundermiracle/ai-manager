@@ -7,13 +7,15 @@ use crate::{
 };
 
 use super::{
-    config_path_resolver::resolve_mcp_config_path,
     mutation_payload::{McpMutationPayload, McpTransportPayload, parse_mcp_mutation_payload},
+    mutation_target_resolver::McpMutationTargetResolver,
+    source_catalog_service::{McpSourceDescriptor, McpSourceStorageKind},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct McpMutationResult {
     pub source_path: String,
+    pub target_source_id: String,
     pub message: String,
 }
 
@@ -31,36 +33,46 @@ impl<'a> McpMutationService<'a> {
         client: ClientKind,
         action: MutationAction,
         target_id: &str,
+        project_root: Option<&str>,
+        target_source_id: Option<&str>,
         payload: Option<&serde_json::Value>,
     ) -> Result<McpMutationResult, CommandError> {
         let payload = parse_mcp_mutation_payload(action, payload)?;
-        let source_path = resolve_mcp_config_path(
+        let target_descriptor = McpMutationTargetResolver::new(self.detector_registry).resolve(
             client,
             action,
+            project_root,
+            target_source_id,
             payload.source_path.as_deref(),
-            self.detector_registry,
         )?;
 
-        let current_content = match fs::read_to_string(&source_path) {
+        let current_content = match fs::read_to_string(&target_descriptor.container_path) {
             Ok(content) => content,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
             Err(error) => {
                 return Err(CommandError::internal(format!(
                     "Failed to read MCP config '{}': {}",
-                    source_path.display(),
+                    target_descriptor.container_path.display(),
                     error
                 )));
             }
         };
 
-        let next_content = if matches!(client, ClientKind::Codex) {
-            mutate_toml_content(&current_content, target_id, action, &payload)?
-        } else {
-            mutate_json_content(client, &current_content, target_id, action, &payload)?
+        let next_content = match target_descriptor.storage_kind {
+            McpSourceStorageKind::JsonSection => mutate_json_content(
+                &target_descriptor,
+                &current_content,
+                target_id,
+                action,
+                &payload,
+            )?,
+            McpSourceStorageKind::TomlTable => {
+                mutate_toml_content(&current_content, target_id, action, &payload)?
+            }
         };
 
         let write_result = SafeFileMutator::new()
-            .replace_file(&source_path, next_content.as_bytes())
+            .replace_file(&target_descriptor.container_path, next_content.as_bytes())
             .map_err(|failure| {
                 CommandError::internal(format!(
                     "[stage={:?}] {} (rollback_succeeded={})",
@@ -69,27 +81,39 @@ impl<'a> McpMutationService<'a> {
             })?;
 
         let mut message = match action {
-            MutationAction::Add => format!("Added MCP '{}' for '{}'.", target_id, client.as_str()),
-            MutationAction::Remove => {
-                format!("Removed MCP '{}' for '{}'.", target_id, client.as_str())
-            }
-            MutationAction::Update => {
-                format!("Updated MCP '{}' for '{}'.", target_id, client.as_str())
-            }
+            MutationAction::Add => format!(
+                "Added MCP '{}' for '{}' in {}.",
+                target_id,
+                client.as_str(),
+                target_descriptor.source_label
+            ),
+            MutationAction::Remove => format!(
+                "Removed MCP '{}' for '{}' from {}.",
+                target_id,
+                client.as_str(),
+                target_descriptor.source_label
+            ),
+            MutationAction::Update => format!(
+                "Updated MCP '{}' for '{}' in {}.",
+                target_id,
+                client.as_str(),
+                target_descriptor.source_label
+            ),
         };
         if let Some(backup_path) = write_result.backup_path {
             message.push_str(&format!(" Backup: {}.", backup_path));
         }
 
         Ok(McpMutationResult {
-            source_path: source_path.display().to_string(),
+            source_path: target_descriptor.container_path.display().to_string(),
+            target_source_id: target_descriptor.source_id,
             message,
         })
     }
 }
 
 fn mutate_json_content(
-    client: ClientKind,
+    descriptor: &McpSourceDescriptor,
     current_content: &str,
     target_id: &str,
     action: MutationAction,
@@ -103,13 +127,20 @@ fn mutate_json_content(
         })?
     };
 
-    let Some(root_object) = root.as_object_mut() else {
+    if !root.is_object() {
         return Err(CommandError::validation(
             "JSON MCP config root must be an object.",
         ));
-    };
-    let section_object = resolve_mcp_section_map(root_object)?;
-    apply_json_mcp_mutation(client, section_object, target_id, action, payload)?;
+    }
+
+    let section_object = resolve_json_section_map(&mut root, &descriptor.selector)?;
+    apply_json_mcp_mutation(
+        descriptor.client,
+        section_object,
+        target_id,
+        action,
+        payload,
+    )?;
 
     let mut serialized = serde_json::to_string_pretty(&root).map_err(|error| {
         CommandError::internal(format!("Failed to serialize JSON MCP config: {}", error))
@@ -118,26 +149,12 @@ fn mutate_json_content(
     Ok(serialized)
 }
 
-fn resolve_mcp_section_map(
-    object: &mut serde_json::Map<String, serde_json::Value>,
-) -> Result<&mut serde_json::Map<String, serde_json::Value>, CommandError> {
-    let section_key = if object.contains_key("mcpServers") {
-        "mcpServers"
-    } else if object.contains_key("mcp_servers") {
-        "mcp_servers"
-    } else {
-        "mcpServers"
-    };
-
-    if !object.contains_key(section_key) {
-        object.insert(section_key.to_string(), serde_json::json!({}));
-    }
-
-    let Some(section) = object.get_mut(section_key) else {
-        return Err(CommandError::validation(
-            "JSON MCP section could not be resolved.",
-        ));
-    };
+fn resolve_json_section_map<'a>(
+    root: &'a mut serde_json::Value,
+    selector: &str,
+) -> Result<&'a mut serde_json::Map<String, serde_json::Value>, CommandError> {
+    let tokens = parse_json_pointer_tokens(selector)?;
+    let section = resolve_json_section_value(root, &tokens)?;
     let Some(section_object) = section.as_object_mut() else {
         return Err(CommandError::validation(
             "JSON MCP section must be an object map.",
@@ -145,6 +162,61 @@ fn resolve_mcp_section_map(
     };
 
     Ok(section_object)
+}
+
+fn parse_json_pointer_tokens(selector: &str) -> Result<Vec<String>, CommandError> {
+    if !selector.starts_with('/') {
+        return Err(CommandError::validation(format!(
+            "JSON MCP selector '{}' must start with '/'.",
+            selector
+        )));
+    }
+
+    Ok(selector
+        .split('/')
+        .skip(1)
+        .map(|token| token.replace("~1", "/").replace("~0", "~"))
+        .collect())
+}
+
+fn resolve_json_section_value<'a>(
+    current: &'a mut serde_json::Value,
+    tokens: &[String],
+) -> Result<&'a mut serde_json::Value, CommandError> {
+    if tokens.is_empty() {
+        return Ok(current);
+    }
+
+    let Some(object) = current.as_object_mut() else {
+        return Err(CommandError::validation(
+            "JSON MCP path contains a non-object segment.",
+        ));
+    };
+
+    let key = resolve_json_child_key(object, &tokens[0]);
+    let next = object.entry(key).or_insert_with(|| serde_json::json!({}));
+
+    resolve_json_section_value(next, &tokens[1..])
+}
+
+fn resolve_json_child_key(
+    object: &serde_json::Map<String, serde_json::Value>,
+    requested_key: &str,
+) -> String {
+    if requested_key == "mcpServers" {
+        if object.contains_key("mcpServers") {
+            return "mcpServers".to_string();
+        }
+        if object.contains_key("mcp_servers") {
+            return "mcp_servers".to_string();
+        }
+    }
+
+    if requested_key == "mcp_servers" && object.contains_key("mcpServers") {
+        return "mcpServers".to_string();
+    }
+
+    requested_key.to_string()
 }
 
 fn apply_json_mcp_mutation(
@@ -397,7 +469,7 @@ fn build_toml_transport_payload(transport: &McpTransportPayload, enabled: bool) 
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::{fs, path::PathBuf};
 
     use serde_json::{Value, json};
 
@@ -423,6 +495,8 @@ mod tests {
                 ClientKind::ClaudeCode,
                 MutationAction::Add,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx", "args": ["-y", "server"] },
@@ -484,6 +558,8 @@ mod tests {
                 ClientKind::ClaudeCode,
                 MutationAction::Add,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx", "args": ["-y", "server"] },
@@ -546,6 +622,8 @@ mod tests {
                 ClientKind::ClaudeCode,
                 MutationAction::Add,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx", "args": ["-y", "server"] },
@@ -597,6 +675,8 @@ mod tests {
                 ClientKind::Cursor,
                 MutationAction::Add,
                 "context7",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "context7" }
@@ -634,6 +714,8 @@ mod tests {
                 ClientKind::Cursor,
                 MutationAction::Update,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "url": "https://mcp.example.com/sse" },
@@ -667,6 +749,8 @@ mod tests {
                 ClientKind::Cursor,
                 MutationAction::Update,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx" }
@@ -700,6 +784,8 @@ enabled = true
                 ClientKind::Codex,
                 MutationAction::Remove,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string()
                 })),
@@ -713,6 +799,141 @@ enabled = true
     }
 
     #[test]
+    fn claude_project_private_target_mutates_project_section() {
+        let temp_dir = temp_root("claude-project-private");
+        let project_root = temp_dir.join("workspace");
+        let _ = fs::create_dir_all(&project_root);
+        let project_root_string = project_root.display().to_string();
+        let source = temp_dir.join("claude.json");
+        fs::write(
+            &source,
+            r#"{
+  "mcpServers": {
+    "root": { "command": "npx", "enabled": true }
+  }
+}"#,
+        )
+        .expect("should create claude config");
+
+        let target_source_id = format!(
+            "mcp::claude_code::project_private::{}::/projects/{}/mcpServers",
+            source.display(),
+            escape_json_pointer_token(&project_root_string)
+        );
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        let result = service
+            .mutate(
+                ClientKind::ClaudeCode,
+                MutationAction::Add,
+                "github",
+                Some(project_root_string.as_str()),
+                Some(target_source_id.as_str()),
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "url": "https://mcp.example.com/sse" },
+                    "enabled": true
+                })),
+            )
+            .expect("project-private add should succeed");
+
+        let content = fs::read_to_string(&source).expect("should read updated config");
+        let value: Value = serde_json::from_str(&content).expect("output should remain valid json");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(result.target_source_id.contains("project_private"));
+        assert_eq!(result.source_path, source.display().to_string());
+        assert!(
+            value
+                .get("mcpServers")
+                .and_then(Value::as_object)
+                .is_some_and(|servers| !servers.contains_key("github"))
+        );
+        assert!(
+            value
+                .get("projects")
+                .and_then(Value::as_object)
+                .and_then(|projects| projects.get(project_root_string.as_str()))
+                .and_then(Value::as_object)
+                .and_then(|project| project.get("mcpServers"))
+                .and_then(Value::as_object)
+                .is_some_and(|servers| servers.contains_key("github"))
+        );
+    }
+
+    #[test]
+    fn cursor_project_shared_target_mutates_project_file() {
+        let temp_dir = temp_root("cursor-project-shared");
+        let project_root = temp_dir.join("workspace");
+        let project_config = project_root.join(".cursor").join("mcp.json");
+        let _ = fs::create_dir_all(project_config.parent().expect("project config parent"));
+        fs::write(&project_config, "{}").expect("should create cursor project config");
+        let project_root_string = project_root.display().to_string();
+
+        let target_source_id = format!(
+            "mcp::cursor::project_shared::{}::/mcpServers",
+            project_config.display()
+        );
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        let result = service
+            .mutate(
+                ClientKind::Cursor,
+                MutationAction::Add,
+                "context7",
+                Some(project_root_string.as_str()),
+                Some(target_source_id.as_str()),
+                Some(&json!({
+                    "source_path": project_config.display().to_string(),
+                    "transport": { "command": "context7" },
+                    "enabled": true
+                })),
+            )
+            .expect("project-shared add should succeed");
+
+        let content =
+            fs::read_to_string(&project_config).expect("should read updated project config");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(result.target_source_id.contains("project_shared"));
+        assert!(content.contains("\"context7\""));
+        assert!(content.contains("\"enabled\": true"));
+    }
+
+    #[test]
+    fn codex_rejects_project_scoped_target_source() {
+        let temp_dir = temp_root("codex-unsupported-target");
+        let project_root = temp_dir.join("workspace");
+        let _ = fs::create_dir_all(&project_root);
+        let source = temp_dir.join("codex.toml");
+        fs::write(&source, "").expect("should create codex config");
+        let project_root_string = project_root.display().to_string();
+
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = McpMutationService::new(&detector_registry);
+        let error = service
+            .mutate(
+                ClientKind::Codex,
+                MutationAction::Add,
+                "filesystem",
+                Some(project_root_string.as_str()),
+                Some("mcp::codex::project_shared::/tmp/workspace/.codex/config.toml::mcp_servers"),
+                Some(&json!({
+                    "source_path": source.display().to_string(),
+                    "transport": { "command": "npx" },
+                    "enabled": true
+                })),
+            )
+            .expect_err("unsupported codex target should fail");
+
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        assert!(error.message.contains("unsupported scope 'project_shared'"));
+    }
+
+    #[test]
     fn malformed_transport_is_actionable_validation_error() {
         let detector_registry = DetectorRegistry::with_default_detectors();
         let service = McpMutationService::new(&detector_registry);
@@ -721,6 +942,8 @@ enabled = true
                 ClientKind::Codex,
                 MutationAction::Add,
                 "remote",
+                None,
+                None,
                 Some(&json!({
                     "transport": { "url": "ftp://invalid" }
                 })),
@@ -747,6 +970,8 @@ enabled = true
                 ClientKind::ClaudeCode,
                 MutationAction::Add,
                 "filesystem",
+                None,
+                None,
                 Some(&json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx", "args": ["-y", "server"] },
@@ -757,5 +982,19 @@ enabled = true
         let _ = fs::remove_dir_all(&temp_dir);
 
         assert!(error.message.contains("does not support `enabled=false`"));
+    }
+
+    fn escape_json_pointer_token(value: &str) -> String {
+        value.replace('~', "~0").replace('/', "~1")
+    }
+
+    fn temp_root(suffix: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "ai-manager-mcp-mutation-{}-{}",
+            std::process::id(),
+            suffix
+        ));
+        let _ = fs::create_dir_all(&root);
+        root
     }
 }
