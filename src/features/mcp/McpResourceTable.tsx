@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import { formatClientLabel } from "../clients/client-labels";
 
 interface McpResourceTableProps {
   resources: ResourceRecord[];
@@ -20,10 +21,6 @@ interface McpResourceTableProps {
   onEdit: (resource: ResourceRecord) => Promise<void>;
   onRemove: (resource: ResourceRecord) => Promise<void>;
   emptyMessage?: string;
-}
-
-function formatSourcePath(sourcePath: string | null): string {
-  return sourcePath ?? "Auto-resolved";
 }
 
 function formatTransportKind(value: string | null): string {
@@ -113,6 +110,23 @@ function McpActionButton({
   );
 }
 
+function StatusBadge({ tone, label }: { tone: "neutral" | "success" | "warning"; label: string }) {
+  const className =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : tone === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-slate-200 bg-slate-100 text-slate-700";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] ${className}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function McpResourceTable({
   resources,
   pendingRemovalId,
@@ -123,11 +137,13 @@ export function McpResourceTable({
   onRemove,
   emptyMessage,
 }: McpResourceTableProps) {
+  const resourcesById = new Map(resources.map((resource) => [resource.id, resource]));
+
   if (resources.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-7 text-center">
         <p className="text-sm leading-relaxed text-slate-600">
-          {emptyMessage ?? "No MCP entries registered for the selected client."}
+          {emptyMessage ?? "No MCP entries registered for the current context."}
         </p>
       </div>
     );
@@ -135,34 +151,99 @@ export function McpResourceTable({
 
   return (
     <div className="overflow-auto rounded-2xl border border-slate-200/90 bg-white">
-      <Table className="min-w-[42rem] max-[720px]:min-w-[36rem]">
+      <Table className="min-w-[66rem] max-[720px]:min-w-[52rem]">
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>MCP Entry</TableHead>
             <TableHead>Transport</TableHead>
-            <TableHead>Enabled</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
             <TableHead aria-label="actions" className="w-36" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {resources.map((resource) => {
-            const removing = pendingRemovalId === resource.display_name;
-            const updating = pendingUpdateId === resource.display_name;
+            const removing = pendingRemovalId === resource.id;
+            const updating = pendingUpdateId === resource.id;
             const copying = pendingCopyId === resource.id;
+            const shadowingSource =
+              resource.shadowed_by === null
+                ? null
+                : (resourcesById.get(resource.shadowed_by) ?? null);
+
             return (
-              <TableRow key={resource.id} className="hover:bg-slate-50/70">
-                <TableCell className="font-medium text-slate-900">
-                  {resource.display_name}
+              <TableRow
+                key={resource.id}
+                className={
+                  resource.is_effective
+                    ? "hover:bg-slate-50/70"
+                    : "bg-amber-50/35 hover:bg-amber-50/60"
+                }
+              >
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="text-sm font-medium text-slate-900">
+                      {formatClientLabel(resource.client)}
+                    </span>
+                    <span className="text-xs text-slate-500">{resource.client}</span>
+                  </div>
                 </TableCell>
-                <TableCell>{formatTransportKind(resource.transport_kind)}</TableCell>
-                <TableCell>{resource.enabled ? "yes" : "no"}</TableCell>
-                <TableCell>{formatSourcePath(resource.source_path)}</TableCell>
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="font-medium text-slate-900">{resource.display_name}</span>
+                    <span className="text-xs text-slate-500">{resource.logical_id}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="text-sm text-slate-900">
+                      {formatTransportKind(resource.transport_kind)}
+                    </span>
+                    <span className="truncate text-xs text-slate-500">
+                      {resource.transport_kind === "sse"
+                        ? (resource.transport_url ?? "No URL")
+                        : (resource.transport_command ?? "No command")}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    <StatusBadge
+                      tone={resource.enabled ? "success" : "neutral"}
+                      label={resource.enabled ? "Enabled" : "Disabled"}
+                    />
+                    <StatusBadge
+                      tone={resource.is_effective ? "success" : "warning"}
+                      label={resource.is_effective ? "Effective" : "Shadowed"}
+                    />
+                    {shadowingSource ? (
+                      <span className="text-xs text-slate-500">
+                        Hidden by {shadowingSource.source_label}
+                      </span>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="text-sm font-medium text-slate-900">
+                      {resource.source_label}
+                    </span>
+                    <span className="text-xs uppercase tracking-[0.08em] text-slate-500">
+                      {resource.source_scope.replace("_", " ")}
+                    </span>
+                    {resource.source_path ? (
+                      <span className="truncate text-xs text-slate-500">
+                        {resource.source_path}
+                      </span>
+                    ) : null}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <McpActionButton
                       icon={<CopyIcon />}
-                      label="Copy"
+                      label="Copy to another client"
                       busyLabel="Copying..."
                       busy={copying}
                       disabled={copying || updating || removing}
@@ -173,7 +254,7 @@ export function McpResourceTable({
                     />
                     <McpActionButton
                       icon={<EditIcon />}
-                      label="Edit"
+                      label={`Edit in ${resource.source_label}`}
                       busyLabel="Updating..."
                       busy={updating}
                       disabled={updating || removing || copying}
@@ -184,7 +265,7 @@ export function McpResourceTable({
                     />
                     <McpActionButton
                       icon={<RemoveIcon />}
-                      label="Remove"
+                      label={`Remove from ${resource.source_label}`}
                       busyLabel="Removing..."
                       busy={removing}
                       disabled={removing || updating || copying}

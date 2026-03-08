@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 
-import { buildTransportChecksum } from "./mcp-checksum";
+import type { ClientKind } from "../../backend/contracts";
 import { searchRegistryPresets } from "./mcp-registry";
 import { MCP_FALLBACK_PRESETS, type McpOfficialPreset } from "./official-presets";
 import type { AddMcpInput, McpTransportInput } from "./useMcpManager";
@@ -11,6 +11,7 @@ export type McpAddMode = "registry" | "preset" | "manual";
 export type McpPresetSource = "registry" | "preset";
 
 export interface McpAddFormState {
+  destinationClient: ClientKind;
   mode: McpAddMode;
   targetId: string;
   transportMode: TransportMode;
@@ -30,13 +31,16 @@ export interface McpAddFormState {
 
 interface UseMcpAddFormParams {
   onSubmit: (input: AddMcpInput) => Promise<boolean>;
+  resolveDestination: (client: ClientKind) => {
+    projectRoot: string | null;
+    targetSourceId: string | null;
+  };
   onAccepted?: () => void;
-  existingTargetIds?: ReadonlySet<string>;
-  existingTransportChecksums?: ReadonlySet<string>;
 }
 
 interface UseMcpAddFormResult {
   state: McpAddFormState;
+  setDestinationClient: (value: ClientKind) => void;
   setMode: (value: McpAddMode) => void;
   setTargetId: (value: string) => void;
   setTransportMode: (value: TransportMode) => void;
@@ -51,6 +55,7 @@ interface UseMcpAddFormResult {
 }
 
 const DEFAULT_STATE: McpAddFormState = {
+  destinationClient: "claude_code",
   mode: "registry",
   targetId: "example.server",
   transportMode: "stdio",
@@ -109,17 +114,20 @@ function createTransportPayload(
   };
 }
 
-function normalizeTargetId(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 export function useMcpAddForm({
   onSubmit,
+  resolveDestination,
   onAccepted,
-  existingTargetIds,
-  existingTransportChecksums,
 }: UseMcpAddFormParams): UseMcpAddFormResult {
   const [state, setState] = useState<McpAddFormState>(DEFAULT_STATE);
+
+  const setDestinationClient = useCallback((value: ClientKind) => {
+    setState((current) => ({
+      ...current,
+      destinationClient: value,
+      localError: null,
+    }));
+  }, []);
 
   const setMode = useCallback((value: McpAddMode) => {
     setState((current) => ({ ...current, mode: value, localError: null }));
@@ -250,13 +258,6 @@ export function useMcpAddForm({
         setState((current) => ({ ...current, localError: "Target ID is required." }));
         return;
       }
-      if (existingTargetIds?.has(normalizeTargetId(normalizedTargetId))) {
-        setState((current) => ({
-          ...current,
-          localError: `MCP '${normalizedTargetId}' is already added for this client.`,
-        }));
-        return;
-      }
 
       if (state.mode === "registry" && state.selectedRegistryPresetId.trim().length === 0) {
         setState((current) => ({
@@ -287,18 +288,13 @@ export function useMcpAddForm({
         }));
         return;
       }
-      if (existingTransportChecksums?.has(buildTransportChecksum(transport))) {
-        setState((current) => ({
-          ...current,
-          localError: "An MCP with the same transport configuration is already added.",
-        }));
-        return;
-      }
 
       const accepted = await onSubmit({
+        destinationClient: state.destinationClient,
         targetId: normalizedTargetId,
         transport,
         enabled: state.enabled,
+        ...resolveDestination(state.destinationClient),
       });
 
       if (accepted) {
@@ -317,11 +313,12 @@ export function useMcpAddForm({
         onAccepted?.();
       }
     },
-    [existingTargetIds, existingTransportChecksums, onAccepted, onSubmit, state],
+    [onAccepted, onSubmit, resolveDestination, state],
   );
 
   return {
     state,
+    setDestinationClient,
     setMode,
     setTargetId,
     setTransportMode,

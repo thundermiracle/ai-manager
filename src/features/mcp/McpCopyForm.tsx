@@ -7,11 +7,14 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { cn } from "../../lib/utils";
 import { formatClientLabel } from "../clients/client-labels";
+import type { McpMutationTargetPlan } from "./mcp-targets";
+import { describeMcpAction, MCP_CLIENTS } from "./mcp-targets";
 import type { McpCopyFormState } from "./useMcpCopyForm";
 
 interface McpCopyFormProps {
   disabled: boolean;
   state: McpCopyFormState;
+  destinationPlan: McpMutationTargetPlan;
   onDestinationClientChange: (value: ClientKind) => void;
   onTargetIdChange: (value: string) => void;
   onEnabledChange: (value: boolean) => void;
@@ -19,18 +22,17 @@ interface McpCopyFormProps {
   className?: string;
 }
 
-const CLIENTS: ClientKind[] = ["codex", "claude_code", "cursor"];
-
 export function McpCopyForm({
   disabled,
   state,
+  destinationPlan,
   onDestinationClientChange,
   onTargetIdChange,
   onEnabledChange,
   onSubmit,
   className,
 }: McpCopyFormProps) {
-  const destinationOptions = CLIENTS.filter((client) => client !== state.sourceClient);
+  const destinationOptions = MCP_CLIENTS.filter((client) => client !== state.sourceClient);
 
   return (
     <form
@@ -44,6 +46,13 @@ export function McpCopyForm({
         specific extras (for example `env`, headers, or optional transport metadata) are not copied
         in this version.
       </Alert>
+      <Alert variant="default">
+        <strong>{destinationPlan.destinationLabel}.</strong>{" "}
+        {destinationPlan.destinationDescription}
+      </Alert>
+      {destinationPlan.fallbackNotice ? (
+        <Alert variant="warning">{destinationPlan.fallbackNotice}</Alert>
+      ) : null}
 
       <Label>Source</Label>
       <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -95,7 +104,7 @@ export function McpCopyForm({
       </label>
 
       <Button type="submit" disabled={disabled || destinationOptions.length === 0}>
-        Copy MCP
+        {describeMcpAction("copy", destinationPlan)}
       </Button>
     </form>
   );

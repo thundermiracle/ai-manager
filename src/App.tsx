@@ -42,7 +42,6 @@ function renderRouteContent(
   if (route === "mcp") {
     return (
       <McpManagerPanel
-        client={selectedDetection?.client ?? null}
         contextMode={resourceContext.mode}
         projectRoot={resourceContext.projectRoot}
       />
@@ -218,7 +217,7 @@ function App() {
                   />
                 ))}
               </section>
-            ) : (
+            ) : activeRoute === "skills" ? (
               <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
                 <div className="grid gap-1">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate-500">
@@ -253,6 +252,26 @@ function App() {
                     Open Dashboard
                   </Button>
                 </div>
+              </section>
+            ) : (
+              <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
+                <div className="grid gap-1">
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate-500">
+                    MCP Overview
+                  </p>
+                  <p className="text-sm text-slate-700">
+                    MCP resources now span all supported clients inside the selected context.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveRoute("dashboard")}
+                >
+                  Open Dashboard
+                </Button>
               </section>
             )}
 

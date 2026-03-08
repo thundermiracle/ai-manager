@@ -1,12 +1,16 @@
 import { type FormEvent, useCallback, useState } from "react";
 
-import type { ResourceRecord } from "../../backend/contracts";
+import type { ClientKind, ResourceRecord } from "../../backend/contracts";
 import type { TransportMode } from "./useMcpAddForm";
 import type { McpTransportInput, UpdateMcpInput } from "./useMcpManager";
 
 export interface McpEditFormState {
+  resourceId: string;
+  client: ClientKind;
   targetId: string;
-  sourcePath: string | null;
+  projectRoot: string | null;
+  targetSourceId: string;
+  sourceLabel: string;
   transportMode: TransportMode;
   command: string;
   argsInput: string;
@@ -22,7 +26,7 @@ interface UseMcpEditFormParams {
 
 interface UseMcpEditFormResult {
   state: McpEditFormState;
-  loadResource: (resource: ResourceRecord) => void;
+  loadResource: (resource: ResourceRecord, projectRoot: string | null) => void;
   reset: () => void;
   setTransportMode: (value: TransportMode) => void;
   setCommand: (value: string) => void;
@@ -33,8 +37,12 @@ interface UseMcpEditFormResult {
 }
 
 const DEFAULT_STATE: McpEditFormState = {
+  resourceId: "",
+  client: "claude_code",
   targetId: "",
-  sourcePath: null,
+  projectRoot: null,
+  targetSourceId: "",
+  sourceLabel: "",
   transportMode: "stdio",
   command: "",
   argsInput: "",
@@ -91,11 +99,15 @@ export function useMcpEditForm({
 }: UseMcpEditFormParams): UseMcpEditFormResult {
   const [state, setState] = useState<McpEditFormState>(DEFAULT_STATE);
 
-  const loadResource = useCallback((resource: ResourceRecord) => {
+  const loadResource = useCallback((resource: ResourceRecord, projectRoot: string | null) => {
     const transportMode: TransportMode = resource.transport_kind === "sse" ? "sse" : "stdio";
     setState({
+      resourceId: resource.id,
+      client: resource.client,
       targetId: resource.display_name,
-      sourcePath: resource.source_path,
+      projectRoot,
+      targetSourceId: resource.source_id,
+      sourceLabel: resource.source_label,
       transportMode,
       command: resource.transport_command ?? "",
       argsInput: (resource.transport_args ?? []).join(", "),
@@ -156,8 +168,12 @@ export function useMcpEditForm({
       }
 
       const accepted = await onSubmit({
+        resourceId: state.resourceId,
+        client: state.client,
         targetId: normalizedTargetId,
-        sourcePath: state.sourcePath,
+        projectRoot: state.projectRoot,
+        targetSourceId: state.targetSourceId,
+        sourceLabel: state.sourceLabel,
         transport,
         enabled: state.enabled,
       });
