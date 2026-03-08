@@ -1,6 +1,6 @@
 {
   "$schema": "../../schemas/normalized-domain-model.schema.json",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "updatedAt": "2026-03-08",
   "entities": {
     "clients": [
@@ -12,6 +12,7 @@
         "capabilities": {
           "supportsMcp": true,
           "supportsSkills": true,
+          "supportsSubagents": true,
           "supportsEnableDisable": true,
           "scopeSupport": {
             "mcp": {
@@ -45,6 +46,21 @@
               "targetDestinationScopes": [
                 "user"
               ]
+            },
+            "subagents": {
+              "currentSourceScopes": [
+                "user",
+                "project_shared"
+              ],
+              "targetSourceScopes": [
+                "user",
+                "project_shared"
+              ],
+              "currentDestinationScopes": [],
+              "targetDestinationScopes": [
+                "user",
+                "project_shared"
+              ]
             }
           }
         },
@@ -68,6 +84,7 @@
         "capabilities": {
           "supportsMcp": true,
           "supportsSkills": true,
+          "supportsSubagents": false,
           "supportsEnableDisable": false,
           "scopeSupport": {
             "mcp": {
@@ -97,6 +114,12 @@
               "targetDestinationScopes": [
                 "user"
               ]
+            },
+            "subagents": {
+              "currentSourceScopes": [],
+              "targetSourceScopes": [],
+              "currentDestinationScopes": [],
+              "targetDestinationScopes": []
             }
           }
         },
@@ -122,6 +145,7 @@
         "capabilities": {
           "supportsMcp": true,
           "supportsSkills": true,
+          "supportsSubagents": false,
           "supportsEnableDisable": false,
           "scopeSupport": {
             "mcp": {
@@ -153,6 +177,12 @@
               "targetDestinationScopes": [
                 "user"
               ]
+            },
+            "subagents": {
+              "currentSourceScopes": [],
+              "targetSourceScopes": [],
+              "currentDestinationScopes": [],
+              "targetDestinationScopes": []
             }
           }
         },
@@ -323,6 +353,72 @@
         },
         "extensions": {
           "futureSkillMetadata": {}
+        }
+      }
+    ],
+    "subagents": [
+      {
+        "id": "subagent:claude_code:user:reviewer",
+        "logicalId": "subagent:claude_code:reviewer",
+        "clientId": "client:claude_code:default",
+        "name": "reviewer",
+        "enabled": true,
+        "manifest": {
+          "path": "~/.claude/agents/reviewer.md"
+        },
+        "metadata": {
+          "description": "Personal reviewer instructions."
+        },
+        "source": {
+          "origin": "subagents_dir",
+          "path": "~/.claude/agents/reviewer.md",
+          "containerPath": "~/.claude/agents",
+          "sourceId": "subagent::claude_code::user::~/.claude/agents",
+          "scope": "user",
+          "label": "Personal subagents directory",
+          "isEffective": false,
+          "shadowedBy": "subagent:claude_code:project_shared:reviewer",
+          "warnings": []
+        },
+        "raw": {
+          "frontmatter": {
+            "name": "reviewer"
+          }
+        },
+        "extensions": {
+          "futureSubagentMetadata": {}
+        }
+      },
+      {
+        "id": "subagent:claude_code:project_shared:reviewer",
+        "logicalId": "subagent:claude_code:reviewer",
+        "clientId": "client:claude_code:default",
+        "name": "reviewer",
+        "enabled": true,
+        "manifest": {
+          "path": "{projectRoot}/.claude/agents/reviewer.md"
+        },
+        "metadata": {
+          "description": "Project reviewer instructions."
+        },
+        "source": {
+          "origin": "subagents_dir",
+          "path": "{projectRoot}/.claude/agents/reviewer.md",
+          "containerPath": "{projectRoot}/.claude/agents",
+          "sourceId": "subagent::claude_code::project_shared::{projectRoot}/.claude/agents",
+          "scope": "project_shared",
+          "label": "Project subagents directory",
+          "isEffective": true,
+          "shadowedBy": null,
+          "warnings": []
+        },
+        "raw": {
+          "frontmatter": {
+            "name": "reviewer"
+          }
+        },
+        "extensions": {
+          "futureSubagentMetadata": {}
         }
       }
     ]

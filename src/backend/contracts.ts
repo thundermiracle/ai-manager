@@ -1,6 +1,6 @@
 export type ClientKind = "claude_code" | "codex" | "cursor";
 
-export type ResourceKind = "mcp" | "skill";
+export type ResourceKind = "mcp" | "skill" | "subagent";
 export type ResourceSourceScope = "user" | "project_shared" | "project_private";
 export type ResourceViewMode = "effective" | "all_sources";
 

@@ -149,13 +149,17 @@
             "type": "object",
             "required": [
               "mcp",
-              "skills"
+              "skills",
+              "subagents"
             ],
             "properties": {
               "mcp": {
                 "$ref": "#/$defs/resourceKindSupport"
               },
               "skills": {
+                "$ref": "#/$defs/resourceKindSupport"
+              },
+              "subagents": {
                 "$ref": "#/$defs/resourceKindSupport"
               }
             },
@@ -227,7 +231,6 @@
         },
         "effectivePrecedence": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/$defs/resourceSourceScope"
           }

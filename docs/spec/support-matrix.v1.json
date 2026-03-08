@@ -1,6 +1,6 @@
 {
   "$schema": "../../schemas/support-matrix.schema.json",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "updatedAt": "2026-03-08",
   "resolutionPolicy": {
     "precedence": "per_resource_kind_scope_order_then_candidate_priority",
@@ -147,6 +147,30 @@
             "This entry describes AI Manager-managed generic SKILL.md repositories only.",
             "Claude project-scoped customization belongs to native subagents/agents and should not extend the generic skill resource kind."
           ]
+        },
+        "subagents": {
+          "currentSourceScopes": [
+            "user",
+            "project_shared"
+          ],
+          "targetSourceScopes": [
+            "user",
+            "project_shared"
+          ],
+          "currentDestinationScopes": [],
+          "targetDestinationScopes": [
+            "user",
+            "project_shared"
+          ],
+          "effectivePrecedence": [
+            "project_shared",
+            "user"
+          ],
+          "projectScopeStatus": "planned",
+          "notes": [
+            "Claude native subagents are sourced from ~/.claude/agents and {projectRoot}/.claude/agents.",
+            "Subagents are tracked separately from generic skills; mutation flows remain staged."
+          ]
         }
       },
       "detectionEvidenceRequirements": [
@@ -279,6 +303,17 @@
           "notes": [
             "This entry describes AI Manager-managed generic SKILL.md repositories only.",
             "No native project-scoped skills source is documented for Codex. Generic repository handling remains separate from native support."
+          ]
+        },
+        "subagents": {
+          "currentSourceScopes": [],
+          "targetSourceScopes": [],
+          "currentDestinationScopes": [],
+          "targetDestinationScopes": [],
+          "effectivePrecedence": [],
+          "projectScopeStatus": "not_applicable",
+          "notes": [
+            "Codex has no documented native subagent or agent-manifest source comparable to Claude Code."
           ]
         }
       },
@@ -433,6 +468,17 @@
           "notes": [
             "This entry describes AI Manager-managed generic SKILL.md repositories only.",
             "Cursor has no confirmed native project-scoped feature comparable to Claude subagents, so project-scoped generic skills remain deferred."
+          ]
+        },
+        "subagents": {
+          "currentSourceScopes": [],
+          "targetSourceScopes": [],
+          "currentDestinationScopes": [],
+          "targetDestinationScopes": [],
+          "effectivePrecedence": [],
+          "projectScopeStatus": "not_applicable",
+          "notes": [
+            "Cursor has no confirmed native agent-manifest source comparable to Claude subagents."
           ]
         }
       },

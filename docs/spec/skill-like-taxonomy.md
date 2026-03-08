@@ -22,7 +22,7 @@ This document closes issue `#110` by separating AI Manager-managed generic skill
 
 | Client | Generic personal skills | Native project feature | Product stance |
 | --- | --- | --- | --- |
-| Claude Code | Supported as AI Manager-managed `SKILL.md` repository | Subagents / agents | Do not treat Claude project-native support as `skill`; add a separate native resource kind later |
+| Claude Code | Supported as AI Manager-managed `SKILL.md` repository | Subagents / agents | Do not treat Claude project-native support as `skill`; model it as the separate `subagent` resource kind |
 | Codex | Supported as AI Manager-managed `SKILL.md` repository | None confirmed | Keep generic skills personal-only |
 | Cursor | Supported as AI Manager-managed `SKILL.md` repository | None confirmed comparable to Claude subagents | Keep generic skills personal-only |
 
@@ -37,10 +37,9 @@ This document closes issue `#110` by separating AI Manager-managed generic skill
 
 1. Ship project-aware MCP independently.
 2. Keep generic skills personal-only with explicit copy in the UI and docs.
-3. Introduce a dedicated Claude native subagent resource kind in follow-up work.
+3. Keep native Claude subagents on their own contract and UI surface.
 4. Revisit project-scoped generic repositories only if there is a product reason beyond parity with client-native features.
 
 ## Follow-Up Issues
 
-- `#138` Add a dedicated Claude subagent resource kind and listing strategy.
 - `#139` Separate generic skill libraries from native client resources in the UI and contracts.
