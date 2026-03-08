@@ -245,6 +245,11 @@ impl<'a> AdapterService<'a> {
             .filter(|value| !value.is_empty())
             .map(str::to_string)
             .unwrap_or_else(|| source_target_id.to_string());
+        let destination_source_id = request
+            .destination_source_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
 
         let outcome = McpReplicationService::new(self.detector_registry).replicate(
             request.source_client,
@@ -253,7 +258,7 @@ impl<'a> AdapterService<'a> {
             source_project_root.as_deref(),
             request.destination_client,
             Some(destination_target_id.as_str()),
-            request.destination_source_id.as_str(),
+            destination_source_id,
             destination_project_root.as_deref(),
             request.overwrite,
         )?;

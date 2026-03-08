@@ -14,7 +14,8 @@ pub struct ReplicateResourceRequest {
     pub destination_client: ClientKind,
     #[serde(default)]
     pub destination_target_id: Option<String>,
-    pub destination_source_id: String,
+    #[serde(default)]
+    pub destination_source_id: Option<String>,
     #[serde(default)]
     pub destination_project_root: Option<String>,
     #[serde(default)]
@@ -73,13 +74,13 @@ mod tests {
             "source_target_id": "filesystem",
             "source_source_id": "mcp::claude_code::user::/tmp/.claude.json::/mcpServers",
             "destination_client": "cursor",
-            "destination_source_id": "mcp::cursor::user::/tmp/.cursor/mcp.json::/mcpServers"
         }))
         .expect("request should deserialize");
 
         assert_eq!(request.source_project_root, None);
         assert_eq!(request.destination_project_root, None);
         assert_eq!(request.destination_target_id, None);
+        assert_eq!(request.destination_source_id, None);
         assert!(!request.overwrite);
     }
 }

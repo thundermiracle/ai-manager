@@ -41,7 +41,7 @@ impl<'a> McpReplicationService<'a> {
         source_project_root: Option<&str>,
         destination_client: ClientKind,
         destination_target_id: Option<&str>,
-        destination_source_id: &str,
+        destination_source_id: Option<&str>,
         destination_project_root: Option<&str>,
         overwrite: bool,
     ) -> Result<McpReplicationResult, CommandError> {
@@ -49,13 +49,6 @@ impl<'a> McpReplicationService<'a> {
         if source_target_id.is_empty() {
             return Err(CommandError::validation(
                 "source_target_id must not be empty for MCP replication.",
-            ));
-        }
-
-        let destination_source_id = destination_source_id.trim();
-        if destination_source_id.is_empty() {
-            return Err(CommandError::validation(
-                "destination_source_id must not be empty for MCP replication.",
             ));
         }
 
@@ -79,9 +72,10 @@ impl<'a> McpReplicationService<'a> {
                 destination_client,
                 crate::interface::contracts::mutate::MutationAction::Add,
                 destination_project_root,
-                Some(destination_source_id),
+                destination_source_id,
                 None,
             )?;
+        let resolved_destination_source_id = destination_descriptor.source_id.clone();
 
         let destination_records = list_mcp_records(
             self.detector_registry,
@@ -89,7 +83,8 @@ impl<'a> McpReplicationService<'a> {
             destination_project_root,
         );
         let destination_exists = destination_records.iter().any(|record| {
-            record.source_id == destination_source_id && record.logical_id == destination_target_id
+            record.source_id == resolved_destination_source_id
+                && record.logical_id == destination_target_id
         });
 
         if destination_exists && !overwrite {
@@ -115,7 +110,7 @@ impl<'a> McpReplicationService<'a> {
             },
             destination_target_id.as_str(),
             destination_project_root,
-            Some(destination_source_id),
+            Some(resolved_destination_source_id.as_str()),
             Some(&payload),
         )?;
 
@@ -347,7 +342,7 @@ mod tests {
                 None,
                 ClientKind::Cursor,
                 None,
-                destination_source_id.as_str(),
+                None,
                 None,
                 false,
             )
@@ -359,6 +354,7 @@ mod tests {
         .expect("destination config should remain valid json");
 
         assert_eq!(result.destination_target_id, "filesystem");
+        assert_eq!(result.destination_source_id, destination_source_id);
         assert!(
             destination["mcpServers"]["filesystem"]["command"]
                 .as_str()
@@ -410,7 +406,7 @@ mod tests {
                 None,
                 ClientKind::Cursor,
                 None,
-                source_source_id.as_str(),
+                Some(source_source_id.as_str()),
                 None,
                 false,
             )
@@ -460,7 +456,7 @@ enabled = true
                 None,
                 ClientKind::Codex,
                 Some("filesystem-copy"),
-                "mcp::codex::project_shared::/tmp/workspace/.codex/config.toml::mcp_servers",
+                Some("mcp::codex::project_shared::/tmp/workspace/.codex/config.toml::mcp_servers"),
                 Some("/tmp/workspace"),
                 false,
             )
