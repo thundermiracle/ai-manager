@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.3.0...ai-manager-v0.4.0) (2026-03-08)
+
+
+### Features
+
+* add client capability matrix for resource scopes ([e273572](https://github.com/thundermiracle/ai-manager/commit/e273572b0e7df08051648b7604095b94ee8f0c4a))
+* add source-aware resource contracts and request plumbing ([#115](https://github.com/thundermiracle/ai-manager/issues/115)) ([0924d5d](https://github.com/thundermiracle/ai-manager/commit/0924d5d056e812929eec27530e8f5b8ae8a83e0c))
+* normalize and validate project context roots ([225c8ab](https://github.com/thundermiracle/ai-manager/commit/225c8ab6d694bdc78e79604fc213507168215442))
+* **rust:** normalize and validate project context roots ([#113](https://github.com/thundermiracle/ai-manager/issues/113)) ([225c8ab](https://github.com/thundermiracle/ai-manager/commit/225c8ab6d694bdc78e79604fc213507168215442))
+
 ## [0.3.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.2...ai-manager-v0.3.0) (2026-03-06)
 
 
