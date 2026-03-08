@@ -24,6 +24,7 @@ import { buildResourceTransportChecksum } from "./mcp-checksum";
 import {
   buildMcpMutationTargetPlan,
   buildMcpProjectModeHint,
+  buildMcpReplicationTargetPlan,
   describeMcpAction,
   formatResourceViewModeLabel,
   MCP_CLIENTS,
@@ -97,7 +98,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
     feedback,
     pendingRemovalId,
     pendingUpdateId,
-    pendingCopyId,
+    pendingReplicationId,
     addMcp,
     copyMcp,
     updateMcp,
@@ -127,17 +128,44 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
   });
   const copyForm = useMcpCopyForm({
     onSubmit: copyMcp,
-    resolveDestination,
+    resolveDestination: (client, action) => {
+      const plan = buildMcpReplicationTargetPlan(action, client, contextMode, effectiveProjectRoot);
+      return {
+        projectRoot: plan.projectRoot,
+        targetSourceId: plan.targetSourceId,
+      };
+    },
     onAccepted: () => setCopyOpen(false),
   });
+  const primaryAddLabel = useMemo(() => {
+    if (clientFilters.length !== 1) {
+      return "Choose add destination";
+    }
+
+    return describeMcpAction("add", resolveDestination(clientFilters[0]));
+  }, [clientFilters, resolveDestination]);
 
   const addDestinationPlan = useMemo(
     () => resolveDestination(addForm.state.destinationClient),
     [addForm.state.destinationClient, resolveDestination],
   );
   const copyDestinationPlan = useMemo(
-    () => resolveDestination(copyForm.state.destinationClient),
-    [copyForm.state.destinationClient, resolveDestination],
+    () =>
+      buildMcpReplicationTargetPlan(
+        copyForm.state.mode,
+        copyForm.state.mode === "promote"
+          ? copyForm.state.sourceClient
+          : copyForm.state.destinationClient,
+        contextMode,
+        effectiveProjectRoot,
+      ),
+    [
+      contextMode,
+      copyForm.state.destinationClient,
+      copyForm.state.mode,
+      copyForm.state.sourceClient,
+      effectiveProjectRoot,
+    ],
   );
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -216,7 +244,19 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
 
   async function handleCopy(resource: ResourceRecord) {
     clearFeedback();
-    copyForm.loadResource(resource);
+    copyForm.loadResource(resource, {
+      preferredAction: "copy",
+      projectRoot: effectiveProjectRoot,
+    });
+    setCopyOpen(true);
+  }
+
+  async function handlePromote(resource: ResourceRecord) {
+    clearFeedback();
+    copyForm.loadResource(resource, {
+      preferredAction: "promote",
+      projectRoot: effectiveProjectRoot,
+    });
     setCopyOpen(true);
   }
 
@@ -288,7 +328,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
                 {phase === "loading" ? "Loading..." : "Reload"}
               </Button>
               <Button type="button" size="sm" onClick={openComposer}>
-                Add MCP Destination
+                {primaryAddLabel}
               </Button>
             </div>
           </div>
@@ -377,8 +417,9 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
             resources={filteredResources}
             pendingRemovalId={pendingRemovalId}
             pendingUpdateId={pendingUpdateId}
-            pendingCopyId={pendingCopyId}
+            pendingReplicationId={pendingReplicationId}
             onCopy={handleCopy}
+            onPromote={handlePromote}
             onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
@@ -392,8 +433,8 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
 
       <SlideOverPanel
         open={isComposerOpen}
-        title="Add MCP Destination"
-        description="Choose the destination client first, then register the MCP entry for the current context."
+        title="Add MCP Entry"
+        description="Choose the destination client and config explicitly, then register the MCP entry for the active personal or project context."
         panelClassName="max-w-[42rem] max-[920px]:max-w-full"
         onClose={() => setComposerOpen(false)}
       >
@@ -428,11 +469,19 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
 
       <SlideOverPanel
         open={isCopyOpen}
-        title="Copy MCP to Another Client"
-        description="Copy the selected MCP entry to another client using the active personal or project context."
+        title={
+          copyForm.state.mode === "promote"
+            ? "Promote MCP to Personal Config"
+            : "Copy MCP to Another Client"
+        }
+        description={
+          copyForm.state.mode === "promote"
+            ? "Promote the selected project MCP entry into personal config for the same client."
+            : "Copy the selected MCP entry to another client using the active personal or project context."
+        }
         panelClassName="max-w-[40rem] max-[920px]:max-w-full"
         onClose={() => {
-          if (pendingCopyId !== null) {
+          if (pendingReplicationId !== null) {
             return;
           }
           setCopyOpen(false);
@@ -440,12 +489,12 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
         }}
       >
         <McpCopyForm
-          disabled={phase === "loading" || pendingCopyId !== null}
+          disabled={phase === "loading" || pendingReplicationId !== null}
           state={copyForm.state}
           destinationPlan={copyDestinationPlan}
+          onModeChange={copyForm.setMode}
           onDestinationClientChange={copyForm.setDestinationClient}
           onTargetIdChange={copyForm.setTargetId}
-          onEnabledChange={copyForm.setEnabled}
           onSubmit={copyForm.submit}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         />

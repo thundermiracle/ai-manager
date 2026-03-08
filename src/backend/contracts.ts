@@ -146,7 +146,7 @@ export interface ReplicateResourceRequest {
   source_project_root?: string | null;
   destination_client: ClientKind;
   destination_target_id?: string | null;
-  destination_source_id: string;
+  destination_source_id?: string | null;
   destination_project_root?: string | null;
   overwrite?: boolean;
 }
