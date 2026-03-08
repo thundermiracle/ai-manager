@@ -1,0 +1,37 @@
+use tauri::State;
+
+use crate::{
+    application::AdapterService,
+    interface::contracts::{
+        command::{CommandEnvelope, CommandError, CommandMeta},
+        replicate::{ReplicateResourceRequest, ReplicateResourceResponse},
+    },
+    interface::state::AppState,
+};
+
+#[tauri::command]
+pub fn replicate_resource(
+    state: State<'_, AppState>,
+    request: ReplicateResourceRequest,
+) -> CommandEnvelope<ReplicateResourceResponse> {
+    let meta = CommandMeta::new(
+        state.next_operation_id("replicate"),
+        state.lifecycle_snapshot(),
+    );
+
+    if state.is_shutting_down() {
+        return CommandEnvelope::failure(CommandError::shutting_down(), meta);
+    }
+
+    let service = AdapterService::new(state.adapter_registry(), state.detector_registry());
+
+    match service.replicate_resource(request) {
+        Ok(response) if response.accepted => {
+            CommandEnvelope::success(response.redact_sensitive(), meta)
+        }
+        Ok(response) => {
+            CommandEnvelope::failure(CommandError::not_implemented(response.message), meta)
+        }
+        Err(error) => CommandEnvelope::failure(error, meta),
+    }
+}

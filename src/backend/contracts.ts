@@ -137,3 +137,27 @@ export interface MutateResourceResponse {
   source_path: string | null;
   target_source_id: string | null;
 }
+
+export interface ReplicateResourceRequest {
+  resource_kind: ResourceKind;
+  source_client: ClientKind;
+  source_target_id: string;
+  source_source_id: string;
+  source_project_root?: string | null;
+  destination_client: ClientKind;
+  destination_target_id?: string | null;
+  destination_source_id: string;
+  destination_project_root?: string | null;
+  overwrite?: boolean;
+}
+
+export interface ReplicateResourceResponse {
+  accepted: boolean;
+  resource_kind: ResourceKind;
+  source_client: ClientKind;
+  source_target_id: string;
+  destination_client: ClientKind;
+  destination_target_id: string;
+  destination_source_id: string;
+  message: string;
+}
