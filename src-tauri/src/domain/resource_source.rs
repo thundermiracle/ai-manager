@@ -9,6 +9,16 @@ pub enum ResourceSourceScope {
     ProjectPrivate,
 }
 
+impl ResourceSourceScope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::ProjectShared => "project_shared",
+            Self::ProjectPrivate => "project_private",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceSourceMetadata {
     pub source_id: String,
