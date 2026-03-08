@@ -19,7 +19,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   },
   {
     route: "skills",
-    title: "Skills Manager",
-    subtitle: "Manage skill resources",
+    title: "Skill Libraries",
+    subtitle: "Generic SKILL.md libraries",
   },
 ];

@@ -30,6 +30,7 @@ This document freezes the detection input matrix and staged scope rollout plan f
 - `resourceKinds.mcp` captures current vs target MCP scope support per client.
 - `resourceKinds.skills` refers to AI Manager-managed generic `SKILL.md` repositories only.
 - `resourceKinds.subagents` tracks native Claude agent sources separately from generic skills.
+- `resourceKinds.*.family` explicitly marks whether a resource kind is `generic` or `native`.
 - `resourceKinds.skills` stays user-only for now and records that project scope is deferred.
 - `resourceKinds.subagents` is source-aware for Claude listing and keeps mutation scope explicitly staged.
 - `projectScopeStatus` values are:

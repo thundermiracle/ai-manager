@@ -32,6 +32,7 @@ This document closes issue `#110` by separating AI Manager-managed generic skill
 2. Do not imply that the `Skills` tab exposes native Claude project customization.
 3. Treat native project-scoped agent features as a separate product surface and contract.
 4. Keep support matrix entries explicit about `native` vs `generic/project-managed` support.
+5. Shared contracts should tag resource kinds as `generic` or `native` so new native surfaces do not redefine `skill`.
 
 ## Staged Rollout
 

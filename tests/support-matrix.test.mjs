@@ -6,6 +6,7 @@ const matrixPath = new URL("../docs/spec/support-matrix.v1.json", import.meta.ur
 const matrix = JSON.parse(readFileSync(matrixPath, "utf8"));
 
 const expectedClientIds = ["claude_code", "codex", "cursor"];
+const resourceFamilySet = new Set(["generic", "native"]);
 const sourceScopeSet = new Set(["user", "project_shared", "project_private"]);
 
 function assertContiguousPriorities(candidates, fieldName) {
@@ -72,6 +73,10 @@ test("resource kinds expose staged scope support and precedence", () => {
       assert.ok(Array.isArray(support.targetDestinationScopes));
       assert.ok(Array.isArray(support.effectivePrecedence));
       assert.ok(Array.isArray(support.notes));
+      assert.ok(
+        resourceFamilySet.has(support.family),
+        `unsupported ${client.id}/${kind} family: ${support.family}`,
+      );
 
       for (const scope of support.targetSourceScopes) {
         assert.ok(sourceScopeSet.has(scope), `unsupported ${client.id}/${kind} scope: ${scope}`);
@@ -120,6 +125,14 @@ test("skills notes distinguish generic repositories from native client features"
   }
 
   assert.match(byId.get("claude_code").resourceKinds.skills.notes.join(" "), /subagents|agents/i);
+});
+
+test("resource families distinguish generic skill libraries from native resources", () => {
+  for (const client of matrix.clients) {
+    assert.equal(client.resourceKinds.skills.family, "generic");
+    assert.equal(client.resourceKinds.mcp.family, "native");
+    assert.equal(client.resourceKinds.subagents.family, "native");
+  }
 });
 
 test("subagents are modeled as a dedicated Claude-native resource kind", () => {

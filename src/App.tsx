@@ -100,7 +100,8 @@ function App() {
             Client Control Center
           </h1>
           <p className="text-sm leading-relaxed text-slate-200">
-            macOS-first shell for detection, MCP, and Skills operations.
+            macOS-first shell for detection, MCP, generic skill libraries, and native resource
+            planning.
           </p>
         </div>
 
@@ -224,8 +225,8 @@ function App() {
                     Active Client
                   </p>
                   <p className="text-sm text-slate-700">
-                    Manager views prioritize resource operations. Open dashboard for full tool
-                    cards.
+                    Manager views prioritize generic skill library operations. Open dashboard for
+                    full tool cards.
                   </p>
                 </div>
 
