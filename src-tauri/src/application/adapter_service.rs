@@ -4,6 +4,7 @@ use crate::{
     application::{
         detection::detection_service::DetectionService,
         mcp::{listing_service::McpListingService, mutation_service::McpMutationService},
+        project_context_resolver::ProjectContextResolver,
         skill::{listing_service::SkillListingService, mutation_service::SkillMutationService},
     },
     infra::{AdapterRegistry, DetectorRegistry, MutationTestHooks, SafeFileMutator},
@@ -41,6 +42,13 @@ impl<'a> AdapterService<'a> {
         &self,
         request: ListResourcesRequest,
     ) -> Result<ListResourcesResponse, CommandError> {
+        let project_root =
+            ProjectContextResolver::new().resolve(request.project_root.as_deref())?;
+        let request = ListResourcesRequest {
+            project_root: project_root.clone(),
+            ..request
+        };
+
         if matches!(request.resource_kind, ResourceKind::Mcp) {
             let mcp_listing_service = McpListingService::new(self.detector_registry);
             let result = mcp_listing_service.list(&request);
@@ -87,6 +95,8 @@ impl<'a> AdapterService<'a> {
         &self,
         request: &MutateResourceRequest,
     ) -> Result<MutateResourceResponse, CommandError> {
+        let _project_root =
+            ProjectContextResolver::new().resolve(request.project_root.as_deref())?;
         let target_id = request.target_id.trim();
 
         if target_id.is_empty() {
@@ -291,21 +301,37 @@ mod tests {
         let adapter_registry = AdapterRegistry::with_default_adapters();
         let detector_registry = DetectorRegistry::with_default_detectors();
         let service = AdapterService::new(&adapter_registry, &detector_registry);
+        let temp_dir = std::env::temp_dir().join(format!(
+            "ai-manager-list-project-context-{}",
+            std::process::id()
+        ));
+        let _ = fs::create_dir_all(&temp_dir);
+        let _ = fs::create_dir_all(temp_dir.join("nested"));
+        let request_root = temp_dir.join("nested").join("..");
 
         let response = service
             .list_resources(ListResourcesRequest {
                 client: Some(ClientKind::Cursor),
                 resource_kind: ResourceKind::Skill,
                 enabled: None,
-                project_root: Some("/tmp/project".to_string()),
+                project_root: Some(request_root.display().to_string()),
                 view_mode: ResourceViewMode::AllSources,
                 scope_filter: None,
             })
             .expect("skill list should resolve through skill listing service");
+        let expected_root = temp_dir
+            .canonicalize()
+            .expect("project root should canonicalize")
+            .display()
+            .to_string();
+        let _ = fs::remove_dir_all(&temp_dir);
 
         assert_eq!(response.client, Some(ClientKind::Cursor));
         assert!(matches!(response.resource_kind, ResourceKind::Skill));
-        assert_eq!(response.project_root.as_deref(), Some("/tmp/project"));
+        assert_eq!(
+            response.project_root.as_deref(),
+            Some(expected_root.as_str())
+        );
         assert!(matches!(response.view_mode, ResourceViewMode::AllSources));
     }
 
@@ -348,6 +374,55 @@ mod tests {
             .expect_err("blank target_id should fail validation");
 
         assert!(error.message.contains("target_id"));
+    }
+
+    #[test]
+    fn list_resources_rejects_missing_project_root() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+        let missing_root = std::env::temp_dir().join(format!(
+            "ai-manager-missing-project-root-{}",
+            std::process::id()
+        ));
+
+        let error = service
+            .list_resources(ListResourcesRequest {
+                client: Some(ClientKind::Cursor),
+                resource_kind: ResourceKind::Skill,
+                enabled: None,
+                project_root: Some(missing_root.display().to_string()),
+                view_mode: ResourceViewMode::Effective,
+                scope_filter: None,
+            })
+            .expect_err("missing project root should fail validation");
+
+        assert!(error.message.contains("existing directory"));
+    }
+
+    #[test]
+    fn mutate_resource_rejects_missing_project_root() {
+        let adapter_registry = AdapterRegistry::with_default_adapters();
+        let detector_registry = DetectorRegistry::with_default_detectors();
+        let service = AdapterService::new(&adapter_registry, &detector_registry);
+        let missing_root = std::env::temp_dir().join(format!(
+            "ai-manager-missing-project-root-mutate-{}",
+            std::process::id()
+        ));
+
+        let error = service
+            .mutate_resource(&MutateResourceRequest {
+                client: ClientKind::ClaudeCode,
+                resource_kind: ResourceKind::Mcp,
+                action: MutationAction::Add,
+                target_id: "filesystem".to_string(),
+                project_root: Some(missing_root.display().to_string()),
+                target_source_id: None,
+                payload: None,
+            })
+            .expect_err("missing project root should fail validation");
+
+        assert!(error.message.contains("existing directory"));
     }
 
     #[test]
