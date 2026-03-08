@@ -11,6 +11,11 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
+import {
+  buildResourceContextSummary,
+  isProjectContextIncomplete,
+  type ResourceContextMode,
+} from "../resources/resource-context";
 import { SkillAddForm } from "./SkillAddForm";
 import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
@@ -24,14 +29,23 @@ import { useSkillManager } from "./useSkillManager";
 
 interface SkillsManagerPanelProps {
   client: ClientKind | null;
+  contextMode: ResourceContextMode;
+  projectRoot: string | null;
 }
 
-export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
+export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
   const [isCopyOpen, setCopyOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const contextSummary = buildResourceContextSummary({
+    mode: contextMode,
+    projectRoot,
+  });
+  const activeClient = isProjectContextIncomplete({ mode: contextMode, projectRoot })
+    ? null
+    : client;
 
   const {
     phase,
@@ -49,7 +63,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     removeSkill,
     refresh,
     clearFeedback,
-  } = useSkillManager(client);
+  } = useSkillManager(activeClient);
 
   const existingSkillsById = useMemo(() => {
     const entries = new Map<
@@ -173,6 +187,15 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
     );
   }
 
+  if (contextMode === "project" && projectRoot === null) {
+    return (
+      <ViewStatePanel
+        title="Project Context Required"
+        message="Apply a project root to prepare project-aware Skills screens."
+      />
+    );
+  }
+
   return (
     <>
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(180deg,#fafbff_0%,#ffffff_38%)] shadow-[0_18px_36px_rgba(30,41,59,0.08)]">
@@ -183,6 +206,7 @@ export function SkillsManagerPanel({ client }: SkillsManagerPanelProps) {
               <p className="mt-1 text-sm text-slate-700">
                 Managing <strong>{formatClientLabel(client)}</strong>
               </p>
+              <p className="mt-1 text-xs text-slate-500">{contextSummary.description}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button

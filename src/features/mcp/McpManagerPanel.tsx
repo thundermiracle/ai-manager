@@ -12,6 +12,11 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
+import {
+  buildResourceContextSummary,
+  isProjectContextIncomplete,
+  type ResourceContextMode,
+} from "../resources/resource-context";
 import { McpAddForm } from "./McpAddForm";
 import { McpCopyForm } from "./McpCopyForm";
 import { McpEditForm } from "./McpEditForm";
@@ -24,14 +29,23 @@ import { useMcpManager } from "./useMcpManager";
 
 interface McpManagerPanelProps {
   client: ClientKind | null;
+  contextMode: ResourceContextMode;
+  projectRoot: string | null;
 }
 
-export function McpManagerPanel({ client }: McpManagerPanelProps) {
+export function McpManagerPanel({ client, contextMode, projectRoot }: McpManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
   const [isCopyOpen, setCopyOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const contextSummary = buildResourceContextSummary({
+    mode: contextMode,
+    projectRoot,
+  });
+  const activeClient = isProjectContextIncomplete({ mode: contextMode, projectRoot })
+    ? null
+    : client;
 
   const {
     phase,
@@ -48,7 +62,7 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     removeMcp,
     refresh,
     clearFeedback,
-  } = useMcpManager(client);
+  } = useMcpManager(activeClient);
 
   const existingTargetIds = useMemo(() => {
     const ids = new Set<string>();
@@ -166,6 +180,15 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
     );
   }
 
+  if (contextMode === "project" && projectRoot === null) {
+    return (
+      <ViewStatePanel
+        title="Project Context Required"
+        message="Apply a project root to prepare project-aware MCP screens."
+      />
+    );
+  }
+
   return (
     <>
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_38%)] shadow-[0_18px_36px_rgba(30,41,59,0.08)]">
@@ -176,6 +199,7 @@ export function McpManagerPanel({ client }: McpManagerPanelProps) {
               <p className="mt-1 text-sm text-slate-700">
                 Managing <strong>{formatClientLabel(client)}</strong>
               </p>
+              <p className="mt-1 text-xs text-slate-500">{contextSummary.description}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
