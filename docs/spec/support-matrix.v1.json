@@ -1,6 +1,6 @@
 {
   "$schema": "../../schemas/support-matrix.schema.json",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "updatedAt": "2026-03-08",
   "resolutionPolicy": {
     "precedence": "per_resource_kind_scope_order_then_candidate_priority",
@@ -144,7 +144,8 @@
           ],
           "projectScopeStatus": "deferred",
           "notes": [
-            "Claude project-scoped customization should be clarified via subagents in issue #110 before adding native project support."
+            "This entry describes AI Manager-managed generic SKILL.md repositories only.",
+            "Claude project-scoped customization belongs to native subagents/agents and should not extend the generic skill resource kind."
           ]
         }
       },
@@ -276,6 +277,7 @@
           ],
           "projectScopeStatus": "deferred",
           "notes": [
+            "This entry describes AI Manager-managed generic SKILL.md repositories only.",
             "No native project-scoped skills source is documented for Codex. Generic repository handling remains separate from native support."
           ]
         }
@@ -429,7 +431,8 @@
           ],
           "projectScopeStatus": "deferred",
           "notes": [
-            "Project-scoped skills remain deferred until the product taxonomy is clarified in issue #110."
+            "This entry describes AI Manager-managed generic SKILL.md repositories only.",
+            "Cursor has no confirmed native project-scoped feature comparable to Claude subagents, so project-scoped generic skills remain deferred."
           ]
         }
       },

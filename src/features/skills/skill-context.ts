@@ -2,10 +2,10 @@ import type { ResourceContextMode } from "../resources/resource-context";
 
 export function buildSkillContextHint(contextMode: ResourceContextMode): string {
   if (contextMode === "project") {
-    return "Project mode currently reuses personal skill storage for the selected client. Project-native skill destinations are not available yet.";
+    return "This tab manages AI Manager personal skill libraries only. Claude native project support maps to subagents and is not available here yet.";
   }
 
-  return "Skills are managed in the selected client's personal storage.";
+  return "This tab manages AI Manager personal skill libraries for the selected client.";
 }
 
 export function describeSkillAction(
