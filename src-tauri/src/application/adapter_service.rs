@@ -95,7 +95,7 @@ impl<'a> AdapterService<'a> {
         &self,
         request: &MutateResourceRequest,
     ) -> Result<MutateResourceResponse, CommandError> {
-        let _project_root =
+        let project_root =
             ProjectContextResolver::new().resolve(request.project_root.as_deref())?;
         let target_id = request.target_id.trim();
 
@@ -152,6 +152,8 @@ impl<'a> AdapterService<'a> {
                 request.client,
                 request.action,
                 target_id,
+                project_root.as_deref(),
+                request.target_source_id.as_deref(),
                 request.payload.as_ref(),
             )?;
 
@@ -161,7 +163,7 @@ impl<'a> AdapterService<'a> {
                 target_id: target_id.to_string(),
                 message: outcome.message,
                 source_path: Some(outcome.source_path),
-                target_source_id: request.target_source_id.clone(),
+                target_source_id: Some(outcome.target_source_id),
             });
         }
 
@@ -518,7 +520,10 @@ mod tests {
                 action: MutationAction::Add,
                 target_id: "filesystem".to_string(),
                 project_root: None,
-                target_source_id: Some("mcp::user::/tmp/claude.json".to_string()),
+                target_source_id: Some(format!(
+                    "mcp::claude_code::user::{}::/mcpServers",
+                    source.display()
+                )),
                 payload: Some(json!({
                     "source_path": source.display().to_string(),
                     "transport": { "command": "npx", "args": ["-y", "server"] },
@@ -529,6 +534,8 @@ mod tests {
 
         let content = fs::read_to_string(&source).expect("should read updated target");
         let expected_source_path = source.display().to_string();
+        let expected_target_source_id =
+            format!("mcp::claude_code::user::{}::/mcpServers", source.display());
         let _ = fs::remove_dir_all(&temp_dir);
 
         assert!(response.accepted);
@@ -539,7 +546,7 @@ mod tests {
         );
         assert_eq!(
             response.target_source_id.as_deref(),
-            Some("mcp::user::/tmp/claude.json")
+            Some(expected_target_source_id.as_str())
         );
         assert!(content.contains("filesystem"));
     }

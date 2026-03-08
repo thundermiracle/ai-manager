@@ -114,6 +114,8 @@ fn mcp_mutation_round_trip_covers_success_and_failure_paths() {
             ClientKind::Cursor,
             MutationAction::Add,
             "filesystem",
+            None,
+            None,
             Some(&json!({
                 "source_path": config_path.display().to_string(),
                 "transport": {
@@ -135,6 +137,8 @@ fn mcp_mutation_round_trip_covers_success_and_failure_paths() {
             ClientKind::Cursor,
             MutationAction::Update,
             "filesystem",
+            None,
+            None,
             Some(&json!({
                 "source_path": config_path.display().to_string(),
                 "transport": {
@@ -155,6 +159,8 @@ fn mcp_mutation_round_trip_covers_success_and_failure_paths() {
             ClientKind::Cursor,
             MutationAction::Remove,
             "filesystem",
+            None,
+            None,
             Some(&json!({ "source_path": config_path.display().to_string() })),
         )
         .expect("MCP remove should succeed");
@@ -169,6 +175,8 @@ fn mcp_mutation_round_trip_covers_success_and_failure_paths() {
             ClientKind::Cursor,
             MutationAction::Remove,
             "filesystem",
+            None,
+            None,
             Some(&json!({ "source_path": config_path.display().to_string() })),
         )
         .expect_err("removing a missing MCP should be actionable validation failure");
