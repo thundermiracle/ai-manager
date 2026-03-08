@@ -19,7 +19,7 @@ function assertContiguousPriorities(candidates, fieldName) {
 }
 
 test("matrix includes exactly three target clients", () => {
-  assert.equal(matrix.version, "1.2.0");
+  assert.equal(matrix.version, "1.3.0");
   assert.equal(matrix.clients.length, expectedClientIds.length);
   assert.deepEqual(matrix.clients.map((client) => client.id).sort(), [...expectedClientIds].sort());
 });
@@ -64,7 +64,7 @@ test("detection requirements are actionable and include config readability", () 
 
 test("resource kinds expose staged scope support and precedence", () => {
   for (const client of matrix.clients) {
-    for (const kind of ["mcp", "skills"]) {
+    for (const kind of ["mcp", "skills", "subagents"]) {
       const support = client.resourceKinds[kind];
       assert.ok(Array.isArray(support.currentSourceScopes));
       assert.ok(Array.isArray(support.targetSourceScopes));
@@ -77,10 +77,12 @@ test("resource kinds expose staged scope support and precedence", () => {
         assert.ok(sourceScopeSet.has(scope), `unsupported ${client.id}/${kind} scope: ${scope}`);
       }
 
-      assert.ok(
-        support.targetSourceScopes.includes(support.effectivePrecedence[0]),
-        `${client.id}/${kind} precedence must start with a supported scope`,
-      );
+      if (support.effectivePrecedence.length > 0) {
+        assert.ok(
+          support.targetSourceScopes.includes(support.effectivePrecedence[0]),
+          `${client.id}/${kind} precedence must start with a supported scope`,
+        );
+      }
       assert.ok(
         support.currentSourceScopes.every((scope) => support.targetSourceScopes.includes(scope)),
         `${client.id}/${kind} current scopes must be a subset of target scopes`,
@@ -118,4 +120,27 @@ test("skills notes distinguish generic repositories from native client features"
   }
 
   assert.match(byId.get("claude_code").resourceKinds.skills.notes.join(" "), /subagents|agents/i);
+});
+
+test("subagents are modeled as a dedicated Claude-native resource kind", () => {
+  const byId = new Map(matrix.clients.map((client) => [client.id, client]));
+
+  assert.deepEqual(byId.get("claude_code").resourceKinds.subagents.currentSourceScopes, [
+    "user",
+    "project_shared",
+  ]);
+  assert.deepEqual(byId.get("claude_code").resourceKinds.subagents.targetDestinationScopes, [
+    "user",
+    "project_shared",
+  ]);
+  assert.deepEqual(byId.get("claude_code").resourceKinds.subagents.effectivePrecedence, [
+    "project_shared",
+    "user",
+  ]);
+
+  for (const clientId of ["codex", "cursor"]) {
+    assert.deepEqual(byId.get(clientId).resourceKinds.subagents.currentSourceScopes, []);
+    assert.deepEqual(byId.get(clientId).resourceKinds.subagents.targetSourceScopes, []);
+    assert.deepEqual(byId.get(clientId).resourceKinds.subagents.effectivePrecedence, []);
+  }
 });

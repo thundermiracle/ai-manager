@@ -11,11 +11,12 @@ const skillInstallKindSet = new Set(["file", "directory", "reference"]);
 const sourceScopeSet = new Set(["user", "project_shared", "project_private"]);
 
 test("domain model envelope version and entity groups are present", () => {
-  assert.equal(model.version, "1.1.0");
+  assert.equal(model.version, "1.2.0");
   assert.ok(model.entities);
   assert.ok(Array.isArray(model.entities.clients));
   assert.ok(Array.isArray(model.entities.mcps));
   assert.ok(Array.isArray(model.entities.skills));
+  assert.ok(Array.isArray(model.entities.subagents));
 });
 
 test("client entities expose capability flags and extension points", () => {
@@ -26,8 +27,9 @@ test("client entities expose capability flags and extension points", () => {
     );
     assert.equal(typeof client.capabilities.supportsMcp, "boolean");
     assert.equal(typeof client.capabilities.supportsSkills, "boolean");
+    assert.equal(typeof client.capabilities.supportsSubagents, "boolean");
     assert.equal(typeof client.capabilities.supportsEnableDisable, "boolean");
-    for (const kind of ["mcp", "skills"]) {
+    for (const kind of ["mcp", "skills", "subagents"]) {
       const support = client.capabilities.scopeSupport[kind];
       assert.ok(Array.isArray(support.currentSourceScopes));
       assert.ok(Array.isArray(support.targetSourceScopes));
@@ -83,6 +85,23 @@ test("skill entities include install model, metadata and raw payload", () => {
   }
 });
 
+test("subagent entities use a dedicated native source model", () => {
+  for (const subagent of model.entities.subagents) {
+    assert.equal(typeof subagent.logicalId, "string");
+    assert.equal(typeof subagent.manifest.path, "string");
+    assert.equal(typeof subagent.metadata.description, "string");
+    assert.equal(typeof subagent.source.path, "string");
+    assert.equal(typeof subagent.source.containerPath, "string");
+    assert.equal(typeof subagent.source.sourceId, "string");
+    assert.ok(
+      sourceScopeSet.has(subagent.source.scope),
+      `unsupported scope: ${subagent.source.scope}`,
+    );
+    assert.equal(typeof subagent.extensions, "object");
+    assert.equal(typeof subagent.raw, "object");
+  }
+});
+
 test("source-aware ids allow one logical resource to appear in multiple sources", () => {
   const byLogicalId = new Map();
 
@@ -108,5 +127,12 @@ test("cross-entity references are consistent", () => {
 
   for (const skill of model.entities.skills) {
     assert.ok(clientIds.has(skill.clientId), `skill references unknown client: ${skill.clientId}`);
+  }
+
+  for (const subagent of model.entities.subagents) {
+    assert.ok(
+      clientIds.has(subagent.clientId),
+      `subagent references unknown client: ${subagent.clientId}`,
+    );
   }
 });

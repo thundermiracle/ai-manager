@@ -5,7 +5,7 @@ This document defines the source-aware normalized model required by issues `#106
 ## Design Goals
 
 - Represent all supported client formats without lossy conversion.
-- Keep model boundaries clear across `Client`, `MCP`, and `Skill`.
+- Keep model boundaries clear across `Client`, `MCP`, `Skill`, and `Subagent`.
 - Expose explicit extension points for future attributes.
 - Keep source traceability for every normalized entity.
 - Separate source-aware record identity from logical resource identity.
@@ -27,7 +27,10 @@ This document defines the source-aware normalized model required by issues `#106
 3. `Skill`
 - Installation target and metadata for AI Manager-managed generic `SKILL.md` repositories.
 - Uses the same source-aware identity and source metadata pattern as MCP records.
-- Does not represent client-native Claude subagents; that requires a separate native resource kind.
+
+4. `Subagent`
+- Native Claude agent manifest sourced from personal or project `.claude/agents/` directories.
+- Uses source-aware identity and source metadata without overloading the generic `Skill` model.
 
 ## Lossless Mapping Strategy
 
@@ -47,7 +50,8 @@ This document defines the source-aware normalized model required by issues `#106
 - `current*Scopes` describe what the repo can list/mutate today.
 - `target*Scopes` describe the intended source-aware model for staged rollout.
 - Codex remains user-only unless upstream project-local MCP support becomes official.
-- Generic skills remain personal-only after `#110`; native Claude project support moves to a future subagent resource kind instead of extending `skill`.
+- Generic skills remain personal-only after `#110`.
+- Native Claude project support now maps to the dedicated `subagent` resource kind instead of extending `skill`.
 
 ## Files
 

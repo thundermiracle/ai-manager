@@ -22,7 +22,8 @@
       "required": [
         "clients",
         "mcps",
-        "skills"
+        "skills",
+        "subagents"
       ],
       "properties": {
         "clients": {
@@ -41,6 +42,12 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/skill"
+          }
+        },
+        "subagents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/subagent"
           }
         }
       },
@@ -68,7 +75,8 @@
           "enum": [
             "detector",
             "mcp_config",
-            "skills_dir"
+            "skills_dir",
+            "subagents_dir"
           ]
         },
         "path": {
@@ -146,7 +154,8 @@
           "enum": [
             "detector",
             "mcp_config",
-            "skills_dir"
+            "skills_dir",
+            "subagents_dir"
           ]
         },
         "path": {
@@ -230,6 +239,7 @@
           "required": [
             "supportsMcp",
             "supportsSkills",
+            "supportsSubagents",
             "supportsEnableDisable",
             "scopeSupport"
           ],
@@ -240,6 +250,9 @@
             "supportsSkills": {
               "type": "boolean"
             },
+            "supportsSubagents": {
+              "type": "boolean"
+            },
             "supportsEnableDisable": {
               "type": "boolean"
             },
@@ -247,13 +260,17 @@
               "type": "object",
               "required": [
                 "mcp",
-                "skills"
+                "skills",
+                "subagents"
               ],
               "properties": {
                 "mcp": {
                   "$ref": "#/$defs/resourceScopeSupport"
                 },
                 "skills": {
+                  "$ref": "#/$defs/resourceScopeSupport"
+                },
+                "subagents": {
                   "$ref": "#/$defs/resourceScopeSupport"
                 }
               },
@@ -455,6 +472,71 @@
               "items": {
                 "type": "string"
               }
+            }
+          },
+          "additionalProperties": false
+        },
+        "source": {
+          "$ref": "#/$defs/resourceSourceMetadata"
+        },
+        "raw": {
+          "type": "object"
+        },
+        "extensions": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subagent": {
+      "type": "object",
+      "required": [
+        "id",
+        "logicalId",
+        "clientId",
+        "name",
+        "enabled",
+        "manifest",
+        "metadata",
+        "source",
+        "extensions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "logicalId": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "manifest": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "metadata": {
+          "type": "object",
+          "required": [
+            "description"
+          ],
+          "properties": {
+            "description": {
+              "type": "string"
             }
           },
           "additionalProperties": false
