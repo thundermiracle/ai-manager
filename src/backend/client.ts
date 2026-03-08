@@ -10,6 +10,8 @@ import type {
   ListResourcesResponse,
   MutateResourceRequest,
   MutateResourceResponse,
+  ReplicateResourceRequest,
+  ReplicateResourceResponse,
 } from "./contracts";
 
 export async function detectClients(
@@ -34,4 +36,10 @@ export async function mutateResource(
   request: MutateResourceRequest,
 ): Promise<CommandEnvelope<MutateResourceResponse>> {
   return invoke("mutate_resource", { request });
+}
+
+export async function replicateResource(
+  request: ReplicateResourceRequest,
+): Promise<CommandEnvelope<ReplicateResourceResponse>> {
+  return invoke("replicate_resource", { request });
 }
