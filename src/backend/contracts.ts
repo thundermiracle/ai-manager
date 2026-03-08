@@ -1,6 +1,8 @@
 export type ClientKind = "claude_code" | "codex" | "cursor";
 
 export type ResourceKind = "mcp" | "skill";
+export type ResourceSourceScope = "user" | "project_shared" | "project_private";
+export type ResourceViewMode = "effective" | "all_sources";
 
 export type LifecyclePhase = "running" | "shutting_down";
 
@@ -80,10 +82,14 @@ export interface ListResourcesRequest {
   client?: ClientKind | null;
   resource_kind: ResourceKind;
   enabled?: boolean | null;
+  project_root?: string | null;
+  view_mode?: ResourceViewMode | null;
+  scope_filter?: ResourceSourceScope[] | null;
 }
 
 export interface ResourceRecord {
   id: string;
+  logical_id: string;
   client: ClientKind;
   display_name: string;
   enabled: boolean;
@@ -92,6 +98,11 @@ export interface ResourceRecord {
   transport_args: string[] | null;
   transport_url: string | null;
   source_path: string | null;
+  source_id: string;
+  source_scope: ResourceSourceScope;
+  source_label: string;
+  is_effective: boolean;
+  shadowed_by: string | null;
   description: string | null;
   install_kind: string | null;
   manifest_content: string | null;
@@ -100,6 +111,8 @@ export interface ResourceRecord {
 export interface ListResourcesResponse {
   client: ClientKind | null;
   resource_kind: ResourceKind;
+  project_root: string | null;
+  view_mode: ResourceViewMode;
   items: ResourceRecord[];
   warning: string | null;
 }
@@ -111,6 +124,8 @@ export interface MutateResourceRequest {
   resource_kind: ResourceKind;
   action: MutationAction;
   target_id: string;
+  project_root?: string | null;
+  target_source_id?: string | null;
   payload: Record<string, unknown> | null;
 }
 
@@ -120,4 +135,5 @@ export interface MutateResourceResponse {
   target_id: string;
   message: string;
   source_path: string | null;
+  target_source_id: string | null;
 }
