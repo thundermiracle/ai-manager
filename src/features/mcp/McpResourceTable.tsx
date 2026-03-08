@@ -11,13 +11,15 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { formatClientLabel } from "../clients/client-labels";
+import { canPromoteMcpResource } from "./mcp-targets";
 
 interface McpResourceTableProps {
   resources: ResourceRecord[];
   pendingRemovalId: string | null;
   pendingUpdateId: string | null;
-  pendingCopyId: string | null;
+  pendingReplicationId: string | null;
   onCopy: (resource: ResourceRecord) => Promise<void>;
+  onPromote: (resource: ResourceRecord) => Promise<void>;
   onEdit: (resource: ResourceRecord) => Promise<void>;
   onRemove: (resource: ResourceRecord) => Promise<void>;
   emptyMessage?: string;
@@ -65,6 +67,21 @@ function CopyIcon() {
     <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
       <rect x="7" y="3" width="10" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <rect x="3" y="7" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function PromoteIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="M10 15V4.5m0 0L6.5 8m3.5-3.5L13.5 8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M4 15.5h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -131,8 +148,9 @@ export function McpResourceTable({
   resources,
   pendingRemovalId,
   pendingUpdateId,
-  pendingCopyId,
+  pendingReplicationId,
   onCopy,
+  onPromote,
   onEdit,
   onRemove,
   emptyMessage,
@@ -159,14 +177,15 @@ export function McpResourceTable({
             <TableHead>Transport</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead aria-label="actions" className="w-36" />
+            <TableHead aria-label="actions" className="w-44" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {resources.map((resource) => {
             const removing = pendingRemovalId === resource.id;
             const updating = pendingUpdateId === resource.id;
-            const copying = pendingCopyId === resource.id;
+            const replicating = pendingReplicationId === resource.id;
+            const canPromote = canPromoteMcpResource(resource);
             const shadowingSource =
               resource.shadowed_by === null
                 ? null
@@ -241,12 +260,25 @@ export function McpResourceTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
+                    {canPromote ? (
+                      <McpActionButton
+                        icon={<PromoteIcon />}
+                        label="Promote to personal config"
+                        busyLabel="Promoting..."
+                        busy={replicating}
+                        disabled={replicating || updating || removing}
+                        className="h-8 w-8 rounded-lg border border-emerald-200 bg-emerald-50 p-0 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                        onClick={() => {
+                          void onPromote(resource);
+                        }}
+                      />
+                    ) : null}
                     <McpActionButton
                       icon={<CopyIcon />}
                       label="Copy to another client"
                       busyLabel="Copying..."
-                      busy={copying}
-                      disabled={copying || updating || removing}
+                      busy={replicating}
+                      disabled={replicating || updating || removing}
                       className="h-8 w-8 rounded-lg border border-sky-200 bg-sky-50 p-0 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
                       onClick={() => {
                         void onCopy(resource);
@@ -257,7 +289,7 @@ export function McpResourceTable({
                       label={`Edit in ${resource.source_label}`}
                       busyLabel="Updating..."
                       busy={updating}
-                      disabled={updating || removing || copying}
+                      disabled={updating || removing || replicating}
                       className="h-8 w-8 rounded-lg border border-amber-200 bg-amber-50 p-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
                       onClick={() => {
                         void onEdit(resource);
@@ -268,7 +300,7 @@ export function McpResourceTable({
                       label={`Remove from ${resource.source_label}`}
                       busyLabel="Removing..."
                       busy={removing}
-                      disabled={removing || updating || copying}
+                      disabled={removing || updating || replicating}
                       className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 p-0 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                       onClick={() => {
                         void onRemove(resource);

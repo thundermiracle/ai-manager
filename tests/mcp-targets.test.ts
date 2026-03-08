@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildMcpCopyDestinationClients,
   buildMcpMutationTargetPlan,
+  buildMcpPersonalTargetPlan,
   buildMcpProjectModeHint,
+  canPromoteMcpResource,
   describeMcpAction,
   matchesMcpDestination,
 } from "../src/features/mcp/mcp-targets.ts";
@@ -35,6 +38,15 @@ test("project mode falls back to personal config for Codex", () => {
   assert.equal(target.targetSourceId, null);
   assert.match(target.fallbackNotice ?? "", /falls back to personal config/i);
   assert.equal(describeMcpAction("add", target), "Add to personal config");
+});
+
+test("personal target plan stays explicit for promote flows", () => {
+  const target = buildMcpPersonalTargetPlan("claude_code");
+
+  assert.equal(target.destinationScope, "user");
+  assert.equal(target.projectRoot, null);
+  assert.equal(target.targetSourceId, null);
+  assert.equal(describeMcpAction("promote", target), "Promote to personal config");
 });
 
 test("destination matching prefers client plus destination scope and source id", () => {
@@ -98,4 +110,23 @@ test("destination matching prefers client plus destination scope and source id",
 
 test("project mode hint stays explicit about Codex fallback", () => {
   assert.match(buildMcpProjectModeHint(), /Codex falls back to personal config/i);
+});
+
+test("promote is available only for project-scoped MCP resources", () => {
+  assert.equal(
+    canPromoteMcpResource({
+      source_scope: "project_shared",
+    }),
+    true,
+  );
+  assert.equal(
+    canPromoteMcpResource({
+      source_scope: "user",
+    }),
+    false,
+  );
+});
+
+test("copy destinations exclude the source client", () => {
+  assert.deepEqual(buildMcpCopyDestinationClients("cursor"), ["claude_code", "codex"]);
 });

@@ -18,6 +18,7 @@ export interface McpMutationTargetPlan {
 }
 
 export const MCP_CLIENTS: ClientKind[] = ["claude_code", "cursor", "codex"];
+export type McpReplicationAction = "copy" | "promote";
 
 const PROJECT_SHARED_CONFIG: Record<
   Exclude<ClientKind, "codex">,
@@ -46,6 +47,26 @@ export function buildMcpProjectModeHint(): string {
 
 export function supportsProjectScopedMcp(client: ClientKind): boolean {
   return client !== "codex";
+}
+
+export function canPromoteMcpResource(resource: Pick<ResourceRecord, "source_scope">): boolean {
+  return resource.source_scope !== "user";
+}
+
+export function buildMcpCopyDestinationClients(sourceClient: ClientKind): ClientKind[] {
+  return MCP_CLIENTS.filter((client) => client !== sourceClient);
+}
+
+export function buildMcpPersonalTargetPlan(client: ClientKind): McpMutationTargetPlan {
+  return {
+    client,
+    destinationScope: "user",
+    projectRoot: null,
+    targetSourceId: null,
+    destinationLabel: "Personal config",
+    destinationDescription: `${formatClientLabel(client)} will use personal MCP config.`,
+    fallbackNotice: null,
+  };
 }
 
 export function buildMcpMutationTargetPlan(
@@ -90,6 +111,17 @@ export function buildMcpMutationTargetPlan(
   };
 }
 
+export function buildMcpReplicationTargetPlan(
+  action: McpReplicationAction,
+  client: ClientKind,
+  contextMode: ResourceContextMode,
+  projectRoot: string | null,
+): McpMutationTargetPlan {
+  return action === "promote"
+    ? buildMcpPersonalTargetPlan(client)
+    : buildMcpMutationTargetPlan(client, contextMode, projectRoot);
+}
+
 export function matchesMcpDestination(
   resource: ResourceRecord,
   destination: McpMutationTargetPlan,
@@ -110,13 +142,17 @@ export function matchesMcpDestination(
 }
 
 export function describeMcpAction(
-  action: "add" | "copy",
+  action: "add" | McpReplicationAction,
   destination: McpMutationTargetPlan,
 ): string {
   if (action === "add") {
     return destination.destinationScope === "project_shared"
       ? "Add to project config"
       : "Add to personal config";
+  }
+
+  if (action === "promote") {
+    return "Promote to personal config";
   }
 
   return destination.destinationScope === "project_shared"

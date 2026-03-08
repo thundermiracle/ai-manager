@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { listResources, mutateResource } from "../../backend/client";
+import { listResources, mutateResource, replicateResource } from "../../backend/client";
 import type {
   ClientKind,
   CommandEnvelope,
@@ -47,14 +47,17 @@ export interface UpdateMcpInput {
 }
 
 export interface CopyMcpInput {
+  action: "copy" | "promote";
   sourceClient: ClientKind;
   sourceResourceId: string;
+  sourceTargetId: string;
+  sourceSourceId: string;
   destinationClient: ClientKind;
   targetId: string;
-  transport: McpTransportInput;
-  enabled: boolean;
-  projectRoot: string | null;
-  targetSourceId: string | null;
+  sourceProjectRoot: string | null;
+  destinationProjectRoot: string | null;
+  destinationSourceId: string | null;
+  sourceLabel: string;
 }
 
 export interface RemoveMcpInput {
@@ -89,7 +92,7 @@ interface UseMcpManagerResult {
   feedback: MutationFeedback | null;
   pendingRemovalId: string | null;
   pendingUpdateId: string | null;
-  pendingCopyId: string | null;
+  pendingReplicationId: string | null;
   refresh: () => Promise<void>;
   addMcp: (input: AddMcpInput) => Promise<boolean>;
   updateMcp: (input: UpdateMcpInput) => Promise<boolean>;
@@ -130,7 +133,7 @@ export function useMcpManager({
   const [feedback, setFeedback] = useState<MutationFeedback | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
-  const [pendingCopyId, setPendingCopyId] = useState<string | null>(null);
+  const [pendingReplicationId, setPendingReplicationId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setPhase("loading");
@@ -315,7 +318,7 @@ export function useMcpManager({
 
   const copyMcp = useCallback(
     async (input: CopyMcpInput) => {
-      if (input.destinationClient === input.sourceClient) {
+      if (input.action === "copy" && input.destinationClient === input.sourceClient) {
         const diagnostic = runtimeErrorToDiagnostic(
           "Choose a different destination client when copying an MCP entry.",
         );
@@ -340,30 +343,25 @@ export function useMcpManager({
         return false;
       }
 
-      const payloadTransport =
-        input.transport.kind === "stdio"
-          ? { command: input.transport.command, args: input.transport.args }
-          : { url: input.transport.url };
-
-      setPendingCopyId(input.sourceResourceId);
+      setPendingReplicationId(input.sourceResourceId);
       try {
-        const envelope = await mutateResource({
-          client: input.destinationClient,
+        const envelope = await replicateResource({
           resource_kind: "mcp",
-          action: "add",
-          target_id: normalizedTargetId,
-          project_root: input.projectRoot,
-          target_source_id: input.targetSourceId,
-          payload: {
-            transport: payloadTransport,
-            enabled: input.enabled,
-          },
+          source_client: input.sourceClient,
+          source_target_id: input.sourceTargetId,
+          source_source_id: input.sourceSourceId,
+          source_project_root: input.sourceProjectRoot,
+          destination_client: input.destinationClient,
+          destination_target_id: normalizedTargetId,
+          destination_source_id: input.destinationSourceId,
+          destination_project_root: input.destinationProjectRoot,
+          overwrite: false,
         });
 
         if (!envelope.ok || envelope.data === null) {
           const diagnostic = envelopeErrorDiagnostic(
             envelope,
-            "Mutation command failed without an explicit error payload.",
+            "Replication command failed without an explicit error payload.",
           );
           setFeedback({ kind: "error", message: diagnostic.message, diagnostic });
           return false;
@@ -373,16 +371,17 @@ export function useMcpManager({
         await refresh();
         return true;
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown copy runtime error.";
+        const message =
+          error instanceof Error ? error.message : "Unknown replication runtime error.";
         const diagnostic = runtimeErrorToDiagnostic(message);
         setFeedback({
           kind: "error",
-          message: diagnostic.message,
+          message: `${input.sourceLabel}: ${diagnostic.message}`,
           diagnostic,
         });
         return false;
       } finally {
-        setPendingCopyId(null);
+        setPendingReplicationId(null);
       }
     },
     [refresh],
@@ -397,7 +396,7 @@ export function useMcpManager({
     feedback,
     pendingRemovalId,
     pendingUpdateId,
-    pendingCopyId,
+    pendingReplicationId,
     refresh,
     addMcp,
     updateMcp,
