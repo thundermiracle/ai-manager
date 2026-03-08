@@ -4,6 +4,7 @@ mod capability;
 mod critical_paths_suite;
 mod detection;
 mod mcp;
+mod project_context_resolver;
 mod skill;
 
 pub use adapter_service::AdapterService;
