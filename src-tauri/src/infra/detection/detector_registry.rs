@@ -19,6 +19,11 @@ impl DetectorRegistry {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn from_detectors(detectors: Vec<Box<dyn ClientDetector>>) -> Self {
+        Self { detectors }
+    }
+
     pub fn all(&self) -> impl Iterator<Item = &dyn ClientDetector> {
         self.detectors.iter().map(std::boxed::Box::as_ref)
     }

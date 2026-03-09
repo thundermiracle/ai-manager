@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { ResourceRecord } from "../src/backend/contracts.ts";
+import { selectMcpResourcesForView } from "../src/features/mcp/mcp-list-view.ts";
 import {
   buildMcpCopyDestinationClients,
   buildMcpMutationTargetPlan,
@@ -10,6 +12,31 @@ import {
   describeMcpAction,
   matchesMcpDestination,
 } from "../src/features/mcp/mcp-targets.ts";
+
+function createMcpResource(
+  overrides: Partial<ResourceRecord> & Pick<ResourceRecord, "id" | "display_name" | "is_effective">,
+): ResourceRecord {
+  return {
+    id: overrides.id,
+    logical_id: overrides.logical_id ?? overrides.display_name,
+    client: overrides.client ?? "claude_code",
+    display_name: overrides.display_name,
+    enabled: overrides.enabled ?? true,
+    transport_kind: overrides.transport_kind ?? "stdio",
+    transport_command: overrides.transport_command ?? "npx",
+    transport_args: overrides.transport_args ?? [],
+    transport_url: overrides.transport_url ?? null,
+    source_path: overrides.source_path ?? null,
+    source_id: overrides.source_id ?? `${overrides.id}::source`,
+    source_scope: overrides.source_scope ?? "user",
+    source_label: overrides.source_label ?? "Personal config",
+    is_effective: overrides.is_effective,
+    shadowed_by: overrides.shadowed_by ?? null,
+    description: overrides.description ?? null,
+    install_kind: overrides.install_kind ?? null,
+    manifest_content: overrides.manifest_content ?? null,
+  };
+}
 
 test("project mode targets shared project config for Claude Code and Cursor", () => {
   const claudeTarget = buildMcpMutationTargetPlan(
@@ -129,4 +156,67 @@ test("promote is available only for project-scoped MCP resources", () => {
 
 test("copy destinations exclude the source client", () => {
   assert.deepEqual(buildMcpCopyDestinationClients("cursor"), ["claude_code", "codex"]);
+});
+
+test("effective view is derived from all sources without shadowed entries", () => {
+  const selected = selectMcpResourcesForView(
+    [
+      createMcpResource({
+        id: "cursor::shadowed",
+        display_name: "filesystem",
+        client: "cursor",
+        source_scope: "user",
+        is_effective: false,
+      }),
+      createMcpResource({
+        id: "claude::effective",
+        display_name: "sequential-thinking",
+        client: "claude_code",
+        is_effective: true,
+      }),
+      createMcpResource({
+        id: "cursor::effective",
+        display_name: "filesystem",
+        client: "cursor",
+        source_scope: "project_shared",
+        is_effective: true,
+      }),
+    ],
+    "effective",
+  );
+
+  assert.deepEqual(
+    selected.map((resource) => resource.id),
+    ["cursor::effective", "claude::effective"],
+  );
+});
+
+test("all sources view preserves every source and sorts deterministically", () => {
+  const selected = selectMcpResourcesForView(
+    [
+      createMcpResource({
+        id: "filesystem::project",
+        display_name: "filesystem",
+        source_scope: "project_shared",
+        is_effective: true,
+      }),
+      createMcpResource({
+        id: "alpha::user",
+        display_name: "alpha",
+        is_effective: true,
+      }),
+      createMcpResource({
+        id: "filesystem::user",
+        display_name: "filesystem",
+        source_scope: "user",
+        is_effective: false,
+      }),
+    ],
+    "all_sources",
+  );
+
+  assert.deepEqual(
+    selected.map((resource) => resource.id),
+    ["alpha::user", "filesystem::project", "filesystem::user"],
+  );
 });

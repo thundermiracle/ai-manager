@@ -8,7 +8,6 @@ use crate::{
     infra::parsers::{ParseOutcome, ParserRegistry},
     interface::contracts::{
         common::ClientKind,
-        detect::DetectClientsRequest,
         list::{ListResourcesRequest, ResourceRecord},
     },
 };
@@ -55,15 +54,11 @@ fn requested_clients(
     detector_registry: &DetectorRegistry,
     client_filter: Option<ClientKind>,
 ) -> Vec<ClientKind> {
-    let detect_request = DetectClientsRequest {
-        include_versions: false,
-    };
-
     match client_filter {
         Some(client) => vec![client],
         None => detector_registry
             .all()
-            .map(|detector| detector.detect(&detect_request).client)
+            .map(|detector| detector.client_kind())
             .collect(),
     }
 }
@@ -315,13 +310,18 @@ mod tests {
 
     use crate::McpSourceDescriptor;
     use crate::McpSourceStorageKind;
+    use crate::infra::detection::ClientDetector;
     use crate::interface::contracts::{
         common::{ClientKind, ResourceKind},
+        detect::{ClientDetection, DetectClientsRequest},
         list::{ListResourcesRequest, ResourceViewMode},
     };
-    use crate::{domain::ResourceSourceScope, infra::parsers::ParserRegistry};
+    use crate::{
+        domain::ResourceSourceScope,
+        infra::{DetectorRegistry, parsers::ParserRegistry},
+    };
 
-    use super::collect_from_descriptors;
+    use super::{collect_from_descriptors, requested_clients};
 
     #[test]
     fn unified_mcp_listing_normalizes_entries_from_multiple_clients() {
@@ -735,6 +735,18 @@ enabled = true
         );
     }
 
+    #[test]
+    fn requested_clients_uses_registry_client_kinds_without_running_detection() {
+        let registry = DetectorRegistry::from_detectors(vec![
+            Box::new(PanickingDetector(ClientKind::ClaudeCode)),
+            Box::new(PanickingDetector(ClientKind::Cursor)),
+        ]);
+
+        let clients = requested_clients(&registry, None);
+
+        assert_eq!(clients, vec![ClientKind::ClaudeCode, ClientKind::Cursor]);
+    }
+
     fn descriptor(
         client: ClientKind,
         source_scope: ResourceSourceScope,
@@ -770,6 +782,18 @@ enabled = true
                 McpSourceStorageKind::JsonSection
             },
             project_root: None,
+        }
+    }
+
+    struct PanickingDetector(ClientKind);
+
+    impl ClientDetector for PanickingDetector {
+        fn client_kind(&self) -> ClientKind {
+            self.0
+        }
+
+        fn detect(&self, _request: &DetectClientsRequest) -> ClientDetection {
+            panic!("requested_clients should not invoke detector.detect()");
         }
     }
 }
