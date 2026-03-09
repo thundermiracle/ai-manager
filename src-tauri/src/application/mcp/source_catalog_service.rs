@@ -3,10 +3,9 @@ use std::path::PathBuf;
 use crate::{
     domain::{ClientKind, ResourceSourceScope},
     infra::DetectorRegistry,
-    interface::contracts::detect::DetectClientsRequest,
 };
 
-use super::config_path_resolver::default_mcp_config_path;
+use super::config_path_resolver::preferred_mcp_config_path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum McpSourceStorageKind {
@@ -26,13 +25,11 @@ pub struct McpSourceDescriptor {
     pub project_root: Option<String>,
 }
 
-pub struct McpSourceCatalogService<'a> {
-    detector_registry: &'a DetectorRegistry,
-}
+pub struct McpSourceCatalogService;
 
-impl<'a> McpSourceCatalogService<'a> {
-    pub fn new(detector_registry: &'a DetectorRegistry) -> Self {
-        Self { detector_registry }
+impl McpSourceCatalogService {
+    pub fn new(_detector_registry: &DetectorRegistry) -> Self {
+        Self
     }
 
     pub fn list_sources(
@@ -40,25 +37,10 @@ impl<'a> McpSourceCatalogService<'a> {
         client: ClientKind,
         project_root: Option<&str>,
     ) -> Vec<McpSourceDescriptor> {
-        let user_container_path = detected_user_container_path(self.detector_registry, client)
-            .unwrap_or_else(|| default_mcp_config_path(client));
+        let user_container_path = preferred_mcp_config_path(client);
 
         build_source_descriptors(client, user_container_path, project_root)
     }
-}
-
-fn detected_user_container_path(
-    detector_registry: &DetectorRegistry,
-    client: ClientKind,
-) -> Option<PathBuf> {
-    let detect_request = DetectClientsRequest {
-        include_versions: false,
-    };
-
-    detector_registry
-        .find(client)
-        .map(|detector| detector.detect(&detect_request))
-        .and_then(|detection| detection.evidence.config_path.map(PathBuf::from))
 }
 
 fn build_source_descriptors(
