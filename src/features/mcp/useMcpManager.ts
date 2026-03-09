@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { listResources, mutateResource, replicateResource } from "../../backend/client";
 import type {
@@ -14,6 +14,7 @@ import {
   runtimeErrorToDiagnostic,
 } from "../common/errorDiagnostics";
 import type { ResourceContextMode } from "../resources/resource-context";
+import { selectMcpResourcesForView, sortMcpResources } from "./mcp-list-view";
 
 export type McpTransportInput =
   | {
@@ -113,22 +114,12 @@ function envelopeErrorDiagnostic(
   return runtimeErrorToDiagnostic(fallbackMessage);
 }
 
-function sortResources(resources: ResourceRecord[]): ResourceRecord[] {
-  return [...resources].sort((left, right) => {
-    if (left.display_name !== right.display_name) {
-      return left.display_name.localeCompare(right.display_name);
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
-
 export function useMcpManager({
   contextMode,
   projectRoot,
   viewMode,
 }: UseMcpManagerParams): UseMcpManagerResult {
   const [phase, setPhase] = useState<LoadPhase>("idle");
-  const [resources, setResources] = useState<ResourceRecord[]>([]);
   const [sourceAwareResources, setSourceAwareResources] = useState<ResourceRecord[]>([]);
   const [resolvedProjectRoot, setResolvedProjectRoot] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -137,6 +128,10 @@ export function useMcpManager({
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [pendingUpdateId, setPendingUpdateId] = useState<string | null>(null);
   const [pendingReplicationId, setPendingReplicationId] = useState<string | null>(null);
+  const resources = useMemo(
+    () => selectMcpResourcesForView(sourceAwareResources, viewMode),
+    [sourceAwareResources, viewMode],
+  );
 
   const refresh = useCallback(async () => {
     setPhase("loading");
@@ -147,7 +142,7 @@ export function useMcpManager({
         client: null,
         resource_kind: "mcp",
         project_root: contextMode === "project" ? projectRoot : null,
-        view_mode: viewMode,
+        view_mode: "all_sources",
       });
 
       if (!envelope.ok || envelope.data === null) {
@@ -163,21 +158,7 @@ export function useMcpManager({
         return;
       }
 
-      let allSourceItems = envelope.data.items;
-      if (viewMode !== "all_sources") {
-        const allSourcesEnvelope = await listResources({
-          client: null,
-          resource_kind: "mcp",
-          project_root: contextMode === "project" ? projectRoot : null,
-          view_mode: "all_sources",
-        });
-        if (allSourcesEnvelope.ok && allSourcesEnvelope.data) {
-          allSourceItems = allSourcesEnvelope.data.items;
-        }
-      }
-
-      setResources(sortResources(envelope.data.items));
-      setSourceAwareResources(sortResources(allSourceItems));
+      setSourceAwareResources(sortMcpResources(envelope.data.items));
       setResolvedProjectRoot(envelope.data.project_root);
       setWarning(redactNullableSensitiveText(envelope.data.warning));
       setOperationError(null);
@@ -189,7 +170,7 @@ export function useMcpManager({
       const message = error instanceof Error ? error.message : "Unknown list runtime error.";
       setOperationError(runtimeErrorToDiagnostic(message));
     }
-  }, [contextMode, projectRoot, viewMode]);
+  }, [contextMode, projectRoot]);
 
   useEffect(() => {
     void refresh();
