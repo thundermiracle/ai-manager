@@ -1,9 +1,10 @@
 import { type FormEvent, useCallback, useState } from "react";
-
-import type { ResourceRecord } from "../../backend/contracts";
+import type { ClientKind, ResourceRecord } from "../../backend/contracts";
 import type { SkillInstallInputKind, UpdateSkillInput } from "./useSkillManager";
 
 export interface SkillEditFormState {
+  resourceId: string;
+  client: ClientKind;
   targetId: string;
   installKind: SkillInstallInputKind;
   manifest: string;
@@ -29,6 +30,8 @@ Describe what changed in this skill.
 `;
 
 const DEFAULT_STATE: SkillEditFormState = {
+  resourceId: "",
+  client: "claude_code",
   targetId: "",
   installKind: "directory",
   manifest: DEFAULT_MANIFEST,
@@ -46,6 +49,8 @@ export function useSkillEditForm({
       resource.install_kind === "file" ? "file" : "directory";
 
     setState({
+      resourceId: resource.id,
+      client: resource.client,
       targetId: resource.display_name,
       installKind,
       manifest:
@@ -81,6 +86,8 @@ export function useSkillEditForm({
       }
 
       const accepted = await onSubmit({
+        client: state.client,
+        resourceId: state.resourceId,
         mode: "manual",
         targetId: normalizedTargetId,
         installKind: state.installKind,

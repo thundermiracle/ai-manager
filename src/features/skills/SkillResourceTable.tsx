@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import { formatClientLabel } from "../clients/client-labels";
 
 interface SkillResourceTableProps {
   resources: ResourceRecord[];
@@ -20,10 +21,6 @@ interface SkillResourceTableProps {
   onCopy: (resource: ResourceRecord) => Promise<void>;
   onRemove: (resource: ResourceRecord) => Promise<void>;
   emptyMessage?: string;
-}
-
-function formatSourcePath(sourcePath: string | null): string {
-  return sourcePath ?? "Auto-resolved";
 }
 
 function formatInstallKind(value: string | null): string {
@@ -113,6 +110,21 @@ function SkillActionButton({
   );
 }
 
+function StatusBadge({ tone, label }: { tone: "neutral" | "success"; label: string }) {
+  const className =
+    tone === "success"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-slate-200 bg-slate-100 text-slate-700";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] ${className}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 export function SkillResourceTable({
   resources,
   pendingRemovalId,
@@ -127,7 +139,7 @@ export function SkillResourceTable({
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-7 text-center">
         <p className="text-sm leading-relaxed text-slate-600">
-          {emptyMessage ?? "No skill entries registered for the selected client."}
+          {emptyMessage ?? "No generic skill entries registered for the current context."}
         </p>
       </div>
     );
@@ -135,69 +147,106 @@ export function SkillResourceTable({
 
   return (
     <div className="overflow-auto rounded-2xl border border-slate-200/90 bg-white">
-      <Table className="min-w-[42rem] max-[720px]:min-w-[36rem]">
+      <Table className="min-w-[62rem] max-[720px]:min-w-[48rem]">
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Install Kind</TableHead>
-            <TableHead>Enabled</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Skill Entry</TableHead>
+            <TableHead>Install</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead aria-label="actions" className="w-[17rem]" />
+            <TableHead aria-label="actions" className="w-40" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {resources.map((resource) => {
-            const removing = pendingRemovalId === resource.display_name;
-            const updating = pendingUpdateId === resource.display_name;
+            const removing = pendingRemovalId === resource.id;
+            const updating = pendingUpdateId === resource.id;
             const copying = pendingCopyId === resource.id;
-            const sourceText = formatSourcePath(resource.source_path);
+            const sourceText = resource.source_path ?? "Auto-resolved";
+
             return (
               <TableRow key={resource.id} className="hover:bg-slate-50/70">
-                <TableCell
-                  className="max-w-[12rem] truncate font-medium text-slate-900"
-                  title={resource.display_name}
-                >
-                  {resource.display_name}
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="text-sm font-medium text-slate-900">
+                      {formatClientLabel(resource.client)}
+                    </span>
+                    <span className="text-xs text-slate-500">{resource.client}</span>
+                  </div>
                 </TableCell>
-                <TableCell>{formatInstallKind(resource.install_kind)}</TableCell>
-                <TableCell>{resource.enabled ? "yes" : "no"}</TableCell>
-                <TableCell className="max-w-[18rem] truncate" title={sourceText}>
-                  {sourceText}
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="font-medium text-slate-900">{resource.display_name}</span>
+                    <span className="text-xs text-slate-500">{resource.logical_id}</span>
+                  </div>
                 </TableCell>
-                <TableCell className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                  <SkillActionButton
-                    icon={<CopyIcon />}
-                    label="Copy to another client"
-                    busyLabel="Copying..."
-                    busy={copying}
-                    disabled={copying || updating || removing}
-                    className="h-8 w-8 rounded-lg border border-sky-200 bg-sky-50 p-0 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
-                    onClick={() => {
-                      void onCopy(resource);
-                    }}
-                  />
-                  <SkillActionButton
-                    icon={<EditIcon />}
-                    label="Edit personal skill"
-                    busyLabel="Updating..."
-                    busy={updating}
-                    disabled={updating || removing || copying}
-                    className="h-8 w-8 rounded-lg border border-amber-200 bg-amber-50 p-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
-                    onClick={() => {
-                      void onEdit(resource);
-                    }}
-                  />
-                  <SkillActionButton
-                    icon={<RemoveIcon />}
-                    label="Remove from personal"
-                    busyLabel="Removing..."
-                    busy={removing}
-                    disabled={removing || updating || copying}
-                    className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 p-0 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
-                    onClick={() => {
-                      void onRemove(resource);
-                    }}
-                  />
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="text-sm text-slate-900">
+                      {formatInstallKind(resource.install_kind)}
+                    </span>
+                    <span className="text-xs text-slate-500">Generic skill library</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    <StatusBadge
+                      tone={resource.enabled ? "success" : "neutral"}
+                      label={resource.enabled ? "Enabled" : "Disabled"}
+                    />
+                    <StatusBadge tone="neutral" label="Personal" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="grid gap-1">
+                    <span className="text-sm font-medium text-slate-900">
+                      {resource.source_label}
+                    </span>
+                    <span className="text-xs uppercase tracking-[0.08em] text-slate-500">
+                      {resource.source_scope.replace("_", " ")}
+                    </span>
+                    <span className="truncate text-xs text-slate-500" title={sourceText}>
+                      {sourceText}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <SkillActionButton
+                      icon={<CopyIcon />}
+                      label="Copy to another client"
+                      busyLabel="Copying..."
+                      busy={copying}
+                      disabled={copying || updating || removing}
+                      className="h-8 w-8 rounded-lg border border-sky-200 bg-sky-50 p-0 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
+                      onClick={() => {
+                        void onCopy(resource);
+                      }}
+                    />
+                    <SkillActionButton
+                      icon={<EditIcon />}
+                      label={`Edit in ${formatClientLabel(resource.client)}`}
+                      busyLabel="Updating..."
+                      busy={updating}
+                      disabled={updating || removing || copying}
+                      className="h-8 w-8 rounded-lg border border-amber-200 bg-amber-50 p-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                      onClick={() => {
+                        void onEdit(resource);
+                      }}
+                    />
+                    <SkillActionButton
+                      icon={<RemoveIcon />}
+                      label={`Remove from ${formatClientLabel(resource.client)}`}
+                      busyLabel="Removing..."
+                      busy={removing}
+                      disabled={removing || updating || copying}
+                      className="h-8 w-8 rounded-lg border border-rose-200 bg-rose-50 p-0 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+                      onClick={() => {
+                        void onRemove(resource);
+                      }}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             );

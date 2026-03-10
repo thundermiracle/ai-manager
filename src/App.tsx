@@ -30,11 +30,7 @@ function findSelectedDetection(
   return detections.find((entry) => entry.client === selectedClient) ?? null;
 }
 
-function renderRouteContent(
-  route: AppRoute,
-  selectedDetection: ClientDetection | null,
-  resourceContext: ResourceContextState,
-) {
+function renderRouteContent(route: AppRoute, resourceContext: ResourceContextState) {
   if (route === "dashboard") {
     return null;
   }
@@ -50,7 +46,6 @@ function renderRouteContent(
 
   return (
     <SkillsManagerPanel
-      client={selectedDetection?.client ?? null}
       contextMode={resourceContext.mode}
       projectRoot={resourceContext.projectRoot}
     />
@@ -86,8 +81,8 @@ function App() {
   );
 
   const featureContent = useMemo(
-    () => renderRouteContent(activeRoute, selectedDetection, resourceContext),
-    [activeRoute, resourceContext, selectedDetection],
+    () => renderRouteContent(activeRoute, resourceContext),
+    [activeRoute, resourceContext],
   );
   const isDashboardRoute = activeRoute === "dashboard";
 
@@ -222,37 +217,21 @@ function App() {
               <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
                 <div className="grid gap-1">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate-500">
-                    Active Client
+                    Skill Library Overview
                   </p>
                   <p className="text-sm text-slate-700">
-                    Manager views prioritize generic skill library operations. Open dashboard for
-                    full tool cards.
+                    Generic skill libraries now span the supported clients inside the selected
+                    context.
                   </p>
                 </div>
-
-                <div className="flex items-center gap-2 max-[720px]:w-full">
-                  <select
-                    className="h-10 min-w-[13.5rem] rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 max-[720px]:w-full"
-                    value={selectedClient ?? ""}
-                    onChange={(event) =>
-                      setSelectedClient(event.currentTarget.value as ClientDetection["client"])
-                    }
-                  >
-                    {detections.map((detection) => (
-                      <option key={detection.client} value={detection.client}>
-                        {formatClientLabel(detection.client)}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setActiveRoute("dashboard")}
-                  >
-                    Open Dashboard
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveRoute("dashboard")}
+                >
+                  Open Dashboard
+                </Button>
               </section>
             ) : (
               <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
