@@ -1,8 +1,9 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
-import type { DiscoveredSkillCandidate } from "../../backend/contracts";
+import type { ClientKind, DiscoveredSkillCandidate } from "../../backend/contracts";
 import { buildSkillManifestChecksum } from "./skill-checksum";
 import { loadSkillGithubRecents, rememberSkillGithubRepoUrl } from "./skill-github-recents";
+import { SKILL_CLIENTS } from "./skill-targets";
 import type {
   AddSkillInput,
   GithubSkillDiscoveryResult,
@@ -25,6 +26,7 @@ export interface SkillSyncInfo {
 }
 
 export interface SkillAddFormState {
+  destinationClient: ClientKind;
   mode: SkillAddMode;
   targetId: string;
   installKind: SkillInstallInputKind;
@@ -45,12 +47,13 @@ interface UseSkillAddFormParams {
   onDiscoverGithubRepo: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
   onAccepted?: () => void;
   existingSkillsById?: ReadonlyMap<string, ExistingSkillRecord>;
-  recentGithubRepoStorageKey?: string;
+  getRecentGithubRepoStorageKey?: (client: ClientKind) => string;
 }
 
 interface UseSkillAddFormResult {
   state: SkillAddFormState;
   syncInfo: SkillSyncInfo;
+  setDestinationClient: (value: ClientKind) => void;
   setMode: (value: SkillAddMode) => void;
   setTargetId: (value: string) => void;
   setInstallKind: (value: SkillInstallInputKind) => void;
@@ -69,6 +72,7 @@ Describe what this skill does and how to use it.
 `;
 
 const DEFAULT_STATE: SkillAddFormState = {
+  destinationClient: SKILL_CLIENTS[0],
   mode: "manual",
   targetId: "new-skill",
   installKind: "directory",
@@ -114,7 +118,7 @@ function resolveSyncInfo(
     return { status: "new", existingInstallKind: null };
   }
 
-  const existing = existingSkillsById.get(normalizedTargetId);
+  const existing = existingSkillsById.get(`${state.destinationClient}::${normalizedTargetId}`);
   if (!existing) {
     return { status: "new", existingInstallKind: null };
   }
@@ -137,9 +141,10 @@ export function useSkillAddForm({
   onDiscoverGithubRepo,
   onAccepted,
   existingSkillsById,
-  recentGithubRepoStorageKey,
+  getRecentGithubRepoStorageKey,
 }: UseSkillAddFormParams): UseSkillAddFormResult {
   const [state, setState] = useState<SkillAddFormState>(DEFAULT_STATE);
+  const recentGithubRepoStorageKey = getRecentGithubRepoStorageKey?.(state.destinationClient);
   const syncInfo = useMemo(
     () => resolveSyncInfo(state, existingSkillsById),
     [existingSkillsById, state],
@@ -167,6 +172,10 @@ export function useSkillAddForm({
 
   const setMode = useCallback((value: SkillAddMode) => {
     setState((current) => ({ ...current, mode: value, localError: null }));
+  }, []);
+
+  const setDestinationClient = useCallback((value: ClientKind) => {
+    setState((current) => ({ ...current, destinationClient: value, localError: null }));
   }, []);
 
   const setTargetId = useCallback((value: string) => {
@@ -286,12 +295,15 @@ export function useSkillAddForm({
               }
               return currentSyncInfo.status === "update_available"
                 ? onUpdateSubmit({
+                    client: state.destinationClient,
+                    resourceId: `${state.destinationClient}::${normalizedTargetId}`,
                     mode: "manual",
                     targetId: normalizedTargetId,
                     manifest: state.manifest,
                     installKind: currentSyncInfo.existingInstallKind ?? state.installKind,
                   })
                 : onAddSubmit({
+                    destinationClient: state.destinationClient,
                     mode: "manual",
                     targetId: normalizedTargetId,
                     manifest: state.manifest,
@@ -323,6 +335,8 @@ export function useSkillAddForm({
               }
               return currentSyncInfo.status === "update_available"
                 ? onUpdateSubmit({
+                    client: state.destinationClient,
+                    resourceId: `${state.destinationClient}::${normalizedTargetId}`,
                     mode: "github",
                     targetId: normalizedTargetId,
                     githubRepoUrl: normalizedGithubRepoUrl,
@@ -330,6 +344,7 @@ export function useSkillAddForm({
                     installKind: currentSyncInfo.existingInstallKind ?? "directory",
                   })
                 : onAddSubmit({
+                    destinationClient: state.destinationClient,
                     mode: "github",
                     targetId: normalizedTargetId,
                     githubRepoUrl: normalizedGithubRepoUrl,
@@ -352,6 +367,7 @@ export function useSkillAddForm({
   return {
     state,
     syncInfo,
+    setDestinationClient,
     setMode,
     setTargetId,
     setInstallKind,

@@ -5,22 +5,5 @@ export function buildSkillContextHint(contextMode: ResourceContextMode): string 
     return "This tab manages AI Manager generic skill libraries in personal storage only. Claude native project support is tracked separately as subagents and does not appear in this view.";
   }
 
-  return "This tab manages AI Manager generic skill libraries for the selected client.";
-}
-
-export function describeSkillAction(
-  action: "add" | "update" | "remove" | "copy" | "import",
-): string {
-  switch (action) {
-    case "add":
-      return "Add personal skill";
-    case "update":
-      return "Update personal skill";
-    case "remove":
-      return "Remove from personal";
-    case "copy":
-      return "Copy to another client";
-    case "import":
-      return "Import to personal skills";
-  }
+  return "This tab manages AI Manager generic skill libraries across the supported clients.";
 }

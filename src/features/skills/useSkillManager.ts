@@ -8,22 +8,27 @@ import type {
   ResourceRecord,
 } from "../../backend/contracts";
 import { redactNullableSensitiveText, redactSensitiveText } from "../../security/redaction";
+import { formatClientLabel } from "../clients/client-labels";
 import {
   commandErrorToDiagnostic,
   type ErrorDiagnostic,
   runtimeErrorToDiagnostic,
 } from "../common/errorDiagnostics";
+import { sortSkillResources } from "./skill-list-view";
+import { SKILL_CLIENTS } from "./skill-targets";
 
 export type SkillInstallInputKind = "directory" | "file";
 
 export type AddSkillInput =
   | {
+      destinationClient: ClientKind;
       mode: "manual";
       targetId: string;
       manifest: string;
       installKind: SkillInstallInputKind;
     }
   | {
+      destinationClient: ClientKind;
       mode: "github";
       targetId: string;
       githubRepoUrl: string;
@@ -32,12 +37,16 @@ export type AddSkillInput =
 
 export type UpdateSkillInput =
   | {
+      client: ClientKind;
+      resourceId: string;
       mode: "manual";
       targetId: string;
       manifest: string;
       installKind: SkillInstallInputKind;
     }
   | {
+      client: ClientKind;
+      resourceId: string;
       mode: "github";
       targetId: string;
       githubRepoUrl: string;
@@ -52,6 +61,13 @@ export interface CopySkillInput {
   targetId: string;
   manifest: string;
   installKind: SkillInstallInputKind;
+}
+
+export interface RemoveSkillInput {
+  resourceId: string;
+  client: ClientKind;
+  targetId: string;
+  sourcePath: string | null;
 }
 
 export interface GithubSkillDiscoveryResult {
@@ -82,7 +98,7 @@ interface UseSkillManagerResult {
   updateSkill: (input: UpdateSkillInput) => Promise<boolean>;
   copySkill: (input: CopySkillInput) => Promise<boolean>;
   discoverGithubSkills: (githubRepoUrl: string) => Promise<GithubSkillDiscoveryResult | null>;
-  removeSkill: (targetId: string, sourcePath: string | null) => Promise<boolean>;
+  removeSkill: (input: RemoveSkillInput) => Promise<boolean>;
   clearFeedback: () => void;
 }
 
@@ -96,16 +112,16 @@ function envelopeErrorDiagnostic(
   return runtimeErrorToDiagnostic(fallbackMessage);
 }
 
-function sortResources(resources: ResourceRecord[]): ResourceRecord[] {
-  return [...resources].sort((left, right) => {
-    if (left.display_name !== right.display_name) {
-      return left.display_name.localeCompare(right.display_name);
-    }
-    return left.id.localeCompare(right.id);
-  });
+function prefixWarning(client: ClientKind, warning: string): string {
+  const trimmed = warning.trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+
+  return `${formatClientLabel(client)}: ${trimmed}`;
 }
 
-export function useSkillManager(client: ClientKind | null): UseSkillManagerResult {
+export function useSkillManager(): UseSkillManagerResult {
   const [phase, setPhase] = useState<LoadPhase>("idle");
   const [resources, setResources] = useState<ResourceRecord[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
@@ -116,44 +132,81 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
   const [pendingCopyId, setPendingCopyId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (client === null) {
-      setPhase("idle");
-      setResources([]);
-      setWarning(null);
-      setOperationError(null);
-      return;
-    }
-
     setPhase("loading");
     setOperationError(null);
 
     try {
-      const envelope = await listResources({
-        client,
-        resource_kind: "skill",
-      });
+      const results = await Promise.all(
+        SKILL_CLIENTS.map(async (client) => {
+          try {
+            const envelope = await listResources({
+              client,
+              resource_kind: "skill",
+            });
 
-      if (!envelope.ok || envelope.data === null) {
+            return { client, envelope, runtimeError: null as ErrorDiagnostic | null };
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Unknown list runtime error.";
+            return {
+              client,
+              envelope: null,
+              runtimeError: runtimeErrorToDiagnostic(message),
+            };
+          }
+        }),
+      );
+
+      const aggregatedResources: ResourceRecord[] = [];
+      const warnings: string[] = [];
+      const diagnostics: ErrorDiagnostic[] = [];
+
+      for (const result of results) {
+        if (result.runtimeError) {
+          diagnostics.push(result.runtimeError);
+          warnings.push(prefixWarning(result.client, result.runtimeError.message));
+          continue;
+        }
+
+        const envelope = result.envelope;
+        if (!envelope || !envelope.ok || envelope.data === null) {
+          const diagnostic = envelope
+            ? envelopeErrorDiagnostic(
+                envelope,
+                "List command failed without an explicit error payload.",
+              )
+            : runtimeErrorToDiagnostic("List command failed without an explicit error payload.");
+          diagnostics.push(diagnostic);
+          warnings.push(prefixWarning(result.client, diagnostic.message));
+          continue;
+        }
+
+        aggregatedResources.push(...envelope.data.items);
+        if (envelope.data.warning) {
+          const redactedWarning = redactNullableSensitiveText(envelope.data.warning);
+          warnings.push(prefixWarning(result.client, redactedWarning ?? envelope.data.warning));
+        }
+      }
+
+      if (aggregatedResources.length === 0 && diagnostics.length > 0) {
         setPhase("error");
-        setOperationError(
-          envelopeErrorDiagnostic(
-            envelope,
-            "List command failed without an explicit error payload.",
-          ),
-        );
+        setResources([]);
+        setWarning(null);
+        setOperationError(diagnostics[0]);
         return;
       }
 
-      setResources(sortResources(envelope.data.items));
-      setWarning(redactNullableSensitiveText(envelope.data.warning));
+      setResources(sortSkillResources(aggregatedResources));
+      setWarning(warnings.filter((entry) => entry.length > 0).join(" | ") || null);
       setOperationError(null);
       setPhase("ready");
     } catch (error) {
       setPhase("error");
+      setResources([]);
+      setWarning(null);
       const message = error instanceof Error ? error.message : "Unknown list runtime error.";
       setOperationError(runtimeErrorToDiagnostic(message));
     }
-  }, [client]);
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -161,16 +214,6 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
 
   const addSkill = useCallback(
     async (input: AddSkillInput) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic("Select a client before adding a skill entry.");
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
       try {
         const payload: Record<string, unknown> =
           input.mode === "github"
@@ -185,7 +228,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
               };
 
         const envelope = await mutateResource({
-          client,
+          client: input.destinationClient,
           resource_kind: "skill",
           action: "add",
           target_id: input.targetId,
@@ -215,7 +258,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
         return false;
       }
     },
-    [client, refresh],
+    [refresh],
   );
 
   const discoverGithubSkills = useCallback(async (githubRepoUrl: string) => {
@@ -261,27 +304,15 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
   }, []);
 
   const removeSkill = useCallback(
-    async (targetId: string, sourcePath: string | null) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Select a client before removing a skill entry.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
-      setPendingRemovalId(targetId);
+    async (input: RemoveSkillInput) => {
+      setPendingRemovalId(input.resourceId);
       try {
         const envelope = await mutateResource({
-          client,
+          client: input.client,
           resource_kind: "skill",
           action: "remove",
-          target_id: targetId,
-          payload: sourcePath ? { source_path: sourcePath } : null,
+          target_id: input.targetId,
+          payload: input.sourcePath ? { source_path: input.sourcePath } : null,
         });
 
         if (!envelope.ok || envelope.data === null) {
@@ -309,24 +340,12 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
         setPendingRemovalId(null);
       }
     },
-    [client, refresh],
+    [refresh],
   );
 
   const updateSkill = useCallback(
     async (input: UpdateSkillInput) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Select a client before updating a skill entry.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
-      setPendingUpdateId(input.targetId);
+      setPendingUpdateId(input.resourceId);
       try {
         const payload: Record<string, unknown> =
           input.mode === "github"
@@ -341,7 +360,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
               };
 
         const envelope = await mutateResource({
-          client,
+          client: input.client,
           resource_kind: "skill",
           action: "update",
           target_id: input.targetId,
@@ -373,35 +392,11 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
         setPendingUpdateId(null);
       }
     },
-    [client, refresh],
+    [refresh],
   );
 
   const copySkill = useCallback(
     async (input: CopySkillInput) => {
-      if (client === null) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Select a client before copying a skill entry.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
-      if (input.sourceClient !== client) {
-        const diagnostic = runtimeErrorToDiagnostic(
-          "Selected source client is stale. Reload the skills list and retry the copy operation.",
-        );
-        setFeedback({
-          kind: "error",
-          message: diagnostic.message,
-          diagnostic,
-        });
-        return false;
-      }
-
       if (input.destinationClient === input.sourceClient) {
         const diagnostic = runtimeErrorToDiagnostic(
           "Choose a different destination client when copying a skill entry.",
@@ -462,6 +457,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
         }
 
         setFeedback({ kind: "success", message: redactSensitiveText(envelope.data.message) });
+        await refresh();
         return true;
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown copy runtime error.";
@@ -476,7 +472,7 @@ export function useSkillManager(client: ClientKind | null): UseSkillManagerResul
         setPendingCopyId(null);
       }
     },
-    [client],
+    [refresh],
   );
 
   return {

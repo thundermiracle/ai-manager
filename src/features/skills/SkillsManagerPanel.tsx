@@ -1,10 +1,6 @@
 import { useMemo, useState } from "react";
 
-import {
-  type ClientKind,
-  RESOURCE_KIND_CATALOG,
-  type ResourceRecord,
-} from "../../backend/contracts";
+import { RESOURCE_KIND_CATALOG, type ResourceRecord } from "../../backend/contracts";
 import { ConfirmModal } from "../../components/shared/ConfirmModal";
 import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
 import { SlideOverPanel } from "../../components/shared/SlideOverPanel";
@@ -17,7 +13,6 @@ import { Input } from "../../components/ui/input";
 import { formatClientLabel } from "../clients/client-labels";
 import {
   buildResourceContextSummary,
-  isProjectContextIncomplete,
   type ResourceContextMode,
 } from "../resources/resource-context";
 import { listNativeResourceEntryPoints } from "./native-resource-catalog";
@@ -28,35 +23,38 @@ import { SkillResourceTable } from "./SkillResourceTable";
 import { buildResourceSkillManifestChecksum } from "./skill-checksum";
 import { buildSkillContextHint } from "./skill-context";
 import { buildSkillGithubRecentsStorageKey } from "./skill-github-recents";
+import {
+  countSkillResourcesByClient,
+  filterSkillResources,
+  toggleSkillClientFilter,
+} from "./skill-list-view";
+import {
+  buildSkillDestinationDescription,
+  describeSkillAction,
+  SKILL_CLIENTS,
+} from "./skill-targets";
 import { useSkillAddForm } from "./useSkillAddForm";
 import { useSkillCopyForm } from "./useSkillCopyForm";
 import { useSkillEditForm } from "./useSkillEditForm";
 import { useSkillManager } from "./useSkillManager";
 
 interface SkillsManagerPanelProps {
-  client: ClientKind | null;
   contextMode: ResourceContextMode;
   projectRoot: string | null;
 }
 
-export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsManagerPanelProps) {
+export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPanelProps) {
   const [isComposerOpen, setComposerOpen] = useState(false);
   const [isCopyOpen, setCopyOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [clientFilters, setClientFilters] = useState(SKILL_CLIENTS);
   const contextSummary = buildResourceContextSummary({
     mode: contextMode,
     projectRoot,
   });
   const contextHint = buildSkillContextHint(contextMode);
-  const nativeResourceEntryPoints = useMemo(
-    () => (client === null ? [] : listNativeResourceEntryPoints(client)),
-    [client],
-  );
-  const activeClient = isProjectContextIncomplete({ mode: contextMode, projectRoot })
-    ? null
-    : client;
 
   const {
     phase,
@@ -74,7 +72,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     removeSkill,
     refresh,
     clearFeedback,
-  } = useSkillManager(activeClient);
+  } = useSkillManager();
 
   const existingSkillsById = useMemo(() => {
     const entries = new Map<
@@ -90,7 +88,8 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
       if (normalizedTargetId.length === 0) {
         continue;
       }
-      entries.set(normalizedTargetId, {
+
+      entries.set(`${resource.client}::${normalizedTargetId}`, {
         installKind: resource.install_kind === "file" ? "file" : "directory",
         checksum: buildResourceSkillManifestChecksum(resource),
       });
@@ -104,7 +103,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     onUpdateSubmit: updateSkill,
     onDiscoverGithubRepo: discoverGithubSkills,
     existingSkillsById,
-    recentGithubRepoStorageKey: client ? buildSkillGithubRecentsStorageKey(client) : undefined,
+    getRecentGithubRepoStorageKey: buildSkillGithubRecentsStorageKey,
     onAccepted: () => setComposerOpen(false),
   });
   const editForm = useSkillEditForm({
@@ -116,41 +115,56 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     onAccepted: () => setCopyOpen(false),
   });
 
+  const primaryAddLabel = useMemo(() => {
+    if (clientFilters.length !== 1) {
+      return "Choose add destination";
+    }
+
+    return describeSkillAction("add", clientFilters[0]);
+  }, [clientFilters]);
+  const addSubmitLabel = useMemo(() => {
+    if (addForm.syncInfo.status === "update_available") {
+      return describeSkillAction("update", addForm.state.destinationClient);
+    }
+
+    return describeSkillAction(
+      addForm.state.mode === "manual" ? "add" : "import",
+      addForm.state.destinationClient,
+    );
+  }, [addForm.state.destinationClient, addForm.state.mode, addForm.syncInfo.status]);
+  const clientCounts = useMemo(() => countSkillResourcesByClient(resources), [resources]);
+  const filteredResources = useMemo(
+    () => filterSkillResources(resources, clientFilters, searchQuery),
+    [clientFilters, resources, searchQuery],
+  );
+  const nativeResourceEntryPoints = useMemo(
+    () =>
+      clientFilters.flatMap((client) =>
+        listNativeResourceEntryPoints(client).map((entryPoint) => ({
+          ...entryPoint,
+          client,
+        })),
+      ),
+    [clientFilters],
+  );
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const snackbarFeedback = useMemo(() => {
     if (feedback === null) {
       return null;
     }
+
     if (feedback.kind === "error" && feedback.diagnostic) {
       return {
         tone: "error" as const,
         message: `CODE: ${feedback.diagnostic.code} | ${feedback.message}`,
       };
     }
+
     return {
       tone: feedback.kind === "error" ? ("error" as const) : ("success" as const),
       message: feedback.message,
     };
   }, [feedback]);
-  const filteredResources = useMemo(() => {
-    if (normalizedQuery.length === 0) {
-      return resources;
-    }
-
-    return resources.filter((resource) => {
-      const haystack = [
-        resource.display_name,
-        resource.install_kind,
-        resource.source_path,
-        resource.id,
-      ]
-        .filter((value): value is string => value !== null && value !== undefined)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(normalizedQuery);
-    });
-  }, [normalizedQuery, resources]);
 
   async function handleRemove(resource: ResourceRecord) {
     setRemovalCandidate(resource);
@@ -173,7 +187,12 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
       return;
     }
 
-    await removeSkill(removalCandidate.display_name, removalCandidate.source_path);
+    await removeSkill({
+      resourceId: removalCandidate.id,
+      client: removalCandidate.client,
+      targetId: removalCandidate.display_name,
+      sourcePath: removalCandidate.source_path,
+    });
     setRemovalCandidate(null);
   }
 
@@ -181,28 +200,23 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
     if (pendingRemovalId !== null) {
       return;
     }
+
     setRemovalCandidate(null);
   }
 
   function openComposer() {
     clearFeedback();
+    if (clientFilters.length === 1) {
+      addForm.setDestinationClient(clientFilters[0]);
+    }
     setComposerOpen(true);
-  }
-
-  if (client === null) {
-    return (
-      <ViewStatePanel
-        title="Client Selection Required"
-        message="Select a client to list and mutate generic skill library entries."
-      />
-    );
   }
 
   if (contextMode === "project" && projectRoot === null) {
     return (
       <ViewStatePanel
         title="Project Context Required"
-        message="Apply a project root to review generic skill libraries alongside native-resource notices."
+        message="Apply a project root to review generic skill libraries in project mode."
       />
     );
   }
@@ -214,11 +228,11 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
           <div className="flex items-start justify-between gap-3 max-[720px]:flex-col">
             <div>
               <CardTitle className="text-[1.35rem] tracking-[-0.012em]">Skill Libraries</CardTitle>
-              <p className="mt-1 text-sm text-slate-700">
-                Managing AI Manager generic skill libraries for{" "}
-                <strong>{formatClientLabel(client)}</strong>
+              <p className="mt-1 text-sm text-slate-700">{contextSummary.description}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Generic skill libraries across {clientFilters.length} client filter
+                {clientFilters.length === 1 ? "" : "s"}.
               </p>
-              <p className="mt-1 text-xs text-slate-500">{contextSummary.description}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -234,12 +248,12 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
                 {phase === "loading" ? "Loading..." : "Reload"}
               </Button>
               <Button type="button" size="sm" onClick={openComposer}>
-                Add Generic Skill
+                {primaryAddLabel}
               </Button>
             </div>
           </div>
 
-          {contextMode === "project" ? <Alert variant="warning">{contextHint}</Alert> : null}
+          {contextMode === "project" ? <Alert variant="default">{contextHint}</Alert> : null}
 
           <section className="grid gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -259,12 +273,17 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
               <div className="grid gap-2">
                 {nativeResourceEntryPoints.map((entryPoint) => (
                   <div
-                    key={entryPoint.id}
+                    key={`${entryPoint.client}:${entryPoint.id}`}
                     className="rounded-xl border border-sky-200/80 bg-sky-50/80 p-3"
                   >
                     <div className="flex items-start justify-between gap-3 max-[720px]:flex-col">
                       <div className="grid gap-1">
-                        <p className="text-sm font-semibold text-slate-900">{entryPoint.title}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-900">{entryPoint.title}</p>
+                          <span className="rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-600">
+                            {formatClientLabel(entryPoint.client)}
+                          </span>
+                        </div>
                         <p className="text-xs leading-relaxed text-slate-600">
                           {entryPoint.description}
                         </p>
@@ -278,26 +297,55 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
               </div>
             ) : (
               <p className="text-xs text-slate-500">
-                No native resource entry points are defined for this client yet.
+                No native resource entry points are defined for the active client filters yet.
               </p>
             )}
           </section>
 
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 p-2.5">
-            <p className="rounded-full bg-slate-900 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-slate-100">
-              {resources.length} entries
-            </p>
-            <Input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.currentTarget.value)}
-              className="h-9 max-w-[19rem] border-slate-200 bg-white max-[720px]:max-w-full"
-              placeholder="Search name, install kind, source path"
-            />
-            {normalizedQuery.length > 0 ? (
-              <Button type="button" variant="ghost" size="sm" onClick={() => setSearchQuery("")}>
-                Clear
+          <div className="grid gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="rounded-full bg-slate-900 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-slate-100">
+                {filteredResources.length} shown / {resources.length} total
+              </p>
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.currentTarget.value)}
+                className="h-9 max-w-[19rem] border-slate-200 bg-white max-[720px]:max-w-full"
+                placeholder="Search name, client, install kind"
+              />
+              {normalizedQuery.length > 0 ? (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSearchQuery("")}>
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant={clientFilters.length === SKILL_CLIENTS.length ? "default" : "outline"}
+                size="sm"
+                onClick={() => setClientFilters(SKILL_CLIENTS)}
+              >
+                All Clients
               </Button>
-            ) : null}
+              {SKILL_CLIENTS.map((client) => {
+                const active = clientFilters.includes(client);
+                return (
+                  <Button
+                    key={client}
+                    type="button"
+                    variant={active ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      setClientFilters((current) => toggleSkillClientFilter(current, client))
+                    }
+                  >
+                    {formatClientLabel(client)} ({clientCounts.get(client) ?? 0})
+                  </Button>
+                );
+              })}
+            </div>
           </div>
         </CardHeader>
 
@@ -305,7 +353,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
           {warning ? <Alert variant="warning">{warning}</Alert> : null}
           {operationError ? (
             <ErrorRecoveryCallout
-              title="Skills list operation failed"
+              title="Skill list operation failed"
               diagnostic={operationError}
               retryLabel="Retry List"
               onRetry={() => {
@@ -325,9 +373,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
             emptyMessage={
               normalizedQuery.length > 0
                 ? `No skill entries match "${searchQuery.trim()}".`
-                : contextMode === "project"
-                  ? "No generic skill library entries are available for the selected client in this project context."
-                  : "No generic skill library entries are registered for the selected client."
+                : "No generic skill entries are registered for the current context."
             }
           />
         </CardContent>
@@ -336,7 +382,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
       <SlideOverPanel
         open={isComposerOpen}
         title="Add Generic Skill"
-        description="Install a skill into the selected client's personal library storage while keeping the list in view."
+        description="Choose the destination client explicitly, then install the generic skill into that personal library while keeping the list in view."
         panelClassName="max-w-[42rem] max-[920px]:max-w-full"
         onClose={() => setComposerOpen(false)}
       >
@@ -346,6 +392,12 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
             disabled={phase === "loading"}
             state={addForm.state}
             syncInfo={addForm.syncInfo}
+            destinationClient={addForm.state.destinationClient}
+            destinationDescription={buildSkillDestinationDescription(
+              addForm.state.destinationClient,
+            )}
+            submitButtonLabel={addSubmitLabel}
+            onDestinationClientChange={addForm.setDestinationClient}
             onModeChange={addForm.setMode}
             onTargetIdChange={addForm.setTargetId}
             onInstallKindChange={addForm.setInstallKind}
@@ -391,7 +443,7 @@ export function SkillsManagerPanel({ client, contextMode, projectRoot }: SkillsM
       <SlideOverPanel
         open={isEditOpen}
         title="Edit Generic Skill"
-        description="Update the selected skill manifest in the client's personal generic library."
+        description="Update the selected skill manifest in its personal generic library."
         panelClassName="max-w-[40rem] max-[920px]:max-w-full"
         onClose={() => {
           if (pendingUpdateId !== null) {

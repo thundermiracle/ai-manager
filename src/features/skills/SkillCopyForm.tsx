@@ -8,6 +8,7 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/utils";
 import { formatClientLabel } from "../clients/client-labels";
+import { buildSkillCopyDestinationClients } from "./skill-targets";
 import type { SkillCopyFormState } from "./useSkillCopyForm";
 import type { SkillInstallInputKind } from "./useSkillManager";
 
@@ -21,8 +22,6 @@ interface SkillCopyFormProps {
   className?: string;
 }
 
-const CLIENTS: ClientKind[] = ["codex", "claude_code", "cursor"];
-
 export function SkillCopyForm({
   disabled,
   state,
@@ -32,7 +31,7 @@ export function SkillCopyForm({
   onSubmit,
   className,
 }: SkillCopyFormProps) {
-  const destinationOptions = CLIENTS.filter((client) => client !== state.sourceClient);
+  const destinationOptions = buildSkillCopyDestinationClients(state.sourceClient);
 
   return (
     <form

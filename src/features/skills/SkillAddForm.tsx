@@ -1,11 +1,14 @@
 import type { FormEvent } from "react";
 
+import type { ClientKind } from "../../backend/contracts";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/utils";
+import { formatClientLabel } from "../clients/client-labels";
+import { SKILL_CLIENTS } from "./skill-targets";
 import type { SkillAddFormState, SkillAddMode, SkillSyncInfo } from "./useSkillAddForm";
 import type { SkillInstallInputKind } from "./useSkillManager";
 
@@ -13,6 +16,10 @@ interface SkillAddFormProps {
   disabled: boolean;
   state: SkillAddFormState;
   syncInfo: SkillSyncInfo;
+  destinationClient: ClientKind;
+  destinationDescription: string;
+  submitButtonLabel: string;
+  onDestinationClientChange: (value: ClientKind) => void;
   onModeChange: (value: SkillAddMode) => void;
   onTargetIdChange: (value: string) => void;
   onInstallKindChange: (value: SkillInstallInputKind) => void;
@@ -30,6 +37,10 @@ export function SkillAddForm({
   disabled,
   state,
   syncInfo,
+  destinationClient,
+  destinationDescription,
+  submitButtonLabel,
+  onDestinationClientChange,
   onModeChange,
   onTargetIdChange,
   onInstallKindChange,
@@ -50,7 +61,7 @@ export function SkillAddForm({
   const submitDisabled =
     disabled || isUpToDate || (state.mode === "github" && !state.githubRiskAcknowledged);
 
-  function submitLabel(): string {
+  function resolveSubmitLabel(): string {
     if (syncInfo.status === "up_to_date") {
       return "Up to Date";
     }
@@ -66,6 +77,9 @@ export function SkillAddForm({
       onSubmit={(event) => void onSubmit(event)}
     >
       {state.localError ? <Alert variant="destructive">{state.localError}</Alert> : null}
+      <Alert variant="default" className="break-words">
+        {destinationDescription}
+      </Alert>
       {syncInfo.status === "up_to_date" ? (
         <Alert variant="default" className="break-words">
           Skill ID <strong>{state.targetId.trim() || "(empty)"}</strong> is up to date.
@@ -77,6 +91,21 @@ export function SkillAddForm({
           different content. Submitting will update it.
         </Alert>
       ) : null}
+
+      <Label htmlFor="skill-destination-client">Destination Client</Label>
+      <select
+        id="skill-destination-client"
+        className="h-10 w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
+        value={destinationClient}
+        onChange={(event) => onDestinationClientChange(event.currentTarget.value as ClientKind)}
+        disabled={disabled}
+      >
+        {SKILL_CLIENTS.map((client) => (
+          <option key={client} value={client}>
+            {formatClientLabel(client)}
+          </option>
+        ))}
+      </select>
 
       <Label>Add Method</Label>
       <div className="grid grid-cols-2 gap-2">
@@ -243,7 +272,7 @@ export function SkillAddForm({
       )}
 
       <Button type="submit" disabled={submitDisabled}>
-        {submitLabel()}
+        {submitButtonLabel || resolveSubmitLabel()}
       </Button>
     </form>
   );

@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useState } from "react";
 
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import { buildSkillCopyDestinationClients } from "./skill-targets";
 import type { CopySkillInput, SkillInstallInputKind } from "./useSkillManager";
 
 export interface SkillCopyFormState {
@@ -29,10 +30,8 @@ interface UseSkillCopyFormResult {
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
-const CLIENTS: ClientKind[] = ["codex", "claude_code", "cursor"];
-
 function pickDefaultDestination(sourceClient: ClientKind): ClientKind {
-  return CLIENTS.find((candidate) => candidate !== sourceClient) ?? sourceClient;
+  return buildSkillCopyDestinationClients(sourceClient)[0] ?? sourceClient;
 }
 
 const DEFAULT_STATE: SkillCopyFormState = {

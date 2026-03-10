@@ -6,6 +6,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/utils";
+import { formatClientLabel } from "../clients/client-labels";
 import type { SkillEditFormState } from "./useSkillEditForm";
 
 interface SkillEditFormProps {
@@ -29,6 +30,9 @@ export function SkillEditForm({
       onSubmit={(event) => void onSubmit(event)}
     >
       {state.localError ? <Alert variant="destructive">{state.localError}</Alert> : null}
+
+      <Label htmlFor="skill-edit-client">Client</Label>
+      <Input id="skill-edit-client" value={formatClientLabel(state.client)} disabled />
 
       <Label htmlFor="skill-edit-target-id">Target ID</Label>
       <Input id="skill-edit-target-id" value={state.targetId} disabled />
