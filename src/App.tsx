@@ -9,6 +9,7 @@ import { formatClientLabel } from "./features/clients/client-labels";
 import { useClientDetections } from "./features/clients/useClientDetections";
 import { McpManagerPanel } from "./features/mcp/McpManagerPanel";
 import { type AppRoute, NAVIGATION_ITEMS } from "./features/navigation";
+import { buildRouteOverview } from "./features/navigation/route-overview";
 import { ResourceContextBar } from "./features/resources/ResourceContextBar";
 import {
   normalizeProjectRootInput,
@@ -85,6 +86,7 @@ function App() {
     [activeRoute, resourceContext],
   );
   const isDashboardRoute = activeRoute === "dashboard";
+  const routeOverview = useMemo(() => buildRouteOverview(activeRoute), [activeRoute]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_8%_2%,#f9f8f3_0%,#edf6ff_40%,#e9f0f4_100%)] p-4 text-slate-900 max-[720px]:p-3">
@@ -213,35 +215,13 @@ function App() {
                   />
                 ))}
               </section>
-            ) : activeRoute === "skills" ? (
+            ) : routeOverview ? (
               <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
                 <div className="grid gap-1">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate-500">
-                    Skill Library Overview
+                    {routeOverview.eyebrow}
                   </p>
-                  <p className="text-sm text-slate-700">
-                    Generic skill libraries now span the supported clients inside the selected
-                    context.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setActiveRoute("dashboard")}
-                >
-                  Open Dashboard
-                </Button>
-              </section>
-            ) : (
-              <section className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fbfdff_0%,#f7fafc_100%)] px-4 py-3">
-                <div className="grid gap-1">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate-500">
-                    MCP Overview
-                  </p>
-                  <p className="text-sm text-slate-700">
-                    MCP resources now span all supported clients inside the selected context.
-                  </p>
+                  <p className="text-sm text-slate-700">{routeOverview.description}</p>
                 </div>
 
                 <Button
@@ -253,7 +233,7 @@ function App() {
                   Open Dashboard
                 </Button>
               </section>
-            )}
+            ) : null}
 
             {!isDashboardRoute ? (
               <ResourceContextBar

@@ -28,7 +28,7 @@
     "package:macos:dmg": "node ./scripts/package-macos-dmg.mjs",
     "test": "pnpm run test:contracts && pnpm run test:web:unit",
     "test:contracts": "node --test tests/error-ui-contract.test.mjs tests/normalized-domain-model.test.mjs tests/support-matrix.test.mjs tests/mvp-acceptance-contract.test.mjs",
-    "test:web:unit": "tsx --test tests/resource-context.test.ts tests/mcp-targets.test.ts tests/mcp-replication.test.ts tests/skill-context.test.ts",
+    "test:web:unit": "tsx --test tests/resource-context.test.ts tests/mcp-targets.test.ts tests/mcp-replication.test.ts tests/skill-context.test.ts tests/route-overview.test.ts",
     "prepare": "husky"
   },
   "lint-staged": {
