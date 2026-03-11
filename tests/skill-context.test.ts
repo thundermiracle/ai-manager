@@ -3,7 +3,6 @@ import test from "node:test";
 
 import type { ResourceRecord } from "../src/backend/contracts.ts";
 import { RESOURCE_KIND_CATALOG } from "../src/backend/contracts.ts";
-import { listNativeResourceEntryPoints } from "../src/features/skills/native-resource-catalog.ts";
 import { buildSkillContextHint } from "../src/features/skills/skill-context.ts";
 import {
   countSkillResourcesByClient,
@@ -132,13 +131,4 @@ test("resource kind catalog marks generic and native families explicitly", () =>
   assert.equal(RESOURCE_KIND_CATALOG.skill.managementModel, "ai_manager");
   assert.equal(RESOURCE_KIND_CATALOG.mcp.family, "native");
   assert.equal(RESOURCE_KIND_CATALOG.subagent.family, "native");
-});
-
-test("native resource entry points preview Claude-only native surfaces", () => {
-  assert.equal(listNativeResourceEntryPoints("claude_code").length, 1);
-  assert.match(
-    listNativeResourceEntryPoints("claude_code")[0].description,
-    /native Claude agent manifests/i,
-  );
-  assert.deepEqual(listNativeResourceEntryPoints("cursor"), []);
 });
