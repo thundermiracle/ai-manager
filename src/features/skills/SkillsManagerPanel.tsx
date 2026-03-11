@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { RESOURCE_KIND_CATALOG, type ResourceRecord } from "../../backend/contracts";
+import type { ResourceRecord } from "../../backend/contracts";
 import { ConfirmModal } from "../../components/shared/ConfirmModal";
 import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
 import { SlideOverPanel } from "../../components/shared/SlideOverPanel";
@@ -15,7 +15,6 @@ import {
   buildResourceContextSummary,
   type ResourceContextMode,
 } from "../resources/resource-context";
-import { listNativeResourceEntryPoints } from "./native-resource-catalog";
 import { SkillAddForm } from "./SkillAddForm";
 import { SkillCopyForm } from "./SkillCopyForm";
 import { SkillEditForm } from "./SkillEditForm";
@@ -137,16 +136,6 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
     () => filterSkillResources(resources, clientFilters, searchQuery),
     [clientFilters, resources, searchQuery],
   );
-  const nativeResourceEntryPoints = useMemo(
-    () =>
-      clientFilters.flatMap((client) =>
-        listNativeResourceEntryPoints(client).map((entryPoint) => ({
-          ...entryPoint,
-          client,
-        })),
-      ),
-    [clientFilters],
-  );
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const snackbarFeedback = useMemo(() => {
     if (feedback === null) {
@@ -255,53 +244,6 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
           </div>
 
           {contextMode === "project" ? <Alert variant="default">{contextHint}</Alert> : null}
-
-          <section className="grid gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="rounded-full bg-emerald-600 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-white">
-                {RESOURCE_KIND_CATALOG.skill.family} family
-              </p>
-              <p className="rounded-full bg-slate-900 px-3 py-1 text-[0.69rem] font-semibold uppercase tracking-[0.08em] text-slate-100">
-                AI Manager-managed
-              </p>
-            </div>
-            <p className="text-sm text-slate-700">
-              This surface manages reusable `SKILL.md` libraries only. Native client resources stay
-              on dedicated surfaces so project-native features do not get folded into generic skill
-              storage.
-            </p>
-            {nativeResourceEntryPoints.length > 0 ? (
-              <div className="grid gap-2">
-                {nativeResourceEntryPoints.map((entryPoint) => (
-                  <div
-                    key={`${entryPoint.client}:${entryPoint.id}`}
-                    className="rounded-xl border border-sky-200/80 bg-sky-50/80 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-3 max-[720px]:flex-col">
-                      <div className="grid gap-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-slate-900">{entryPoint.title}</p>
-                          <span className="rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-600">
-                            {formatClientLabel(entryPoint.client)}
-                          </span>
-                        </div>
-                        <p className="text-xs leading-relaxed text-slate-600">
-                          {entryPoint.description}
-                        </p>
-                      </div>
-                      <p className="rounded-full bg-sky-600 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-white">
-                        {entryPoint.statusLabel}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500">
-                No native resource entry points are defined for the active client filters yet.
-              </p>
-            )}
-          </section>
 
           <div className="grid gap-3 rounded-2xl border border-slate-200/90 bg-white/90 p-3">
             <div className="flex flex-wrap items-center gap-2">
