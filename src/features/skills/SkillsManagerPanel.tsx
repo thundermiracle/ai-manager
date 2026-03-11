@@ -230,8 +230,9 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
               <CardTitle className="text-[1.35rem] tracking-[-0.012em]">Skill Libraries</CardTitle>
               <p className="mt-1 text-sm text-slate-700">{contextSummary.description}</p>
               <p className="mt-1 text-xs text-slate-500">
-                Generic skill libraries across {clientFilters.length} client filter
-                {clientFilters.length === 1 ? "" : "s"}.
+                {clientFilters.length === 0
+                  ? "No client filters selected."
+                  : `Generic skill libraries across ${clientFilters.length} selected client${clientFilters.length === 1 ? "" : "s"}.`}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -321,20 +322,13 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant={clientFilters.length === SKILL_CLIENTS.length ? "default" : "outline"}
-                size="sm"
-                onClick={() => setClientFilters(SKILL_CLIENTS)}
-              >
-                All Clients
-              </Button>
               {SKILL_CLIENTS.map((client) => {
                 const active = clientFilters.includes(client);
                 return (
                   <Button
                     key={client}
                     type="button"
+                    aria-pressed={active}
                     variant={active ? "secondary" : "outline"}
                     size="sm"
                     onClick={() =>
@@ -371,9 +365,11 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
             onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
-              normalizedQuery.length > 0
-                ? `No skill entries match "${searchQuery.trim()}".`
-                : "No generic skill entries are registered for the current context."
+              clientFilters.length === 0
+                ? "Select one or more clients to show generic skill entries."
+                : normalizedQuery.length > 0
+                  ? `No skill entries match "${searchQuery.trim()}".`
+                  : "No generic skill entries are registered for the current context."
             }
           />
         </CardContent>

@@ -11,6 +11,7 @@ import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { toggleClientFilterSelection } from "../clients/client-filter-selection";
 import { formatClientLabel } from "../clients/client-labels";
 import {
   buildResourceContextSummary,
@@ -39,14 +40,6 @@ import { useMcpManager } from "./useMcpManager";
 interface McpManagerPanelProps {
   contextMode: ResourceContextMode;
   projectRoot: string | null;
-}
-
-function toggleClientFilter(current: ClientKind[], client: ClientKind): ClientKind[] {
-  if (current.includes(client)) {
-    return current.length === 1 ? current : current.filter((entry) => entry !== client);
-  }
-
-  return [...current, client];
 }
 
 function includesSearchQuery(
@@ -339,8 +332,9 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
               <CardTitle className="text-[1.35rem] tracking-[-0.012em]">MCP Manager</CardTitle>
               <p className="mt-1 text-sm text-slate-700">{contextSummary.description}</p>
               <p className="mt-1 text-xs text-slate-500">
-                {formatResourceViewModeLabel(viewMode)} across {clientFilters.length} client filter
-                {clientFilters.length === 1 ? "" : "s"}.
+                {clientFilters.length === 0
+                  ? "No client filters selected."
+                  : `${formatResourceViewModeLabel(viewMode)} across ${clientFilters.length} selected client${clientFilters.length === 1 ? "" : "s"}.`}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -401,24 +395,19 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant={clientFilters.length === MCP_CLIENTS.length ? "default" : "outline"}
-                size="sm"
-                onClick={() => setClientFilters(MCP_CLIENTS)}
-              >
-                All Clients
-              </Button>
               {MCP_CLIENTS.map((client) => {
                 const active = clientFilters.includes(client);
                 return (
                   <Button
                     key={client}
                     type="button"
+                    aria-pressed={active}
                     variant={active ? "secondary" : "outline"}
                     size="sm"
                     onClick={() =>
-                      setClientFilters((current) => toggleClientFilter(current, client))
+                      setClientFilters((current) =>
+                        toggleClientFilterSelection(current, client, MCP_CLIENTS),
+                      )
                     }
                   >
                     {formatClientLabel(client)} ({clientCounts.get(client) ?? 0})
@@ -452,9 +441,11 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
             onEdit={handleEdit}
             onRemove={handleRemove}
             emptyMessage={
-              normalizedQuery.length > 0
-                ? `No MCP entries match "${searchQuery.trim()}".`
-                : "No MCP entries registered for the current context."
+              clientFilters.length === 0
+                ? "Select one or more clients to show MCP entries."
+                : normalizedQuery.length > 0
+                  ? `No MCP entries match "${searchQuery.trim()}".`
+                  : "No MCP entries registered for the current context."
             }
           />
         </CardContent>
