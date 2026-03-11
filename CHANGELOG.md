@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.4.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.3.0...ai-manager-v0.4.0) (2026-03-11)
+
+
+### Features
+
+* adapt Skills manager to the resource context shell ([#131](https://github.com/thundermiracle/ai-manager/issues/131)) ([0a88504](https://github.com/thundermiracle/ai-manager/commit/0a885045a4edd27f1c06a9e467c872a22be63b1b)), closes [#128](https://github.com/thundermiracle/ai-manager/issues/128)
+* add Claude subagent resource kind and contracts ([#141](https://github.com/thundermiracle/ai-manager/issues/141)) ([fa9ac1f](https://github.com/thundermiracle/ai-manager/commit/fa9ac1f90fdf00a263b195885f8a10eabd99615a))
+* add client capability matrix for resource scopes ([e273572](https://github.com/thundermiracle/ai-manager/commit/e273572b0e7df08051648b7604095b94ee8f0c4a))
+* add explicit MCP promote and destination flows ([758ae54](https://github.com/thundermiracle/ai-manager/commit/758ae54141ab8f86a3bc6470e183cd34156b3098))
+* add explicit MCP promote and destination flows ([#136](https://github.com/thundermiracle/ai-manager/issues/136)) ([758ae54](https://github.com/thundermiracle/ai-manager/commit/758ae54141ab8f86a3bc6470e183cd34156b3098))
+* add native MCP source catalog descriptors ([c23c4a2](https://github.com/thundermiracle/ai-manager/commit/c23c4a249b15992ea718174d5ccf4edf194b1753))
+* add personal and project resource context shell ([#129](https://github.com/thundermiracle/ai-manager/issues/129)) ([a33c276](https://github.com/thundermiracle/ai-manager/commit/a33c2763ef187db169c6d84999a1f84bc748079e)), closes [#126](https://github.com/thundermiracle/ai-manager/issues/126)
+* add source-aware MCP replication command ([7078bb9](https://github.com/thundermiracle/ai-manager/commit/7078bb98395f3ccc9f1f2bf0093995f1aad0446f))
+* add source-aware MCP replication command ([#135](https://github.com/thundermiracle/ai-manager/issues/135)) ([7078bb9](https://github.com/thundermiracle/ai-manager/commit/7078bb98395f3ccc9f1f2bf0093995f1aad0446f))
+* add source-aware resource contracts and request plumbing ([#115](https://github.com/thundermiracle/ai-manager/issues/115)) ([0924d5d](https://github.com/thundermiracle/ai-manager/commit/0924d5d056e812929eec27530e8f5b8ae8a83e0c))
+* align skill library UI with MCP manager ([#146](https://github.com/thundermiracle/ai-manager/issues/146)) ([375b0e4](https://github.com/thundermiracle/ai-manager/commit/375b0e483f3ae8451ec44abed9f9f457cdab1d0c))
+* handle MCP replication conflicts and overwrite choices ([fe0d6c2](https://github.com/thundermiracle/ai-manager/commit/fe0d6c25f78eb7bc54820002abe950934f585242))
+* handle MCP replication conflicts and overwrite choices ([#137](https://github.com/thundermiracle/ai-manager/issues/137)) ([fe0d6c2](https://github.com/thundermiracle/ai-manager/commit/fe0d6c25f78eb7bc54820002abe950934f585242))
+* list MCP resources across native sources ([5f675ad](https://github.com/thundermiracle/ai-manager/commit/5f675adf38a123c4ebbfe23d90a80e6066200dae)), closes [#121](https://github.com/thundermiracle/ai-manager/issues/121)
+* make MCP manager context-first and source-aware ([#130](https://github.com/thundermiracle/ai-manager/issues/130)) ([df4848f](https://github.com/thundermiracle/ai-manager/commit/df4848f4caf1d276b3439cff2cb488dbf60ff4c6)), closes [#127](https://github.com/thundermiracle/ai-manager/issues/127)
+* normalize and validate project context roots ([225c8ab](https://github.com/thundermiracle/ai-manager/commit/225c8ab6d694bdc78e79604fc213507168215442))
+* **rust:** add native MCP source catalog descriptors ([#120](https://github.com/thundermiracle/ai-manager/issues/120)) ([c23c4a2](https://github.com/thundermiracle/ai-manager/commit/c23c4a249b15992ea718174d5ccf4edf194b1753))
+* **rust:** add source-aware MCP replication command ([#132](https://github.com/thundermiracle/ai-manager/issues/132)) ([69e9092](https://github.com/thundermiracle/ai-manager/commit/69e90922272737d5c775db3310852a6349657be9))
+* **rust:** default MCP replication destinations from resolved sources ([#133](https://github.com/thundermiracle/ai-manager/issues/133)) ([d4e5e69](https://github.com/thundermiracle/ai-manager/commit/d4e5e69702695583129caaba80e74d6faf4f67e8))
+* **rust:** normalize and validate project context roots ([#113](https://github.com/thundermiracle/ai-manager/issues/113)) ([225c8ab](https://github.com/thundermiracle/ai-manager/commit/225c8ab6d694bdc78e79604fc213507168215442))
+* separate generic skill libraries from native resources ([#142](https://github.com/thundermiracle/ai-manager/issues/142)) ([e3bd8cc](https://github.com/thundermiracle/ai-manager/commit/e3bd8cc1917dd402548046fe58d16df94e4d05e3))
+* support project-aware MCP mutation targets ([96e7e29](https://github.com/thundermiracle/ai-manager/commit/96e7e29172ec0f2fefa61f2dffba42f271856c35)), closes [#122](https://github.com/thundermiracle/ai-manager/issues/122)
+* **ts:** add explicit MCP copy and promote flows ([#133](https://github.com/thundermiracle/ai-manager/issues/133)) ([fa3e177](https://github.com/thundermiracle/ai-manager/commit/fa3e1774880ce7ab530f7aaf2af0676cabbd0f8c))
+* **ts:** expose MCP replication command contract ([#132](https://github.com/thundermiracle/ai-manager/issues/132)) ([be8eb23](https://github.com/thundermiracle/ai-manager/commit/be8eb230a4ded6f7d53ec5b5d7938a2b29d577da))
+* **ts:** handle MCP replication conflicts in the UI ([#134](https://github.com/thundermiracle/ai-manager/issues/134)) ([ef51bc0](https://github.com/thundermiracle/ai-manager/commit/ef51bc0e31424f33e1dce43f076b2b40fb483f87))
+* unify client chip filters across managers ([#151](https://github.com/thundermiracle/ai-manager/issues/151)) ([2b7b9f3](https://github.com/thundermiracle/ai-manager/commit/2b7b9f36e1ee863fdc0da888f9c13aa3be1b88e0))
+
+
+### Bug Fixes
+
+* constrain slide-over forms to the viewport ([#153](https://github.com/thundermiracle/ai-manager/issues/153)) ([4481ef7](https://github.com/thundermiracle/ai-manager/commit/4481ef796621c3cf7dc84b714c5635836523a1ab))
+* portal slide-over panels to the document body ([#157](https://github.com/thundermiracle/ai-manager/issues/157)) ([f66dba9](https://github.com/thundermiracle/ai-manager/commit/f66dba9cec2aced28c45af6d05e464fd92123916))
+
+
+### Performance Improvements
+
+* improve MCP manager load performance ([#144](https://github.com/thundermiracle/ai-manager/issues/144)) ([76f05f1](https://github.com/thundermiracle/ai-manager/commit/76f05f17f4f4fdd202185140225c8702984ef96c))
+
 ## [0.3.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.2.2...ai-manager-v0.3.0) (2026-03-06)
 
 
