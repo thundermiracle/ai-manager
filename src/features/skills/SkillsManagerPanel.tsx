@@ -329,8 +329,13 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
                     key={client}
                     type="button"
                     aria-pressed={active}
-                    variant={active ? "secondary" : "outline"}
+                    variant="outline"
                     size="sm"
+                    className={
+                      active
+                        ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 hover:text-white"
+                        : undefined
+                    }
                     onClick={() =>
                       setClientFilters((current) => toggleSkillClientFilter(current, client))
                     }
