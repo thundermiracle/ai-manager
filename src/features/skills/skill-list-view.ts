@@ -1,4 +1,5 @@
 import type { ClientKind, ResourceRecord } from "../../backend/contracts";
+import { toggleClientFilterSelection } from "../clients/client-filter-selection";
 import { formatClientLabel } from "../clients/client-labels";
 import { SKILL_CLIENTS } from "./skill-targets";
 
@@ -13,11 +14,7 @@ export function sortSkillResources(resources: ResourceRecord[]): ResourceRecord[
 }
 
 export function toggleSkillClientFilter(current: ClientKind[], client: ClientKind): ClientKind[] {
-  if (current.includes(client)) {
-    return current.length === 1 ? current : current.filter((entry) => entry !== client);
-  }
-
-  return [...current, client];
+  return toggleClientFilterSelection(current, client, SKILL_CLIENTS);
 }
 
 export function countSkillResourcesByClient(resources: ResourceRecord[]): Map<ClientKind, number> {

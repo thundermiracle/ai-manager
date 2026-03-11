@@ -98,7 +98,7 @@ test("skill list view filters by client and search query", () => {
   );
 });
 
-test("skill list view counts resources per client and preserves a single active filter", () => {
+test("skill list view counts resources per client and allows clearing every filter", () => {
   const resources = [
     createSkillResource({
       id: "claude::writer",
@@ -124,7 +124,7 @@ test("skill list view counts resources per client and preserves a single active 
   assert.equal(counts.get("claude_code"), 1);
   assert.equal(counts.get("cursor"), 2);
   assert.equal(counts.get("codex"), 0);
-  assert.deepEqual(toggleSkillClientFilter(["cursor"], "cursor"), ["cursor"]);
+  assert.deepEqual(toggleSkillClientFilter(["cursor"], "cursor"), []);
 });
 
 test("resource kind catalog marks generic and native families explicitly", () => {
