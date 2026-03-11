@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { resolveSlideOverPortalTarget } from "../src/components/shared/slide-over-portal-target.ts";
 import { lockSlideOverBackgroundScroll } from "../src/components/shared/slide-over-scroll-lock.ts";
 
 test("slide-over scroll lock hides background scrolling until restored", () => {
@@ -52,4 +53,11 @@ test("slide-over scroll lock hides background scrolling until restored", () => {
       },
     },
   });
+});
+
+test("slide-over portal target resolves to document body", () => {
+  const body = {} as HTMLElement;
+
+  assert.equal(resolveSlideOverPortalTarget({ body }), body);
+  assert.equal(resolveSlideOverPortalTarget(null), null);
 });
