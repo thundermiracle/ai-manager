@@ -1,7 +1,9 @@
 import { type ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { resolveSlideOverPortalTarget } from "./slide-over-portal-target";
 import { lockSlideOverBackgroundScroll } from "./slide-over-scroll-lock";
 
 interface SlideOverPanelProps {
@@ -48,7 +50,14 @@ export function SlideOverPanel({
     return null;
   }
 
-  return (
+  const portalTarget = resolveSlideOverPortalTarget(
+    typeof document === "undefined" ? null : document,
+  );
+  if (portalTarget === null) {
+    return null;
+  }
+
+  return createPortal(
     <div className="fixed inset-0 z-40 overflow-hidden bg-slate-900/24 backdrop-blur-[1px]">
       <button
         type="button"
@@ -82,6 +91,7 @@ export function SlideOverPanel({
           {children}
         </div>
       </section>
-    </div>
+    </div>,
+    portalTarget,
   );
 }
