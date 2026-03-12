@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-
 import {
   buildResourceContextSummary,
   isProjectContextIncomplete,
@@ -8,66 +5,60 @@ import {
 } from "../src/features/resources/resource-context.ts";
 
 test("normalizeProjectRootInput trims whitespace and collapses empty values", () => {
-  assert.equal(normalizeProjectRootInput("  /Users/demo/project  "), "/Users/demo/project");
-  assert.equal(normalizeProjectRootInput("   "), null);
+  expect(normalizeProjectRootInput("  /Users/demo/project  ")).toBe("/Users/demo/project");
+  expect(normalizeProjectRootInput("   ")).toBeNull();
 });
 
 test("project context is incomplete only when project mode lacks a root", () => {
-  assert.equal(
+  expect(
     isProjectContextIncomplete({
       mode: "project",
       projectRoot: null,
     }),
-    true,
-  );
-  assert.equal(
+  ).toBe(true);
+  expect(
     isProjectContextIncomplete({
       mode: "project",
       projectRoot: "/Users/demo/project",
     }),
-    false,
-  );
-  assert.equal(
+  ).toBe(false);
+  expect(
     isProjectContextIncomplete({
       mode: "personal",
       projectRoot: null,
     }),
-    false,
-  );
+  ).toBe(false);
 });
 
 test("buildResourceContextSummary returns stable user-facing copy", () => {
-  assert.deepEqual(
+  expect(
     buildResourceContextSummary({
       mode: "personal",
       projectRoot: null,
     }),
-    {
-      title: "Personal context",
-      description: "Manage personal resources without binding the current view to a project root.",
-    },
-  );
+  ).toEqual({
+    title: "Personal context",
+    description: "Manage personal resources without binding the current view to a project root.",
+  });
 
-  assert.deepEqual(
+  expect(
     buildResourceContextSummary({
       mode: "project",
       projectRoot: null,
     }),
-    {
-      title: "Project context",
-      description:
-        "Apply a project root to prepare project-aware resource views and destination choices.",
-    },
-  );
+  ).toEqual({
+    title: "Project context",
+    description:
+      "Apply a project root to prepare project-aware resource views and destination choices.",
+  });
 
-  assert.deepEqual(
+  expect(
     buildResourceContextSummary({
       mode: "project",
       projectRoot: "/Users/demo/project",
     }),
-    {
-      title: "Project context",
-      description: "Project root applied: /Users/demo/project",
-    },
-  );
+  ).toEqual({
+    title: "Project context",
+    description: "Project root applied: /Users/demo/project",
+  });
 });

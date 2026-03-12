@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-
 import type { ResourceRecord } from "../src/backend/contracts.ts";
 import {
   findMcpReplicationConflict,
@@ -47,7 +44,7 @@ test("findMcpReplicationConflict returns only destination-matching entries", () 
 
   const conflict = findMcpReplicationConflict(resources, destination, "filesystem");
 
-  assert.equal(conflict?.source_scope, "user");
+  expect(conflict?.source_scope).toBe("user");
 });
 
 test("suggestMcpReplicationTargetId increments until a free destination id exists", () => {
@@ -61,5 +58,5 @@ test("suggestMcpReplicationTargetId increments until a free destination id exist
     }),
   ];
 
-  assert.equal(suggestMcpReplicationTargetId(resources, destination, "filesystem"), "filesystem-3");
+  expect(suggestMcpReplicationTargetId(resources, destination, "filesystem")).toBe("filesystem-3");
 });

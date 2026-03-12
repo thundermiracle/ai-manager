@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-
 import type { ResourceRecord } from "../src/backend/contracts.ts";
 import { selectMcpResourcesForView } from "../src/features/mcp/mcp-list-view.ts";
 import {
@@ -46,14 +43,12 @@ test("project mode targets shared project config for Claude Code and Cursor", ()
   );
   const cursorTarget = buildMcpMutationTargetPlan("cursor", "project", "/Users/demo/workspace");
 
-  assert.equal(claudeTarget.destinationScope, "project_shared");
-  assert.equal(
-    claudeTarget.targetSourceId,
+  expect(claudeTarget.destinationScope).toBe("project_shared");
+  expect(claudeTarget.targetSourceId).toBe(
     "mcp::claude_code::project_shared::/Users/demo/workspace/.mcp.json::/mcpServers",
   );
-  assert.equal(cursorTarget.destinationScope, "project_shared");
-  assert.equal(
-    cursorTarget.targetSourceId,
+  expect(cursorTarget.destinationScope).toBe("project_shared");
+  expect(cursorTarget.targetSourceId).toBe(
     "mcp::cursor::project_shared::/Users/demo/workspace/.cursor/mcp.json::/mcpServers",
   );
 });
@@ -61,25 +56,25 @@ test("project mode targets shared project config for Claude Code and Cursor", ()
 test("project mode falls back to personal config for Codex", () => {
   const target = buildMcpMutationTargetPlan("codex", "project", "/Users/demo/workspace");
 
-  assert.equal(target.destinationScope, "user");
-  assert.equal(target.targetSourceId, null);
-  assert.match(target.fallbackNotice ?? "", /falls back to personal config/i);
-  assert.equal(describeMcpAction("add", target), "Add to personal config");
+  expect(target.destinationScope).toBe("user");
+  expect(target.targetSourceId).toBeNull();
+  expect(target.fallbackNotice ?? "").toMatch(/falls back to personal config/i);
+  expect(describeMcpAction("add", target)).toBe("Add to personal config");
 });
 
 test("personal target plan stays explicit for promote flows", () => {
   const target = buildMcpPersonalTargetPlan("claude_code");
 
-  assert.equal(target.destinationScope, "user");
-  assert.equal(target.projectRoot, null);
-  assert.equal(target.targetSourceId, null);
-  assert.equal(describeMcpAction("promote", target), "Promote to personal config");
+  expect(target.destinationScope).toBe("user");
+  expect(target.projectRoot).toBeNull();
+  expect(target.targetSourceId).toBeNull();
+  expect(describeMcpAction("promote", target)).toBe("Promote to personal config");
 });
 
 test("destination matching prefers client plus destination scope and source id", () => {
   const target = buildMcpMutationTargetPlan("cursor", "project", "/Users/demo/workspace");
 
-  assert.equal(
+  expect(
     matchesMcpDestination(
       {
         id: "cursor::project",
@@ -104,10 +99,9 @@ test("destination matching prefers client plus destination scope and source id",
       },
       target,
     ),
-    true,
-  );
+  ).toBe(true);
 
-  assert.equal(
+  expect(
     matchesMcpDestination(
       {
         id: "cursor::user",
@@ -131,31 +125,28 @@ test("destination matching prefers client plus destination scope and source id",
       },
       target,
     ),
-    false,
-  );
+  ).toBe(false);
 });
 
 test("project mode hint stays explicit about Codex fallback", () => {
-  assert.match(buildMcpProjectModeHint(), /Codex falls back to personal config/i);
+  expect(buildMcpProjectModeHint()).toMatch(/Codex falls back to personal config/i);
 });
 
 test("promote is available only for project-scoped MCP resources", () => {
-  assert.equal(
+  expect(
     canPromoteMcpResource({
       source_scope: "project_shared",
     }),
-    true,
-  );
-  assert.equal(
+  ).toBe(true);
+  expect(
     canPromoteMcpResource({
       source_scope: "user",
     }),
-    false,
-  );
+  ).toBe(false);
 });
 
 test("copy destinations exclude the source client", () => {
-  assert.deepEqual(buildMcpCopyDestinationClients("cursor"), ["claude_code", "codex"]);
+  expect(buildMcpCopyDestinationClients("cursor")).toEqual(["claude_code", "codex"]);
 });
 
 test("effective view is derived from all sources without shadowed entries", () => {
@@ -185,10 +176,10 @@ test("effective view is derived from all sources without shadowed entries", () =
     "effective",
   );
 
-  assert.deepEqual(
-    selected.map((resource) => resource.id),
-    ["cursor::effective", "claude::effective"],
-  );
+  expect(selected.map((resource) => resource.id)).toEqual([
+    "cursor::effective",
+    "claude::effective",
+  ]);
 });
 
 test("all sources view preserves every source and sorts deterministically", () => {
@@ -215,8 +206,9 @@ test("all sources view preserves every source and sorts deterministically", () =
     "all_sources",
   );
 
-  assert.deepEqual(
-    selected.map((resource) => resource.id),
-    ["alpha::user", "filesystem::project", "filesystem::user"],
-  );
+  expect(selected.map((resource) => resource.id)).toEqual([
+    "alpha::user",
+    "filesystem::project",
+    "filesystem::user",
+  ]);
 });

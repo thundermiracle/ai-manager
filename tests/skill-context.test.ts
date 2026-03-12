@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-
 import type { ResourceRecord } from "../src/backend/contracts.ts";
 import { RESOURCE_KIND_CATALOG } from "../src/backend/contracts.ts";
 import { buildSkillContextHint } from "../src/features/skills/skill-context.ts";
@@ -42,31 +39,29 @@ function createSkillResource(
 }
 
 test("project mode hint stays explicit about personal-only skill storage", () => {
-  assert.match(buildSkillContextHint("project"), /generic skill libraries/i);
-  assert.match(buildSkillContextHint("project"), /subagents/i);
+  expect(buildSkillContextHint("project")).toMatch(/generic skill libraries/i);
+  expect(buildSkillContextHint("project")).toMatch(/subagents/i);
 });
 
 test("personal mode hint stays concise", () => {
-  assert.equal(
-    buildSkillContextHint("personal"),
+  expect(buildSkillContextHint("personal")).toBe(
     "This tab manages AI Manager generic skill libraries across the supported clients.",
   );
 });
 
 test("skill action labels stay explicit and can target a client", () => {
-  assert.equal(describeSkillAction("add"), "Add personal skill");
-  assert.equal(describeSkillAction("update", "cursor"), "Update Cursor personal skill");
-  assert.equal(describeSkillAction("remove"), "Remove from personal");
-  assert.equal(describeSkillAction("copy"), "Copy to another client");
-  assert.equal(
-    describeSkillAction("import", "claude_code"),
+  expect(describeSkillAction("add")).toBe("Add personal skill");
+  expect(describeSkillAction("update", "cursor")).toBe("Update Cursor personal skill");
+  expect(describeSkillAction("remove")).toBe("Remove from personal");
+  expect(describeSkillAction("copy")).toBe("Copy to another client");
+  expect(describeSkillAction("import", "claude_code")).toBe(
     "Import to Claude Code personal library",
   );
 });
 
 test("skill client catalog excludes the source client for copy workflows", () => {
-  assert.deepEqual(SKILL_CLIENTS, ["claude_code", "cursor", "codex"]);
-  assert.deepEqual(buildSkillCopyDestinationClients("cursor"), ["claude_code", "codex"]);
+  expect(SKILL_CLIENTS).toEqual(["claude_code", "cursor", "codex"]);
+  expect(buildSkillCopyDestinationClients("cursor")).toEqual(["claude_code", "codex"]);
 });
 
 test("skill list view filters by client and search query", () => {
@@ -91,10 +86,9 @@ test("skill list view filters by client and search query", () => {
     }),
   ];
 
-  assert.deepEqual(
+  expect(
     filterSkillResources(resources, ["cursor", "codex"], "cursor").map((resource) => resource.id),
-    ["cursor::lint"],
-  );
+  ).toEqual(["cursor::lint"]);
 });
 
 test("skill list view counts resources per client and allows clearing every filter", () => {
@@ -120,15 +114,15 @@ test("skill list view counts resources per client and allows clearing every filt
   ];
 
   const counts = countSkillResourcesByClient(resources);
-  assert.equal(counts.get("claude_code"), 1);
-  assert.equal(counts.get("cursor"), 2);
-  assert.equal(counts.get("codex"), 0);
-  assert.deepEqual(toggleSkillClientFilter(["cursor"], "cursor"), []);
+  expect(counts.get("claude_code")).toBe(1);
+  expect(counts.get("cursor")).toBe(2);
+  expect(counts.get("codex")).toBe(0);
+  expect(toggleSkillClientFilter(["cursor"], "cursor")).toEqual([]);
 });
 
 test("resource kind catalog marks generic and native families explicitly", () => {
-  assert.equal(RESOURCE_KIND_CATALOG.skill.family, "generic");
-  assert.equal(RESOURCE_KIND_CATALOG.skill.managementModel, "ai_manager");
-  assert.equal(RESOURCE_KIND_CATALOG.mcp.family, "native");
-  assert.equal(RESOURCE_KIND_CATALOG.subagent.family, "native");
+  expect(RESOURCE_KIND_CATALOG.skill.family).toBe("generic");
+  expect(RESOURCE_KIND_CATALOG.skill.managementModel).toBe("ai_manager");
+  expect(RESOURCE_KIND_CATALOG.mcp.family).toBe("native");
+  expect(RESOURCE_KIND_CATALOG.subagent.family).toBe("native");
 });
