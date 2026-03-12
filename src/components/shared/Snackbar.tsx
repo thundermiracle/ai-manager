@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
-type SnackbarTone = "success" | "error" | "warning" | "info";
+export type SnackbarTone = "success" | "error" | "warning" | "info";
 
 interface SnackbarProps {
   open: boolean;
@@ -112,7 +112,7 @@ export function Snackbar({
   const countdownOffset = COUNTDOWN_CIRCUMFERENCE * (1 - countdownProgress);
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 max-w-[min(26rem,calc(100vw-2rem))]">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[100] max-w-[min(26rem,calc(100vw-2rem))]">
       <div
         role={tone === "error" ? "alert" : "status"}
         className={cn(

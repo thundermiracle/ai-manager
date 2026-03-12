@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { ResourceRecord } from "../../backend/contracts";
 import { ConfirmModal } from "../../components/shared/ConfirmModal";
 import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
 import { SlideOverPanel } from "../../components/shared/SlideOverPanel";
-import { Snackbar } from "../../components/shared/Snackbar";
+import { useToast } from "../../components/shared/ToastProvider";
+import { buildToastNotification } from "../../components/shared/toast-feedback";
 import { ViewStatePanel } from "../../components/shared/ViewStatePanel";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
@@ -49,6 +50,7 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
   const [removalCandidate, setRemovalCandidate] = useState<ResourceRecord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [clientFilters, setClientFilters] = useState(SKILL_CLIENTS);
+  const { clearToast, showToast } = useToast();
   const contextSummary = buildResourceContextSummary({
     mode: contextMode,
     projectRoot,
@@ -137,36 +139,36 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
     [clientFilters, resources, searchQuery],
   );
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const snackbarFeedback = useMemo(() => {
-    if (feedback === null) {
-      return null;
+
+  useEffect(() => {
+    const toast = buildToastNotification(feedback);
+    if (toast === null) {
+      return;
     }
 
-    if (feedback.kind === "error" && feedback.diagnostic) {
-      return {
-        tone: "error" as const,
-        message: `CODE: ${feedback.diagnostic.code} | ${feedback.message}`,
-      };
-    }
+    showToast(toast);
+    clearFeedback();
+  }, [clearFeedback, feedback, showToast]);
 
-    return {
-      tone: feedback.kind === "error" ? ("error" as const) : ("success" as const),
-      message: feedback.message,
-    };
-  }, [feedback]);
+  useEffect(() => clearToast, [clearToast]);
+
+  function dismissFeedback() {
+    clearFeedback();
+    clearToast();
+  }
 
   async function handleRemove(resource: ResourceRecord) {
     setRemovalCandidate(resource);
   }
 
   async function handleEdit(resource: ResourceRecord) {
-    clearFeedback();
+    dismissFeedback();
     editForm.loadResource(resource);
     setEditOpen(true);
   }
 
   async function handleCopy(resource: ResourceRecord) {
-    clearFeedback();
+    dismissFeedback();
     copyForm.loadResource(resource);
     setCopyOpen(true);
   }
@@ -194,7 +196,7 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
   }
 
   function openComposer() {
-    clearFeedback();
+    dismissFeedback();
     if (clientFilters.length === 1) {
       addForm.setDestinationClient(clientFilters[0]);
     }
@@ -230,7 +232,7 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  clearFeedback();
+                  dismissFeedback();
                   void refresh();
                 }}
                 disabled={phase === "loading"}
@@ -427,14 +429,6 @@ export function SkillsManagerPanel({ contextMode, projectRoot }: SkillsManagerPa
           void handleConfirmRemoval();
         }}
         onCancel={handleCancelRemoval}
-      />
-
-      <Snackbar
-        open={snackbarFeedback !== null}
-        tone={snackbarFeedback?.tone ?? "info"}
-        message={snackbarFeedback?.message ?? ""}
-        durationMs={5000}
-        onClose={clearFeedback}
       />
     </>
   );

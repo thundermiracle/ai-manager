@@ -1,11 +1,12 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ClientKind, ResourceRecord, ResourceViewMode } from "../../backend/contracts";
 import { ConfirmModal } from "../../components/shared/ConfirmModal";
 import { ErrorRecoveryCallout } from "../../components/shared/ErrorRecoveryCallout";
 import { SlideOverPanel } from "../../components/shared/SlideOverPanel";
-import { Snackbar } from "../../components/shared/Snackbar";
+import { useToast } from "../../components/shared/ToastProvider";
+import { buildToastNotification } from "../../components/shared/toast-feedback";
 import { ViewStatePanel } from "../../components/shared/ViewStatePanel";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
@@ -78,6 +79,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ResourceViewMode>("effective");
   const [clientFilters, setClientFilters] = useState<ClientKind[]>(MCP_CLIENTS);
+  const { clearToast, showToast } = useToast();
   const contextSummary = buildResourceContextSummary({
     mode: contextMode,
     projectRoot,
@@ -238,34 +240,36 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
       }),
     [clientFilters, normalizedQuery, resources, resourcesById],
   );
-  const snackbarFeedback = useMemo(() => {
-    if (feedback === null) {
-      return null;
+
+  useEffect(() => {
+    const toast = buildToastNotification(feedback);
+    if (toast === null) {
+      return;
     }
-    if (feedback.kind === "error" && feedback.diagnostic) {
-      return {
-        tone: "error" as const,
-        message: `CODE: ${feedback.diagnostic.code} | ${feedback.message}`,
-      };
-    }
-    return {
-      tone: feedback.kind === "error" ? ("error" as const) : ("success" as const),
-      message: feedback.message,
-    };
-  }, [feedback]);
+
+    showToast(toast);
+    clearFeedback();
+  }, [clearFeedback, feedback, showToast]);
+
+  useEffect(() => clearToast, [clearToast]);
+
+  function dismissFeedback() {
+    clearFeedback();
+    clearToast();
+  }
 
   async function handleRemove(resource: ResourceRecord) {
     setRemovalCandidate(resource);
   }
 
   async function handleEdit(resource: ResourceRecord) {
-    clearFeedback();
+    dismissFeedback();
     editForm.loadResource(resource, effectiveProjectRoot);
     setEditOpen(true);
   }
 
   async function handleCopy(resource: ResourceRecord) {
-    clearFeedback();
+    dismissFeedback();
     copyForm.loadResource(resource, {
       preferredAction: "copy",
       projectRoot: effectiveProjectRoot,
@@ -274,7 +278,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
   }
 
   async function handlePromote(resource: ResourceRecord) {
-    clearFeedback();
+    dismissFeedback();
     copyForm.loadResource(resource, {
       preferredAction: "promote",
       projectRoot: effectiveProjectRoot,
@@ -307,7 +311,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
   }
 
   function openComposer() {
-    clearFeedback();
+    dismissFeedback();
     if (clientFilters.length === 1) {
       addForm.setDestinationClient(clientFilters[0]);
     }
@@ -343,7 +347,7 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  clearFeedback();
+                  dismissFeedback();
                   void refresh();
                 }}
                 disabled={phase === "loading"}
@@ -574,14 +578,6 @@ export function McpManagerPanel({ contextMode, projectRoot }: McpManagerPanelPro
           void handleConfirmRemoval();
         }}
         onCancel={handleCancelRemoval}
-      />
-
-      <Snackbar
-        open={snackbarFeedback !== null}
-        tone={snackbarFeedback?.tone ?? "info"}
-        message={snackbarFeedback?.message ?? ""}
-        durationMs={5000}
-        onClose={clearFeedback}
       />
     </>
   );
