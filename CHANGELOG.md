@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.4.0...ai-manager-v0.4.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* toast layer&position problem ([eb92019](https://github.com/thundermiracle/ai-manager/commit/eb9201944afa633f84f7c3b2bf40ebd02a22547d))
+
 ## [0.4.0](https://github.com/thundermiracle/ai-manager/compare/ai-manager-v0.3.0...ai-manager-v0.4.0) (2026-03-11)
 
 
