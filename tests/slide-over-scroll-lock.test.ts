@@ -1,6 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-
 import { resolveSlideOverPortalTarget } from "../src/components/shared/slide-over-portal-target.ts";
 import { lockSlideOverBackgroundScroll } from "../src/components/shared/slide-over-scroll-lock.ts";
 
@@ -22,7 +19,7 @@ test("slide-over scroll lock hides background scrolling until restored", () => {
 
   const restore = lockSlideOverBackgroundScroll(target);
 
-  assert.deepEqual(target, {
+  expect(target).toEqual({
     body: {
       style: {
         overflow: "hidden",
@@ -39,7 +36,7 @@ test("slide-over scroll lock hides background scrolling until restored", () => {
 
   restore();
 
-  assert.deepEqual(target, {
+  expect(target).toEqual({
     body: {
       style: {
         overflow: "auto",
@@ -58,6 +55,6 @@ test("slide-over scroll lock hides background scrolling until restored", () => {
 test("slide-over portal target resolves to document body", () => {
   const body = {} as HTMLElement;
 
-  assert.equal(resolveSlideOverPortalTarget({ body }), body);
-  assert.equal(resolveSlideOverPortalTarget(null), null);
+  expect(resolveSlideOverPortalTarget({ body })).toBe(body);
+  expect(resolveSlideOverPortalTarget(null)).toBeNull();
 });
